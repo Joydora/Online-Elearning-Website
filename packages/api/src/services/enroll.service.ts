@@ -138,10 +138,20 @@ export async function finalizePaidEnrollment(
 
     const enrollment = await prisma.enrollment.findUnique({
         where: { id: payment.enrollmentId },
-        select: { type: true },
+        select: {
+            type: true,
+            course: { select: { accessDurationDays: true } },
+        },
     });
 
     const upgradedFromTrial = enrollment?.type === 'TRIAL';
+    const accessDays = enrollment?.course?.accessDurationDays ?? null;
+
+    let expiresAt: Date | null = null;
+    if (accessDays !== null && accessDays > 0) {
+        expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + accessDays);
+    }
 
     await prisma.$transaction([
         prisma.payment.update({
@@ -153,7 +163,7 @@ export async function finalizePaidEnrollment(
         }),
         prisma.enrollment.update({
             where: { id: payment.enrollmentId },
-            data: { type: 'PAID', expiresAt: null },
+            data: { type: 'PAID', expiresAt, isActive: true },
         }),
     ]);
 
