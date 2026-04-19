@@ -34,6 +34,7 @@ type Content = {
     documentUrl?: string;
     fileType?: string;
     timeLimitInMinutes?: number;
+    isFreePreview?: boolean;
 };
 
 type Module = {
@@ -126,6 +127,20 @@ export default function ManageCourse() {
         },
         onError: (error: any) => {
             showErrorAlert('Lỗi xóa nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
+    });
+
+    // Toggle free-preview mutation
+    const togglePreviewMutation = useMutation({
+        mutationFn: async ({ contentId, isFreePreview }: { contentId: number; isFreePreview: boolean }) => {
+            const { data } = await apiClient.put(`/content/${contentId}`, { isFreePreview });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
+        },
+        onError: (error: any) => {
+            showErrorAlert('Không thể cập nhật', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
 
@@ -401,6 +416,25 @@ export default function ManageCourse() {
                                                                 )}
                                                             </p>
                                                         </div>
+                                                        <Button
+                                                            variant={content.isFreePreview ? 'default' : 'outline'}
+                                                            size="sm"
+                                                            data-testid={`preview-toggle-${content.id}`}
+                                                            className={
+                                                                content.isFreePreview
+                                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                                    : 'text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950/30'
+                                                            }
+                                                            disabled={togglePreviewMutation.isPending}
+                                                            onClick={() =>
+                                                                togglePreviewMutation.mutate({
+                                                                    contentId: content.id,
+                                                                    isFreePreview: !content.isFreePreview,
+                                                                })
+                                                            }
+                                                        >
+                                                            {content.isFreePreview ? 'Miễn phí ✓' : 'Đặt miễn phí'}
+                                                        </Button>
                                                         {content.contentType === 'QUIZ' && (
                                                             <Button
                                                                 variant="outline"

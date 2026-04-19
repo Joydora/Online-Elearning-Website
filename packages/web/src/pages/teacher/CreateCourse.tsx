@@ -20,6 +20,7 @@ type CourseFormValues = {
     description: string;
     price: number;
     categoryId: number;
+    trialDurationDays: number | null;
 };
 
 export default function CreateCourse() {
@@ -31,6 +32,7 @@ export default function CreateCourse() {
             description: '',
             price: 0,
             categoryId: 0,
+            trialDurationDays: null,
         },
     });
 
@@ -215,10 +217,49 @@ export default function CreateCourse() {
                                 )}
                             />
 
+                            {/* Trial duration */}
+                            <FormField
+                                control={form.control}
+                                name="trialDurationDays"
+                                rules={{
+                                    validate: (value) =>
+                                        value === null ||
+                                        value === undefined ||
+                                        (Number.isInteger(value) && value > 0) ||
+                                        'Thời hạn học thử phải là số nguyên dương',
+                                }}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">
+                                            Thời hạn học thử (ngày)
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                data-testid="trial-duration-input"
+                                                type="number"
+                                                placeholder="Bỏ trống nếu không cho học thử"
+                                                className="h-12"
+                                                min="1"
+                                                step="1"
+                                                value={field.value ?? ''}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    field.onChange(raw === '' ? null : parseInt(raw, 10));
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Để trống: không cho học thử. VD: 7, 14, 30.
+                                        </p>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             {/* Info Box */}
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                                    <strong>Lưu ý:</strong> Sau khi tạo khóa học, bạn sẽ có thể thêm các chương (modules) 
+                                    <strong>Lưu ý:</strong> Sau khi tạo khóa học, bạn sẽ có thể thêm các chương (modules)
                                     và nội dung học tập (videos, documents, quizzes) trong trang quản lý khóa học.
                                 </p>
                             </div>
