@@ -56,6 +56,7 @@ model User {
   comments         Comment[]
   practiceSubmissions PracticeSubmission[]
   contentCompletions  ContentCompletion[]
+  projectSubmissions  ProjectSubmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,6 +85,7 @@ model Course {
 
   modules     Module[]
   enrollments Enrollment[]
+  projects    Project[]
 
   // Self-many-to-many: courses this course requires the student to have done first.
   prerequisites Course[] @relation("CoursePrerequisites")
@@ -124,6 +126,44 @@ model Content {
   comments     Comment[]
   practice     Practice?
   completions  ContentCompletion[]
+}
+
+model Project {
+  id           Int      @id @default(autoincrement())
+  courseId     Int
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  requirements String?
+  deadline     DateTime?
+
+  submissions  ProjectSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model ProjectSubmission {
+  id              Int       @id @default(autoincrement())
+  projectId       Int
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  studentId       Int
+  student         User      @relation(fields: [studentId], references: [id])
+
+  repoUrl         String
+  commitsJson     Json?
+  lastFetchedAt   DateTime?
+
+  teacherFeedback String?
+  teacherGrade    Int?
+
+  submittedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([studentId, projectId])
+  @@index([projectId])
 }
 
 model ContentCompletion {
