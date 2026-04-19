@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -42,6 +42,7 @@ type Enrollment = {
     completionDate: string | null;
     type?: 'TRIAL' | 'PAID';
     expiresAt?: string | null;
+    isActive?: boolean;
 };
 
 export default function CoursePlayer() {
@@ -79,26 +80,33 @@ export default function CoursePlayer() {
         enabled: !!courseId,
     });
 
-    // Trial state derivation
+    // Enrollment lifecycle derivation
     const expiresAtMs = enrollment?.expiresAt ? new Date(enrollment.expiresAt).getTime() : null;
     const nowMs = Date.now();
     const isTrial = enrollment?.type === 'TRIAL';
-    const isExpired = expiresAtMs !== null && expiresAtMs <= nowMs;
-    const daysLeft =
-        expiresAtMs !== null
-            ? Math.max(0, Math.ceil((expiresAtMs - nowMs) / (24 * 60 * 60 * 1000)))
-            : 0;
+    const isPaid = enrollment?.type === 'PAID';
+    const hasExpiry = expiresAtMs !== null;
+    const isInactive = enrollment?.isActive === false;
+    const isExpired = (hasExpiry && expiresAtMs <= nowMs) || isInactive;
+    const daysLeft = hasExpiry
+        ? Math.max(0, Math.ceil((expiresAtMs - nowMs) / (24 * 60 * 60 * 1000)))
+        : 0;
 
-    // Redirect when trial has expired
+    const showTrialBanner = isTrial && !isExpired;
+    const showPaidExpiryBanner = isPaid && hasExpiry && !isExpired;
+
+    // Redirect when access has expired — trial or paid
     useEffect(() => {
-        if (enrollment && isTrial && isExpired) {
+        if (enrollment && isExpired) {
             showErrorAlert(
-                'Học thử đã hết hạn',
-                'Bạn cần nâng cấp lên bản đầy đủ để tiếp tục học khoá này.',
+                isPaid ? 'Quyền truy cập đã hết hạn' : 'Học thử đã hết hạn',
+                isPaid
+                    ? 'Quyền truy cập khoá học của bạn đã hết hạn. Vui lòng gia hạn để tiếp tục học.'
+                    : 'Bạn cần nâng cấp lên bản đầy đủ để tiếp tục học khoá này.',
             );
             navigate(`/courses/${courseId}`);
         }
-    }, [enrollment, isTrial, isExpired, courseId, navigate]);
+    }, [enrollment, isExpired, isPaid, courseId, navigate]);
 
     const upgradeMutation = useMutation({
         mutationFn: async () => {
@@ -303,7 +311,7 @@ export default function CoursePlayer() {
                 </div>
 
                 {/* Trial Banner */}
-                {isTrial && !isExpired && (
+                {showTrialBanner && (
                     <div
                         data-testid="trial-banner"
                         className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 flex items-center justify-between"
@@ -334,6 +342,22 @@ export default function CoursePlayer() {
                                 </>
                             )}
                         </Button>
+                    </div>
+                )}
+
+                {/* Paid-expiry Banner (no action, informational only) */}
+                {showPaidExpiryBanner && (
+                    <div
+                        data-testid="paid-expiry-banner"
+                        className="bg-gradient-to-r from-sky-500 to-cyan-600 text-white px-6 py-3 flex items-center gap-3"
+                    >
+                        <Clock className="h-5 w-5 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold">Quyền truy cập sắp hết</p>
+                            <p className="text-sm opacity-90">
+                                Còn {daysLeft} ngày truy cập khoá học này.
+                            </p>
+                        </div>
                     </div>
                 )}
 
