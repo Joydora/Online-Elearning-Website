@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { recordRevenue } from './revenue.service';
 
 const prisma = new PrismaClient();
 
@@ -166,6 +167,23 @@ export async function finalizePaidEnrollment(
             data: { type: 'PAID', expiresAt, isActive: true },
         }),
     ]);
+
+    // Book a RevenueLedger entry for this payment. Best-effort: if it throws
+    // we log and move on — the enrollment flip has already succeeded and the
+    // ledger can be reconciled later via an admin sweep.
+    try {
+        const ledgerResult = await recordRevenue(payment.id);
+        if ('created' in ledgerResult && ledgerResult.created) {
+            console.log(
+                `💰 RevenueLedger #${ledgerResult.ledgerId} booked: gross=${ledgerResult.grossAmount}, fee=${ledgerResult.platformFee}, teacher=${ledgerResult.teacherShare}`,
+            );
+        }
+    } catch (err) {
+        console.error(
+            `⚠️  recordRevenue failed for payment ${payment.id}:`,
+            (err as Error).message,
+        );
+    }
 
     return { enrollmentId: payment.enrollmentId, upgradedFromTrial, alreadyProcessed: false };
 }
