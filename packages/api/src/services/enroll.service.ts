@@ -38,38 +38,56 @@ export async function checkoutCourse(options: {
                 courseId: options.courseId,
             },
         },
+        include: { payment: true },
     });
 
-    if (existingEnrollment) {
+    if (existingEnrollment && existingEnrollment.type === 'PAID') {
         throw new Error('ALREADY_ENROLLED');
     }
 
     const stripe = getStripeClient();
 
-    const enrollment = await prisma.enrollment.create({
-        data: {
-            studentId: options.studentId,
-            courseId: options.courseId,
-        },
+    const user = await prisma.user.findUnique({
+        where: { id: options.studentId },
+        select: { id: true, email: true, stripeCustomerId: true },
     });
 
-    const payment = await prisma.payment.create({
-        data: {
-            amount: course.price,
-            status: 'PENDING',
-            stripeSessionId: `pending_${randomUUID()}`,
-            enrollmentId: enrollment.id,
-            studentId: options.studentId,
-        },
-    });
+    if (!user) {
+        throw new Error('USER_NOT_FOUND');
+    }
 
-    const session = await stripe.checkout.sessions.create({
+    // Reuse existing TRIAL enrollment (upgrade path) or create a fresh one for a new purchase.
+    const enrollment = existingEnrollment
+        ? existingEnrollment
+        : await prisma.enrollment.create({
+              data: {
+                  studentId: options.studentId,
+                  courseId: options.courseId,
+              },
+          });
+
+    // Reuse a pending Payment if one already exists (e.g. a previous abandoned checkout);
+    // the unique constraint on enrollmentId means we can have at most one Payment row per enrollment.
+    const payment =
+        existingEnrollment?.payment && existingEnrollment.payment.status !== 'SUCCESSFUL'
+            ? existingEnrollment.payment
+            : await prisma.payment.create({
+                  data: {
+                      amount: course.price,
+                      status: 'PENDING',
+                      stripeSessionId: `pending_${randomUUID()}`,
+                      enrollmentId: enrollment.id,
+                      studentId: options.studentId,
+                  },
+              });
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',
         success_url: options.successUrl,
         cancel_url: options.cancelUrl,
-        customer_email: undefined,
         metadata: {
             paymentId: payment.id.toString(),
+            ...(existingEnrollment?.type === 'TRIAL' ? { upgrade: 'trial_to_paid' } : {}),
         },
         line_items: [
             {
@@ -83,7 +101,15 @@ export async function checkoutCourse(options: {
                 },
             },
         ],
-    });
+    };
+
+    if (user.stripeCustomerId) {
+        sessionParams.customer = user.stripeCustomerId;
+    } else if (user.email) {
+        sessionParams.customer_email = user.email;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     await prisma.payment.update({
         where: { id: payment.id },
@@ -91,6 +117,47 @@ export async function checkoutCourse(options: {
     });
 
     return session.url ?? '';
+}
+
+export async function finalizePaidEnrollment(
+    paymentId: number,
+    stripeSessionId?: string,
+): Promise<{ enrollmentId: number; upgradedFromTrial: boolean; alreadyProcessed: boolean }> {
+    const payment = await prisma.payment.findUnique({
+        where: { id: paymentId },
+        select: { id: true, enrollmentId: true, status: true },
+    });
+
+    if (!payment) {
+        throw new Error('PAYMENT_NOT_FOUND');
+    }
+
+    if (payment.status === 'SUCCESSFUL') {
+        return { enrollmentId: payment.enrollmentId, upgradedFromTrial: false, alreadyProcessed: true };
+    }
+
+    const enrollment = await prisma.enrollment.findUnique({
+        where: { id: payment.enrollmentId },
+        select: { type: true },
+    });
+
+    const upgradedFromTrial = enrollment?.type === 'TRIAL';
+
+    await prisma.$transaction([
+        prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+                status: 'SUCCESSFUL',
+                ...(stripeSessionId ? { stripeSessionId } : {}),
+            },
+        }),
+        prisma.enrollment.update({
+            where: { id: payment.enrollmentId },
+            data: { type: 'PAID', expiresAt: null },
+        }),
+    ]);
+
+    return { enrollmentId: payment.enrollmentId, upgradedFromTrial, alreadyProcessed: false };
 }
 
 export async function startTrialSetup(options: {
@@ -280,19 +347,7 @@ async function handlePaymentCompleted(session: Stripe.Checkout.Session): Promise
         throw new Error('STRIPE_METADATA_MISSING_PAYMENT_ID');
     }
 
-    const payment = await prisma.payment.findUnique({ where: { id: Number(paymentId) } });
-
-    if (!payment) {
-        throw new Error('PAYMENT_NOT_FOUND');
-    }
-
-    await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-            status: 'SUCCESSFUL',
-            stripeSessionId: session.id ?? payment.stripeSessionId,
-        },
-    });
+    await finalizePaidEnrollment(Number(paymentId), session.id);
 }
 
 export async function handleStripeWebhook(payload: Buffer, signature: string | undefined): Promise<void> {
