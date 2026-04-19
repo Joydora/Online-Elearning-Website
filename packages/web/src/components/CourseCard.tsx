@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, Users, Star, BookOpen } from 'lucide-react';
+import { Users, Star, BookOpen } from 'lucide-react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 

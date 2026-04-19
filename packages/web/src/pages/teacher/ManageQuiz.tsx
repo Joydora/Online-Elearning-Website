@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowLeft,
@@ -17,7 +17,6 @@ import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { showSuccessAlert, showErrorAlert } from '../../lib/sweetalert';
 import Swal from 'sweetalert2';
-import { useAuthStore } from '../../stores/useAuthStore';
 
 type Option = {
     id: number;
@@ -41,12 +40,7 @@ type QuizDetail = {
 export default function ManageQuiz() {
     const { contentId } = useParams<{ contentId: string }>();
     const navigate = useNavigate();
-    const location = useLocation();
     const queryClient = useQueryClient();
-    const user = useAuthStore((state) => state.user);
-    
-    // Determine if user is admin based on URL or role
-    const isAdmin = user?.role === 'ADMIN' || location.pathname.startsWith('/admin');
 
     const [isAddingQuestion, setIsAddingQuestion] = useState(false);
     const [newQuestionText, setNewQuestionText] = useState('');
