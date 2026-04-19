@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import { gradePractice } from '../services/practice.service';
+import { refreshEnrollmentProgress } from '../services/progress.service';
 
 const prisma = new PrismaClient();
 
@@ -143,6 +144,24 @@ export async function submitPracticeController(req: Request, res: Response): Pro
                 aiFeedback: grade.feedback,
             },
         });
+
+        // Best-effort progress recompute on the parent course.
+        try {
+            const enrollment = await prisma.enrollment.findUnique({
+                where: {
+                    studentId_courseId: {
+                        studentId: authReq.user.userId,
+                        courseId: practice.content.module.courseId,
+                    },
+                },
+                select: { id: true },
+            });
+            if (enrollment) {
+                await refreshEnrollmentProgress(enrollment.id);
+            }
+        } catch (err) {
+            console.error('practice progress refresh failed:', (err as Error).message);
+        }
 
         return res.status(201).json({
             id: submission.id,

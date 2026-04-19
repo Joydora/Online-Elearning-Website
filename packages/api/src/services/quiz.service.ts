@@ -1,4 +1,5 @@
 import { PrismaClient, ContentType } from '@prisma/client';
+import { refreshEnrollmentProgress } from './progress.service';
 
 const prisma = new PrismaClient();
 
@@ -201,6 +202,20 @@ export async function submitQuizAnswers(contentId: number, studentId: number, ra
             quizContentId: quiz.contentId,
         },
     });
+
+    // Best-effort progress recompute. Look up the student's enrollment for
+    // the parent course and refresh — never throw out of submit because of it.
+    try {
+        const enrollment = await prisma.enrollment.findUnique({
+            where: { studentId_courseId: { studentId, courseId: quiz.courseId } },
+            select: { id: true },
+        });
+        if (enrollment) {
+            await refreshEnrollmentProgress(enrollment.id);
+        }
+    } catch (err) {
+        console.error('quiz progress refresh failed:', (err as Error).message);
+    }
 
     return {
         attemptId: attempt.id,

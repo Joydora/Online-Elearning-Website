@@ -2,7 +2,11 @@ import { ContentType, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const PASS_THRESHOLD = 6; // out of 10
+// Quiz scores are stored on a 0..100 scale (percentage of correct answers,
+// see quiz.service.ts). Practice aiScore is 0..10. We treat both as
+// "passing" when the student got >= 60% of the available points.
+const QUIZ_PASS_PCT = 60; // out of 100
+const PRACTICE_PASS_SCORE = 6; // out of 10
 
 export type ContentProgress = {
     contentId: number;
@@ -115,10 +119,10 @@ export async function computeProgress(enrollmentId: number): Promise<EnrollmentP
 
             if (c.contentType === 'QUIZ') {
                 quizScore = bestQuiz.has(c.id) ? bestQuiz.get(c.id)! : null;
-                completed = quizScore !== null && quizScore >= PASS_THRESHOLD;
+                completed = quizScore !== null && quizScore >= QUIZ_PASS_PCT;
             } else if (c.contentType === 'PRACTICE' && c.practice) {
                 practiceScore = bestPractice.has(c.practice.id) ? bestPractice.get(c.practice.id)! : null;
-                completed = practiceScore !== null && practiceScore >= PASS_THRESHOLD;
+                completed = practiceScore !== null && practiceScore >= PRACTICE_PASS_SCORE;
             } else {
                 // VIDEO / DOCUMENT
                 completed = completedSet.has(c.id);
