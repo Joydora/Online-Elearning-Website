@@ -13,6 +13,7 @@ import commentRoutes from './routes/comment.routes';
 import chatbotRoutes from './routes/chatbot.routes';
 import adminRoutes from './routes/admin.routes';
 import practiceRoutes from './routes/practice.routes';
+import recommendationRoutes from './routes/recommendation.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { scheduleExpirySweep } from './jobs/expireEnrollments';
 
@@ -47,6 +48,7 @@ app.use('/api', commentRoutes);
 app.use('/api', chatbotRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', practiceRoutes);
+app.use('/api', recommendationRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');
