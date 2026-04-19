@@ -81,6 +81,7 @@ type CreateCourseInput = {
     price: number;
     categoryId: number;
     teacherId: number;
+    trialDurationDays?: number | null;
 };
 
 type UpdateCourseInput = {
@@ -90,6 +91,7 @@ type UpdateCourseInput = {
     description?: string;
     price?: number;
     categoryId?: number;
+    trialDurationDays?: number | null;
     userRole?: string;
 };
 
@@ -112,6 +114,21 @@ type CreateContentInput = {
     documentUrl?: string | null;
     fileType?: string | null;
     timeLimitInMinutes?: number | null;
+    isFreePreview?: boolean;
+    userRole?: string;
+};
+
+type UpdateContentInput = {
+    contentId: number;
+    teacherId: number;
+    title?: string;
+    order?: number;
+    videoUrl?: string | null;
+    durationInSeconds?: number | null;
+    documentUrl?: string | null;
+    fileType?: string | null;
+    timeLimitInMinutes?: number | null;
+    isFreePreview?: boolean;
     userRole?: string;
 };
 
@@ -123,6 +140,7 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
             price: input.price,
             categoryId: input.categoryId,
             teacherId: input.teacherId,
+            trialDurationDays: input.trialDurationDays ?? null,
         },
     });
 
@@ -151,6 +169,8 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
             description: input.description ?? undefined,
             price: input.price ?? undefined,
             categoryId: input.categoryId ?? undefined,
+            trialDurationDays:
+                input.trialDurationDays === undefined ? undefined : input.trialDurationDays,
         },
     });
 
@@ -276,6 +296,7 @@ export async function createContentForModule(input: CreateContentInput) {
             documentUrl: input.documentUrl ?? null,
             fileType: input.fileType ?? null,
             timeLimitInMinutes: input.timeLimitInMinutes ?? null,
+            isFreePreview: input.isFreePreview ?? false,
             moduleId: input.moduleId,
         },
         select: {
@@ -285,6 +306,56 @@ export async function createContentForModule(input: CreateContentInput) {
             contentType: true,
             durationInSeconds: true,
             timeLimitInMinutes: true,
+            isFreePreview: true,
+            moduleId: true,
+        },
+    });
+}
+
+export async function updateContentForTeacher(input: UpdateContentInput) {
+    const owningContent = await prisma.content.findUnique({
+        where: { id: input.contentId },
+        select: {
+            module: {
+                select: {
+                    course: {
+                        select: { teacherId: true },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!owningContent) {
+        throw new Error('CONTENT_NOT_FOUND');
+    }
+
+    if (input.userRole !== 'ADMIN' && owningContent.module.course.teacherId !== input.teacherId) {
+        throw new Error('COURSE_FORBIDDEN');
+    }
+
+    return prisma.content.update({
+        where: { id: input.contentId },
+        data: {
+            title: input.title ?? undefined,
+            order: input.order ?? undefined,
+            videoUrl: input.videoUrl === undefined ? undefined : input.videoUrl,
+            durationInSeconds:
+                input.durationInSeconds === undefined ? undefined : input.durationInSeconds,
+            documentUrl: input.documentUrl === undefined ? undefined : input.documentUrl,
+            fileType: input.fileType === undefined ? undefined : input.fileType,
+            timeLimitInMinutes:
+                input.timeLimitInMinutes === undefined ? undefined : input.timeLimitInMinutes,
+            isFreePreview: input.isFreePreview === undefined ? undefined : input.isFreePreview,
+        },
+        select: {
+            id: true,
+            title: true,
+            order: true,
+            contentType: true,
+            durationInSeconds: true,
+            timeLimitInMinutes: true,
+            isFreePreview: true,
             moduleId: true,
         },
     });

@@ -10,6 +10,7 @@ import {
     getAllCategories,
     getAllCourses,
     getCourseById,
+    updateContentForTeacher,
     updateCourseForTeacher,
 } from '../services/course.service';
 import { AuthenticatedUser } from '../types/auth';
@@ -118,7 +119,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, price, categoryId } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays } = authReq.body ?? {};
 
         if (!title || !description || price === undefined || categoryId === undefined) {
             return res.status(400).json({
@@ -137,12 +138,26 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'categoryId must be an integer' });
         }
 
+        let normalizedTrialDays: number | null | undefined;
+        if (trialDurationDays === undefined || trialDurationDays === null || trialDurationDays === '') {
+            normalizedTrialDays = null;
+        } else {
+            const n = Number(trialDurationDays);
+            if (!Number.isInteger(n) || n <= 0) {
+                return res.status(400).json({
+                    error: 'trialDurationDays must be a positive integer when provided',
+                });
+            }
+            normalizedTrialDays = n;
+        }
+
         const course = await createCourseForTeacher({
             title,
             description,
             price: numericPrice,
             categoryId: numericCategoryId,
             teacherId,
+            trialDurationDays: normalizedTrialDays,
         });
 
         if (!course) {
@@ -173,13 +188,14 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const { title, description, price, categoryId } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays } = authReq.body ?? {};
 
         if (
             title === undefined &&
             description === undefined &&
             price === undefined &&
-            categoryId === undefined
+            categoryId === undefined &&
+            trialDurationDays === undefined
         ) {
             return res.status(400).json({ error: 'No fields provided for update' });
         }
@@ -197,6 +213,21 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'categoryId must be an integer' });
         }
 
+        let normalizedTrialDays: number | null | undefined = undefined;
+        if (trialDurationDays !== undefined) {
+            if (trialDurationDays === null || trialDurationDays === '') {
+                normalizedTrialDays = null;
+            } else {
+                const n = Number(trialDurationDays);
+                if (!Number.isInteger(n) || n <= 0) {
+                    return res.status(400).json({
+                        error: 'trialDurationDays must be a positive integer or null',
+                    });
+                }
+                normalizedTrialDays = n;
+            }
+        }
+
         try {
             const updatedCourse = await updateCourseForTeacher({
                 courseId,
@@ -205,6 +236,7 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 description,
                 price: numericPrice,
                 categoryId: numericCategoryId,
+                trialDurationDays: normalizedTrialDays,
                 userRole: authReq.user?.role,
             });
 
@@ -350,6 +382,7 @@ export async function createContentController(req: Request, res: Response): Prom
             documentUrl,
             fileType,
             timeLimitInMinutes,
+            isFreePreview,
         } = authReq.body ?? {};
 
         if (!moduleId || !title || !contentType) {
@@ -398,6 +431,7 @@ export async function createContentController(req: Request, res: Response): Prom
                 documentUrl,
                 fileType,
                 timeLimitInMinutes: numericTimeLimit,
+                isFreePreview: typeof isFreePreview === 'boolean' ? isFreePreview : undefined,
                 userRole: authReq.user?.role,
             });
 
@@ -418,6 +452,103 @@ export async function createContentController(req: Request, res: Response): Prom
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to create content',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function updateContentController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const contentId = Number.parseInt(req.params.id, 10);
+
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'Content id must be a number' });
+        }
+
+        const {
+            title,
+            order,
+            videoUrl,
+            durationInSeconds,
+            documentUrl,
+            fileType,
+            timeLimitInMinutes,
+            isFreePreview,
+        } = authReq.body ?? {};
+
+        if (
+            title === undefined &&
+            order === undefined &&
+            videoUrl === undefined &&
+            durationInSeconds === undefined &&
+            documentUrl === undefined &&
+            fileType === undefined &&
+            timeLimitInMinutes === undefined &&
+            isFreePreview === undefined
+        ) {
+            return res.status(400).json({ error: 'No fields provided for update' });
+        }
+
+        const numericOrder = order !== undefined ? Number(order) : undefined;
+        if (numericOrder !== undefined && !Number.isInteger(numericOrder)) {
+            return res.status(400).json({ error: 'order must be an integer when provided' });
+        }
+
+        const numericDuration =
+            durationInSeconds !== undefined ? Number(durationInSeconds) : undefined;
+        if (numericDuration !== undefined && Number.isNaN(numericDuration)) {
+            return res.status(400).json({ error: 'durationInSeconds must be a number when provided' });
+        }
+
+        const numericTimeLimit =
+            timeLimitInMinutes !== undefined ? Number(timeLimitInMinutes) : undefined;
+        if (numericTimeLimit !== undefined && Number.isNaN(numericTimeLimit)) {
+            return res.status(400).json({ error: 'timeLimitInMinutes must be a number when provided' });
+        }
+
+        if (isFreePreview !== undefined && typeof isFreePreview !== 'boolean') {
+            return res.status(400).json({ error: 'isFreePreview must be a boolean' });
+        }
+
+        try {
+            const content = await updateContentForTeacher({
+                contentId,
+                teacherId,
+                title,
+                order: numericOrder,
+                videoUrl,
+                durationInSeconds: numericDuration,
+                documentUrl,
+                fileType,
+                timeLimitInMinutes: numericTimeLimit,
+                isFreePreview,
+                userRole: authReq.user?.role,
+            });
+
+            return res.status(200).json(content);
+        } catch (error) {
+            const message = (error as Error).message;
+
+            if (message === 'CONTENT_NOT_FOUND') {
+                return res.status(404).json({ error: 'Content not found' });
+            }
+
+            if (message === 'COURSE_FORBIDDEN') {
+                return res.status(403).json({ error: 'You are not the owner of this course' });
+            }
+
+            throw error;
+        }
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to update content',
             details: (error as Error).message,
         });
     }
