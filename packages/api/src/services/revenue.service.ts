@@ -51,7 +51,20 @@ export async function recordRevenue(paymentId: number): Promise<
             enrollment: {
                 select: {
                     courseId: true,
-                    course: { select: { teacherId: true } },
+                    course: {
+                        select: {
+                            title: true,
+                            teacherId: true,
+                            teacher: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                    username: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -65,10 +78,12 @@ export async function recordRevenue(paymentId: number): Promise<
         throw new Error('PAYMENT_NOT_PAID');
     }
 
-    const courseId = payment.enrollment?.courseId;
-    const teacherId = payment.enrollment?.course.teacherId;
+    const enrollment = payment.enrollment;
+    const courseId = enrollment?.courseId;
+    const teacher = enrollment?.course.teacher;
+    const teacherId = enrollment?.course.teacherId;
 
-    if (!courseId || !teacherId) {
+    if (!courseId || !teacherId || !teacher) {
         throw new Error('ENROLLMENT_MISSING');
     }
 
@@ -85,11 +100,19 @@ export async function recordRevenue(paymentId: number): Promise<
         .sub(platformFee)
         .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
+    const teacherName =
+        [teacher.firstName, teacher.lastName].filter(Boolean).join(' ').trim()
+        || teacher.username;
+
     const ledger = await prisma.revenueLedger.create({
         data: {
             paymentId: payment.id,
             courseId,
             teacherId,
+            courseTitleSnapshot: enrollment.course.title.slice(0, 200),
+            teacherNameSnapshot: teacherName.slice(0, 200),
+            teacherEmailSnapshot: teacher.email.slice(0, 320),
+            feePctSnapshot: new Prisma.Decimal(feePct).toDecimalPlaces(2),
             grossAmount: gross,
             platformFee,
             teacherShare,

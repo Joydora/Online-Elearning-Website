@@ -45,15 +45,15 @@ enum CourseLevel {
 
 model User {
   id             Int     @id @default(autoincrement())
-  email          String  @unique
-  username       String  @unique
-  hashedPassword String
-  firstName      String?
-  lastName       String?
+  email          String  @unique @db.VarChar(320)
+  username       String  @unique @db.VarChar(64)
+  hashedPassword String  @db.VarChar(100)
+  firstName      String? @db.VarChar(100)
+  lastName       String? @db.VarChar(100)
   role           Role    @default(STUDENT)
 
-  stripeCustomerId      String? @unique
-  stripePaymentMethodId String?
+  stripeCustomerId      String? @unique @db.VarChar(100)
+  stripePaymentMethodId String?         @db.VarChar(100)
 
   coursesAsTeacher Course[]      @relation("TeacherCourses")
   enrollments      Enrollment[]
@@ -71,14 +71,14 @@ model User {
 
 model Category {
   id      Int      @id @default(autoincrement())
-  name    String   @unique
+  name    String   @unique @db.VarChar(100)
   courses Course[]
 }
 
 model Course {
-  id                 Int          @id @default(autoincrement())
-  title              String
-  description        String
+  id                 Int     @id @default(autoincrement())
+  title              String  @db.VarChar(200)
+  description        String  @db.VarChar(5000)
   price              Decimal @db.Decimal(10, 2)
   trialDurationDays  Int?
   accessDurationDays Int?
@@ -317,6 +317,14 @@ model RevenueLedger {
 
   courseId     Int
   teacherId    Int
+
+  // Snapshots at time-of-sale. Courses get renamed / teachers get
+  // offboarded, but the ledger needs to stay explainable for audit
+  // years later — don't JOIN against live rows for historical reports.
+  courseTitleSnapshot  String @db.VarChar(200)
+  teacherNameSnapshot  String @db.VarChar(200)
+  teacherEmailSnapshot String @db.VarChar(320)
+  feePctSnapshot       Decimal @db.Decimal(5, 2)
 
   grossAmount  Decimal @db.Decimal(10, 2)
   platformFee  Decimal @db.Decimal(10, 2)

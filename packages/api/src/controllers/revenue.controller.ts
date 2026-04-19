@@ -13,7 +13,7 @@ function decimalToNumber(value: Prisma.Decimal | null | undefined): number {
     return value ? value.toNumber() : 0;
 }
 
-function serialiseLedger<R extends { grossAmount: Prisma.Decimal; platformFee: Prisma.Decimal; teacherShare: Prisma.Decimal; payment?: { amount: Prisma.Decimal } | null }>(
+function serialiseLedger<R extends { grossAmount: Prisma.Decimal; platformFee: Prisma.Decimal; teacherShare: Prisma.Decimal; feePctSnapshot: Prisma.Decimal; payment?: { amount: Prisma.Decimal } | null }>(
     r: R,
 ) {
     return {
@@ -21,6 +21,7 @@ function serialiseLedger<R extends { grossAmount: Prisma.Decimal; platformFee: P
         grossAmount: r.grossAmount.toNumber(),
         platformFee: r.platformFee.toNumber(),
         teacherShare: r.teacherShare.toNumber(),
+        feePctSnapshot: r.feePctSnapshot.toNumber(),
         ...(r.payment
             ? { payment: { ...r.payment, amount: r.payment.amount.toNumber() } }
             : {}),
