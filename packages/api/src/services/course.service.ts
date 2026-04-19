@@ -83,6 +83,7 @@ type CreateCourseInput = {
     categoryId: number;
     teacherId: number;
     trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
 };
 
 type UpdateCourseInput = {
@@ -93,6 +94,7 @@ type UpdateCourseInput = {
     price?: number;
     categoryId?: number;
     trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
     userRole?: string;
 };
 
@@ -142,6 +144,7 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
             categoryId: input.categoryId,
             teacherId: input.teacherId,
             trialDurationDays: input.trialDurationDays ?? null,
+            accessDurationDays: input.accessDurationDays ?? null,
         },
     });
 
@@ -172,6 +175,8 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
             categoryId: input.categoryId ?? undefined,
             trialDurationDays:
                 input.trialDurationDays === undefined ? undefined : input.trialDurationDays,
+            accessDurationDays:
+                input.accessDurationDays === undefined ? undefined : input.accessDurationDays,
         },
     });
 

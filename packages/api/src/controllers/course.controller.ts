@@ -119,7 +119,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, price, categoryId, trialDurationDays } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays, accessDurationDays } = authReq.body ?? {};
 
         if (!title || !description || price === undefined || categoryId === undefined) {
             return res.status(400).json({
@@ -151,6 +151,19 @@ export async function createCourseController(req: Request, res: Response): Promi
             normalizedTrialDays = n;
         }
 
+        let normalizedAccessDays: number | null | undefined;
+        if (accessDurationDays === undefined || accessDurationDays === null || accessDurationDays === '') {
+            normalizedAccessDays = null;
+        } else {
+            const n = Number(accessDurationDays);
+            if (!Number.isInteger(n) || n <= 0) {
+                return res.status(400).json({
+                    error: 'accessDurationDays must be a positive integer when provided',
+                });
+            }
+            normalizedAccessDays = n;
+        }
+
         const course = await createCourseForTeacher({
             title,
             description,
@@ -158,6 +171,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             categoryId: numericCategoryId,
             teacherId,
             trialDurationDays: normalizedTrialDays,
+            accessDurationDays: normalizedAccessDays,
         });
 
         if (!course) {
@@ -188,14 +202,15 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const { title, description, price, categoryId, trialDurationDays } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays, accessDurationDays } = authReq.body ?? {};
 
         if (
             title === undefined &&
             description === undefined &&
             price === undefined &&
             categoryId === undefined &&
-            trialDurationDays === undefined
+            trialDurationDays === undefined &&
+            accessDurationDays === undefined
         ) {
             return res.status(400).json({ error: 'No fields provided for update' });
         }
@@ -228,6 +243,21 @@ export async function updateCourseController(req: Request, res: Response): Promi
             }
         }
 
+        let normalizedAccessDays: number | null | undefined = undefined;
+        if (accessDurationDays !== undefined) {
+            if (accessDurationDays === null || accessDurationDays === '') {
+                normalizedAccessDays = null;
+            } else {
+                const n = Number(accessDurationDays);
+                if (!Number.isInteger(n) || n <= 0) {
+                    return res.status(400).json({
+                        error: 'accessDurationDays must be a positive integer or null',
+                    });
+                }
+                normalizedAccessDays = n;
+            }
+        }
+
         try {
             const updatedCourse = await updateCourseForTeacher({
                 courseId,
@@ -237,6 +267,7 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 price: numericPrice,
                 categoryId: numericCategoryId,
                 trialDurationDays: normalizedTrialDays,
+                accessDurationDays: normalizedAccessDays,
                 userRole: authReq.user?.role,
             });
 

@@ -21,6 +21,7 @@ type CourseFormValues = {
     price: number;
     categoryId: number;
     trialDurationDays: number | null;
+    accessDurationDays: number | null;
 };
 
 type CourseDetail = {
@@ -29,6 +30,7 @@ type CourseDetail = {
     description: string;
     price: number;
     trialDurationDays: number | null;
+    accessDurationDays: number | null;
     category: {
         id: number;
         name: string;
@@ -46,6 +48,7 @@ export default function EditCourse() {
             price: 0,
             categoryId: 0,
             trialDurationDays: null,
+            accessDurationDays: null,
         },
     });
 
@@ -77,6 +80,7 @@ export default function EditCourse() {
                 price: course.price,
                 categoryId: course.category.id,
                 trialDurationDays: course.trialDurationDays ?? null,
+                accessDurationDays: course.accessDurationDays ?? null,
             });
         }
     }, [course, form]);
@@ -310,6 +314,45 @@ export default function EditCourse() {
                                         </FormControl>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                             Để trống: không cho học thử. VD: 7, 14, 30.
+                                        </p>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* Access duration */}
+                            <FormField
+                                control={form.control}
+                                name="accessDurationDays"
+                                rules={{
+                                    validate: (value) =>
+                                        value === null ||
+                                        value === undefined ||
+                                        (Number.isInteger(value) && value > 0) ||
+                                        'Thời hạn truy cập phải là số nguyên dương',
+                                }}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">
+                                            Thời hạn truy cập sau khi mua (ngày)
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                data-testid="access-duration-input"
+                                                type="number"
+                                                placeholder="Bỏ trống = truy cập trọn đời"
+                                                className="h-12"
+                                                min="1"
+                                                step="1"
+                                                value={field.value ?? ''}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    field.onChange(raw === '' ? null : parseInt(raw, 10));
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Bỏ trống: truy cập trọn đời. VD: 30, 90, 365.
                                         </p>
                                         <FormMessage />
                                     </FormItem>
