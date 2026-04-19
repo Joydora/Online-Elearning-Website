@@ -15,6 +15,8 @@ type Category = {
     name: string;
 };
 
+type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+
 type CourseFormValues = {
     title: string;
     description: string;
@@ -22,7 +24,11 @@ type CourseFormValues = {
     categoryId: number;
     trialDurationDays: number | null;
     accessDurationDays: number | null;
+    level: CourseLevel | '';
+    prerequisiteIds: number[];
 };
+
+type AvailableCourse = { id: number; title: string };
 
 type CourseDetail = {
     id: number;
@@ -31,6 +37,8 @@ type CourseDetail = {
     price: number;
     trialDurationDays: number | null;
     accessDurationDays: number | null;
+    level: CourseLevel | null;
+    prerequisites?: Array<{ id: number; title: string; level: CourseLevel | null }>;
     category: {
         id: number;
         name: string;
@@ -49,6 +57,18 @@ export default function EditCourse() {
             categoryId: 0,
             trialDurationDays: null,
             accessDurationDays: null,
+            level: '',
+            prerequisiteIds: [],
+        },
+    });
+
+    const { data: availableCourses = [] } = useQuery<AvailableCourse[]>({
+        queryKey: ['available-courses'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/courses');
+            return data
+                .filter((c: any) => c.id !== Number(id))
+                .map((c: any) => ({ id: c.id, title: c.title }));
         },
     });
 
@@ -81,6 +101,8 @@ export default function EditCourse() {
                 categoryId: course.category.id,
                 trialDurationDays: course.trialDurationDays ?? null,
                 accessDurationDays: course.accessDurationDays ?? null,
+                level: course.level ?? '',
+                prerequisiteIds: course.prerequisites?.map((p) => p.id) ?? [],
             });
         }
     }, [course, form]);
@@ -88,7 +110,11 @@ export default function EditCourse() {
     // Update course mutation
     const updateMutation = useMutation({
         mutationFn: async (values: CourseFormValues) => {
-            const { data } = await apiClient.put(`/courses/${id}`, values);
+            const payload = {
+                ...values,
+                level: values.level === '' ? null : values.level,
+            };
+            const { data } = await apiClient.put(`/courses/${id}`, payload);
             return data;
         },
         onSuccess: async () => {
@@ -355,6 +381,66 @@ export default function EditCourse() {
                                             Bỏ trống: truy cập trọn đời. VD: 30, 90, 365.
                                         </p>
                                         <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="level"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">Trình độ</FormLabel>
+                                        <FormControl>
+                                            <select
+                                                data-testid="level-select"
+                                                {...field}
+                                                className="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
+                                            >
+                                                <option value="">Không chỉ định</option>
+                                                <option value="BEGINNER">Beginner</option>
+                                                <option value="INTERMEDIATE">Intermediate</option>
+                                                <option value="ADVANCED">Advanced</option>
+                                            </select>
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="prerequisiteIds"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">Khoá học tiên quyết</FormLabel>
+                                        <FormControl>
+                                            <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3">
+                                                {availableCourses.length === 0 && (
+                                                    <p className="text-sm text-gray-500">Không có khoá học khác để chọn.</p>
+                                                )}
+                                                {availableCourses.map((c) => {
+                                                    const checked = field.value.includes(c.id);
+                                                    return (
+                                                        <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                data-testid={`prereq-${c.id}`}
+                                                                checked={checked}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        field.onChange([...field.value, c.id]);
+                                                                    } else {
+                                                                        field.onChange(field.value.filter((x) => x !== c.id));
+                                                                    }
+                                                                }}
+                                                                className="h-4 w-4"
+                                                            />
+                                                            <span>{c.title}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </FormControl>
                                     </FormItem>
                                 )}
                             />

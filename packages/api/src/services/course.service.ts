@@ -1,4 +1,4 @@
-import { ContentType, PrismaClient } from '@prisma/client';
+import { ContentType, CourseLevel, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -9,6 +9,7 @@ const courseSummarySelect = {
     price: true,
     trialDurationDays: true,
     accessDurationDays: true,
+    level: true,
     createdAt: true,
     updatedAt: true,
     category: {
@@ -29,6 +30,9 @@ const courseSummarySelect = {
 
 const courseDetailSelect = {
     ...courseSummarySelect,
+    prerequisites: {
+        select: { id: true, title: true, level: true },
+    },
     modules: {
         orderBy: { order: 'asc' },
         select: {
@@ -84,6 +88,8 @@ type CreateCourseInput = {
     teacherId: number;
     trialDurationDays?: number | null;
     accessDurationDays?: number | null;
+    level?: CourseLevel | null;
+    prerequisiteIds?: number[];
 };
 
 type UpdateCourseInput = {
@@ -95,6 +101,8 @@ type UpdateCourseInput = {
     categoryId?: number;
     trialDurationDays?: number | null;
     accessDurationDays?: number | null;
+    level?: CourseLevel | null;
+    prerequisiteIds?: number[];
     userRole?: string;
 };
 
@@ -153,6 +161,10 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
             teacherId: input.teacherId,
             trialDurationDays: input.trialDurationDays ?? null,
             accessDurationDays: input.accessDurationDays ?? null,
+            level: input.level ?? null,
+            prerequisites: input.prerequisiteIds && input.prerequisiteIds.length > 0
+                ? { connect: input.prerequisiteIds.map((id) => ({ id })) }
+                : undefined,
         },
     });
 
@@ -185,6 +197,11 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
                 input.trialDurationDays === undefined ? undefined : input.trialDurationDays,
             accessDurationDays:
                 input.accessDurationDays === undefined ? undefined : input.accessDurationDays,
+            level: input.level === undefined ? undefined : input.level,
+            // For prerequisites: replace the full set when caller passes the array.
+            prerequisites: input.prerequisiteIds === undefined
+                ? undefined
+                : { set: input.prerequisiteIds.map((id) => ({ id })) },
         },
     });
 

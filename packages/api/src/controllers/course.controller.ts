@@ -1,5 +1,36 @@
 import { Request, Response } from 'express';
-import { ContentType, Role } from '@prisma/client';
+import { ContentType, CourseLevel, Role } from '@prisma/client';
+
+const VALID_LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+function normaliseLevel(raw: unknown): { ok: true; value: CourseLevel | null } | { ok: false; error: string } {
+    if (raw === undefined) return { ok: true, value: null };
+    if (raw === null || raw === '') return { ok: true, value: null };
+    if (typeof raw === 'string' && (VALID_LEVELS as string[]).includes(raw)) {
+        return { ok: true, value: raw as CourseLevel };
+    }
+    return { ok: false, error: 'level must be BEGINNER, INTERMEDIATE, or ADVANCED' };
+}
+
+function normalisePrereqIds(
+    raw: unknown,
+    selfId?: number,
+): { ok: true; value: number[] | undefined } | { ok: false; error: string } {
+    if (raw === undefined) return { ok: true, value: undefined };
+    if (!Array.isArray(raw)) return { ok: false, error: 'prerequisiteIds must be an array of integers' };
+    const ids: number[] = [];
+    for (const v of raw) {
+        const n = Number(v);
+        if (!Number.isInteger(n) || n <= 0) {
+            return { ok: false, error: 'prerequisiteIds must be positive integers' };
+        }
+        if (selfId !== undefined && n === selfId) {
+            return { ok: false, error: 'a course cannot be its own prerequisite' };
+        }
+        ids.push(n);
+    }
+    return { ok: true, value: ids };
+}
 import {
     createContentForModule,
     createCourseForTeacher,
@@ -119,7 +150,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, price, categoryId, trialDurationDays, accessDurationDays } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays, accessDurationDays, level, prerequisiteIds } = authReq.body ?? {};
 
         if (!title || !description || price === undefined || categoryId === undefined) {
             return res.status(400).json({
@@ -164,6 +195,12 @@ export async function createCourseController(req: Request, res: Response): Promi
             normalizedAccessDays = n;
         }
 
+        const levelRes = normaliseLevel(level);
+        if (!levelRes.ok) return res.status(400).json({ error: levelRes.error });
+
+        const prereqRes = normalisePrereqIds(prerequisiteIds);
+        if (!prereqRes.ok) return res.status(400).json({ error: prereqRes.error });
+
         const course = await createCourseForTeacher({
             title,
             description,
@@ -172,6 +209,8 @@ export async function createCourseController(req: Request, res: Response): Promi
             teacherId,
             trialDurationDays: normalizedTrialDays,
             accessDurationDays: normalizedAccessDays,
+            level: levelRes.value,
+            prerequisiteIds: prereqRes.value,
         });
 
         if (!course) {
@@ -202,7 +241,7 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const { title, description, price, categoryId, trialDurationDays, accessDurationDays } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays, accessDurationDays, level, prerequisiteIds } = authReq.body ?? {};
 
         if (
             title === undefined &&
@@ -210,7 +249,9 @@ export async function updateCourseController(req: Request, res: Response): Promi
             price === undefined &&
             categoryId === undefined &&
             trialDurationDays === undefined &&
-            accessDurationDays === undefined
+            accessDurationDays === undefined &&
+            level === undefined &&
+            prerequisiteIds === undefined
         ) {
             return res.status(400).json({ error: 'No fields provided for update' });
         }
@@ -258,6 +299,12 @@ export async function updateCourseController(req: Request, res: Response): Promi
             }
         }
 
+        const levelRes = normaliseLevel(level);
+        if (!levelRes.ok) return res.status(400).json({ error: levelRes.error });
+
+        const prereqRes = normalisePrereqIds(prerequisiteIds, courseId);
+        if (!prereqRes.ok) return res.status(400).json({ error: prereqRes.error });
+
         try {
             const updatedCourse = await updateCourseForTeacher({
                 courseId,
@@ -268,6 +315,8 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 categoryId: numericCategoryId,
                 trialDurationDays: normalizedTrialDays,
                 accessDurationDays: normalizedAccessDays,
+                level: level === undefined ? undefined : levelRes.value,
+                prerequisiteIds: prereqRes.value,
                 userRole: authReq.user?.role,
             });
 
