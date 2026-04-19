@@ -1,4 +1,4 @@
-import { PayoutStatus, Prisma } from '@prisma/client';
+import { PayoutStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
 const DEFAULT_PLATFORM_FEE_PCT = 20;
@@ -61,7 +61,7 @@ export async function recordRevenue(paymentId: number): Promise<
         throw new Error('PAYMENT_NOT_FOUND');
     }
 
-    if (payment.status !== 'SUCCESSFUL') {
+    if (payment.status !== PaymentStatus.SUCCESSFUL) {
         throw new Error('PAYMENT_NOT_PAID');
     }
 

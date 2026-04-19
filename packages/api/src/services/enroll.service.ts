@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
+import { PaymentStatus } from '@prisma/client';
 import { recordRevenue } from './revenue.service';
 import { prisma } from '../lib/prisma';
 
@@ -68,12 +69,12 @@ export async function checkoutCourse(options: {
     // Reuse a pending Payment if one already exists (e.g. a previous abandoned checkout);
     // the unique constraint on enrollmentId means we can have at most one Payment row per enrollment.
     const payment =
-        existingEnrollment?.payment && existingEnrollment.payment.status !== 'SUCCESSFUL'
+        existingEnrollment?.payment && existingEnrollment.payment.status !== PaymentStatus.SUCCESSFUL
             ? existingEnrollment.payment
             : await prisma.payment.create({
                   data: {
                       amount: course.price,
-                      status: 'PENDING',
+                      status: PaymentStatus.PENDING,
                       stripeSessionId: `pending_${randomUUID()}`,
                       enrollmentId: enrollment.id,
                       studentId: options.studentId,
@@ -131,7 +132,7 @@ export async function finalizePaidEnrollment(
         throw new Error('PAYMENT_NOT_FOUND');
     }
 
-    if (payment.status === 'SUCCESSFUL') {
+    if (payment.status === PaymentStatus.SUCCESSFUL) {
         return { enrollmentId: payment.enrollmentId, upgradedFromTrial: false, alreadyProcessed: true };
     }
 
@@ -156,7 +157,7 @@ export async function finalizePaidEnrollment(
         prisma.payment.update({
             where: { id: payment.id },
             data: {
-                status: 'SUCCESSFUL',
+                status: PaymentStatus.SUCCESSFUL,
                 ...(stripeSessionId ? { stripeSessionId } : {}),
             },
         }),

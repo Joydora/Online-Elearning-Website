@@ -30,6 +30,13 @@ enum PayoutStatus {
   PAID
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  CANCELED
+}
+
 enum CourseLevel {
   BEGINNER
   INTERMEDIATE
@@ -253,6 +260,8 @@ model Enrollment {
 
   @@unique([studentId, courseId])
   @@index([trialCardFingerprint, courseId])
+  @@index([studentId, isActive])
+  @@index([expiresAt])
 }
 
 model Review {
@@ -282,10 +291,10 @@ model QuizAttempt {
 }
 
 model Payment {
-  id              Int     @id @default(autoincrement())
-  amount          Decimal @db.Decimal(10, 2)
-  status          String
-  stripeSessionId String  @unique
+  id              Int           @id @default(autoincrement())
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(PENDING)
+  stripeSessionId String        @unique
 
   enrollmentId Int        @unique
   enrollment   Enrollment @relation("EnrollmentPayment", fields: [enrollmentId], references: [id])
@@ -296,6 +305,9 @@ model Payment {
   revenueLedger RevenueLedger?
 
   createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
+  @@index([status, createdAt])
 }
 
 model RevenueLedger {
