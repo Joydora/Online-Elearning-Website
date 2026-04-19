@@ -17,6 +17,7 @@ enum ContentType {
   VIDEO
   DOCUMENT
   QUIZ
+  PRACTICE
 }
 
 enum EnrollmentType {
@@ -47,6 +48,7 @@ model User {
   payments         Payment[]
   reviews          Review[]
   comments         Comment[]
+  practiceSubmissions PracticeSubmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -108,6 +110,41 @@ model Content {
   questions    Question[]
   quizAttempts QuizAttempt[]
   comments     Comment[]
+  practice     Practice?
+}
+
+model Practice {
+  id             Int      @id @default(autoincrement())
+  contentId      Int      @unique
+  content        Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  prompt         String
+  starterCode    String?
+  expectedOutput String?
+  language       String   @default("plaintext")
+
+  submissions    PracticeSubmission[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PracticeSubmission {
+  id             Int      @id @default(autoincrement())
+
+  practiceId     Int
+  practice       Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  studentId      Int
+  student        User     @relation(fields: [studentId], references: [id])
+
+  submittedCode  String
+  aiScore        Float?
+  aiFeedback     String?
+
+  createdAt      DateTime @default(now())
+
+  @@index([studentId, practiceId, createdAt])
 }
 
 model Question {
