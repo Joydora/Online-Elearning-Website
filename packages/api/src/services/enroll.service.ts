@@ -93,6 +93,78 @@ export async function checkoutCourse(options: {
     return session.url ?? '';
 }
 
+export async function startTrialSetup(options: {
+    courseId: number;
+    studentId: number;
+    successUrl: string;
+    cancelUrl: string;
+}): Promise<string> {
+    const course = await prisma.course.findUnique({
+        where: { id: options.courseId },
+        select: { id: true, title: true, trialDurationDays: true },
+    });
+
+    if (!course) {
+        throw new Error('COURSE_NOT_FOUND');
+    }
+
+    if (!course.trialDurationDays || course.trialDurationDays <= 0) {
+        throw new Error('TRIAL_NOT_AVAILABLE');
+    }
+
+    const existingEnrollment = await prisma.enrollment.findUnique({
+        where: {
+            studentId_courseId: {
+                studentId: options.studentId,
+                courseId: options.courseId,
+            },
+        },
+    });
+
+    if (existingEnrollment) {
+        throw new Error('ALREADY_ENROLLED');
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: options.studentId },
+        select: { id: true, email: true, stripeCustomerId: true },
+    });
+
+    if (!user) {
+        throw new Error('USER_NOT_FOUND');
+    }
+
+    const stripe = getStripeClient();
+
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+            email: user.email,
+            metadata: { userId: user.id.toString() },
+        });
+        stripeCustomerId = customer.id;
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { stripeCustomerId },
+        });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+        mode: 'setup',
+        customer: stripeCustomerId,
+        success_url: options.successUrl,
+        cancel_url: options.cancelUrl,
+        payment_method_types: ['card'],
+        metadata: {
+            studentId: options.studentId.toString(),
+            courseId: options.courseId.toString(),
+            purpose: 'trial',
+        },
+    });
+
+    return session.url ?? '';
+}
+
 export async function handleStripeWebhook(payload: Buffer, signature: string | undefined): Promise<void> {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
