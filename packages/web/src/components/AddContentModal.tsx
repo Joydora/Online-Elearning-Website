@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
 
-type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
 
 type Props = {
     moduleId: number;
@@ -23,6 +23,10 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     const [documentUrl, setDocumentUrl] = useState('');
     const [fileType, setFileType] = useState('application/pdf');
     const [timeLimitInMinutes, setTimeLimitInMinutes] = useState('');
+    const [practicePrompt, setPracticePrompt] = useState('');
+    const [practiceStarterCode, setPracticeStarterCode] = useState('');
+    const [practiceExpectedOutput, setPracticeExpectedOutput] = useState('');
+    const [practiceLanguage, setPracticeLanguage] = useState('plaintext');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 
@@ -77,6 +81,15 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
             if (timeLimitInMinutes) {
                 data.timeLimitInMinutes = parseInt(timeLimitInMinutes);
             }
+        } else if (contentType === 'PRACTICE') {
+            if (!practicePrompt.trim()) {
+                showErrorAlert('Lỗi', 'Vui lòng nhập đề bài');
+                return;
+            }
+            data.practicePrompt = practicePrompt.trim();
+            if (practiceStarterCode.trim()) data.practiceStarterCode = practiceStarterCode;
+            if (practiceExpectedOutput.trim()) data.practiceExpectedOutput = practiceExpectedOutput;
+            data.practiceLanguage = practiceLanguage;
         }
 
         createContentMutation.mutate(data);
@@ -148,6 +161,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             <option value="VIDEO">Video</option>
                             <option value="DOCUMENT">Tài liệu</option>
                             <option value="QUIZ">Bài kiểm tra</option>
+                            <option value="PRACTICE">Bài tập thực hành</option>
                         </select>
                     </div>
 
@@ -365,6 +379,78 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
                                     <strong>Lưu ý:</strong> Sau khi tạo bài kiểm tra, bạn cần vào quản lý để thêm câu hỏi và đáp án.
+                                </p>
+                            </div>
+                        </>
+                    )}
+
+                    {contentType === 'PRACTICE' && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Đề bài <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    data-testid="practice-prompt"
+                                    value={practicePrompt}
+                                    onChange={(e) => setPracticePrompt(e.target.value)}
+                                    placeholder="VD: Viết hàm cộng hai số nguyên và trả về tổng."
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[100px]"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Ngôn ngữ
+                                </label>
+                                <select
+                                    data-testid="practice-language"
+                                    value={practiceLanguage}
+                                    onChange={(e) => setPracticeLanguage(e.target.value)}
+                                    className="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
+                                >
+                                    <option value="plaintext">Không chỉ định</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="typescript">TypeScript</option>
+                                    <option value="python">Python</option>
+                                    <option value="java">Java</option>
+                                    <option value="cpp">C++</option>
+                                    <option value="csharp">C#</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Code mẫu (starter code)
+                                </label>
+                                <textarea
+                                    data-testid="practice-starter"
+                                    value={practiceStarterCode}
+                                    onChange={(e) => setPracticeStarterCode(e.target.value)}
+                                    placeholder={'function add(a, b) {\n  // your code here\n}'}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[100px] font-mono text-sm"
+                                />
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    Tuỳ chọn — học viên sẽ bắt đầu với code này.
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Kết quả mong muốn (optional)
+                                </label>
+                                <textarea
+                                    data-testid="practice-expected"
+                                    value={practiceExpectedOutput}
+                                    onChange={(e) => setPracticeExpectedOutput(e.target.value)}
+                                    placeholder={'add(2, 3) === 5'}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[80px] font-mono text-sm"
+                                />
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    AI sẽ dùng kết quả này làm gợi ý khi chấm bài.
+                                </p>
+                            </div>
+                            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                                <p className="text-sm text-amber-800 dark:text-amber-200">
+                                    <strong>Lưu ý:</strong> Bài nộp của học viên sẽ được AI chấm tự động (điểm 0-10) và
+                                    lưu lại để giảng viên xem sau.
                                 </p>
                             </div>
                         </>
