@@ -10,6 +10,11 @@ import {
     Code2,
     Loader2,
     BookOpen,
+    Sparkles,
+    Bot,
+    Settings,
+    ThumbsUp,
+    AlertTriangle,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -43,6 +48,13 @@ type ProgressResponse = {
     completedCount: number;
     totalCount: number;
     modules: ModuleRow[];
+};
+
+type SummaryResponse = {
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    generatedBy: 'ai' | 'fallback';
 };
 
 type Enrollment = { id: number; courseId: number };
@@ -81,6 +93,13 @@ export default function ProgressPage() {
             return data;
         },
         enabled: !!enrollment?.id,
+    });
+
+    const summary = useMutation<SummaryResponse, Error, void>({
+        mutationFn: async () => {
+            const { data } = await apiClient.get(`/enrollments/${enrollment!.id}/summary`);
+            return data;
+        },
     });
 
     const markComplete = useMutation({
@@ -134,6 +153,70 @@ export default function ProgressPage() {
                         Về trang học
                     </Button>
                 </div>
+
+                <Card className="p-6 mb-4" data-testid="summary-card">
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-blue-600" />
+                            Nhận xét về tiến độ
+                        </h2>
+                        <Button
+                            data-testid="summary-button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => summary.mutate()}
+                            disabled={summary.isPending}
+                            className="gap-2"
+                        >
+                            {summary.isPending ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Đang phân tích…</>
+                            ) : (
+                                <>{summary.data ? 'Cập nhật nhận xét' : 'Tạo nhận xét'}</>
+                            )}
+                        </Button>
+                    </div>
+
+                    {!summary.data && !summary.isPending && (
+                        <p className="text-sm text-slate-500">
+                            Bấm nút bên trên để AI phân tích điểm mạnh / điểm cần cải thiện.
+                        </p>
+                    )}
+
+                    {summary.data && (
+                        <div data-testid="summary-content" className="space-y-3 text-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800" data-testid="summary-source">
+                                    {summary.data.generatedBy === 'ai' ? (
+                                        <><Bot className="h-3 w-3" /> AI</>
+                                    ) : (
+                                        <><Settings className="h-3 w-3" /> Heuristic</>
+                                    )}
+                                </span>
+                            </div>
+                            <p className="text-slate-700 dark:text-slate-300">{summary.data.summary}</p>
+                            {summary.data.strengths.length > 0 && (
+                                <div>
+                                    <p className="font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mb-1">
+                                        <ThumbsUp className="h-4 w-4" /> Điểm mạnh
+                                    </p>
+                                    <ul className="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-1">
+                                        {summary.data.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                            {summary.data.weaknesses.length > 0 && (
+                                <div>
+                                    <p className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1 mb-1">
+                                        <AlertTriangle className="h-4 w-4" /> Cần cải thiện
+                                    </p>
+                                    <ul className="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-1">
+                                        {summary.data.weaknesses.map((s, i) => <li key={i}>{s}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </Card>
 
                 <Card className="p-6 mb-6" data-testid="overall-card">
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">

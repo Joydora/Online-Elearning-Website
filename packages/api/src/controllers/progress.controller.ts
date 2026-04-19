@@ -4,6 +4,7 @@ import { AuthenticatedUser } from '../types/auth';
 import {
     computeProgress,
     refreshEnrollmentProgress,
+    summariseProgress,
 } from '../services/progress.service';
 
 const prisma = new PrismaClient();
@@ -38,6 +39,36 @@ export async function getEnrollmentProgressController(req: Request, res: Respons
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch progress',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function getEnrollmentSummaryController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthRequest;
+        if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
+
+        const enrollmentId = Number.parseInt(req.params.id, 10);
+        if (Number.isNaN(enrollmentId)) {
+            return res.status(400).json({ error: 'Enrollment id must be a number' });
+        }
+
+        const enrollment = await prisma.enrollment.findUnique({
+            where: { id: enrollmentId },
+            select: { studentId: true },
+        });
+        if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+        if (authReq.user.role !== 'ADMIN' && enrollment.studentId !== authReq.user.userId) {
+            return res.status(403).json({ error: 'Not your enrollment' });
+        }
+
+        const summary = await summariseProgress(enrollmentId);
+        if (!summary) return res.status(404).json({ error: 'Enrollment vanished' });
+        return res.status(200).json(summary);
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to summarise progress',
             details: (error as Error).message,
         });
     }

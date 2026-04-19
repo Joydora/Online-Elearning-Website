@@ -3,6 +3,7 @@ import { Role } from '@prisma/client';
 import { isAuthenticated, isAuthorized } from '../middleware/auth.middleware';
 import {
     getEnrollmentProgressController,
+    getEnrollmentSummaryController,
     markContentCompleteController,
 } from '../controllers/progress.controller';
 
@@ -13,6 +14,13 @@ router.get(
     isAuthenticated,
     isAuthorized([Role.STUDENT, Role.ADMIN]),
     getEnrollmentProgressController,
+);
+
+router.get(
+    '/enrollments/:id/summary',
+    isAuthenticated,
+    isAuthorized([Role.STUDENT, Role.ADMIN]),
+    getEnrollmentSummaryController,
 );
 
 router.post(
