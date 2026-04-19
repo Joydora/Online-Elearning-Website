@@ -54,11 +54,12 @@ model Category {
 }
 
 model Course {
-  id                Int     @id @default(autoincrement())
-  title             String
-  description       String
-  price             Float
-  trialDurationDays Int?
+  id                 Int     @id @default(autoincrement())
+  title              String
+  description        String
+  price              Float
+  trialDurationDays  Int?
+  accessDurationDays Int?
 
   teacherId Int
   teacher   User @relation("TeacherCourses", fields: [teacherId], references: [id])
@@ -132,6 +133,7 @@ model Enrollment {
   type                 EnrollmentType @default(PAID)
   expiresAt            DateTime?
   trialCardFingerprint String?
+  isActive             Boolean        @default(true)
 
   studentId Int
   student   User @relation(fields: [studentId], references: [id])
