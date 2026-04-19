@@ -41,11 +41,17 @@ export async function canAccessContent(
                 courseId: content.module.courseId,
             },
         },
-        select: { id: true, type: true, expiresAt: true },
+        select: { id: true, type: true, expiresAt: true, isActive: true },
     });
 
     if (!enrollment) {
         return { allowed: false, reason: 'NOT_ENROLLED' };
+    }
+
+    // Belt-and-suspenders: block if either the flag is off (cron swept it)
+    // or expiresAt has passed (cron hasn't run yet).
+    if (!enrollment.isActive) {
+        return { allowed: false, reason: 'TRIAL_EXPIRED' };
     }
 
     if (enrollment.expiresAt && enrollment.expiresAt.getTime() <= Date.now()) {

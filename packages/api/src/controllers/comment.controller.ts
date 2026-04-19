@@ -56,6 +56,10 @@ export async function postCommentController(req: Request, res: Response): Promis
                 return res.status(403).json({ error: 'Bạn phải đăng ký khóa học để bình luận' });
             }
 
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Quyền truy cập của bạn đã hết hạn' });
+            }
+
             throw error;
         }
     } catch (error) {

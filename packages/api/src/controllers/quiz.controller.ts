@@ -30,6 +30,10 @@ export async function getQuizController(req: Request, res: Response): Promise<Re
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
             }
 
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Your access to this course has expired' });
+            }
+
             throw error;
         }
     } catch (error) {
@@ -66,6 +70,10 @@ export async function submitQuizController(req: Request, res: Response): Promise
 
             if (message === 'NOT_ENROLLED') {
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
+            }
+
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Your access to this course has expired' });
             }
 
             if (message === 'INVALID_ANSWERS') {

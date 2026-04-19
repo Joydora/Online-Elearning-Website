@@ -23,10 +23,15 @@ async function assertStudentEnrollment(courseId: number, studentId: number): Pro
                 courseId,
             },
         },
+        select: { isActive: true, expiresAt: true },
     });
 
     if (!enrollment) {
         throw new Error('NOT_ENROLLED');
+    }
+
+    if (!enrollment.isActive || (enrollment.expiresAt && enrollment.expiresAt.getTime() <= Date.now())) {
+        throw new Error('ENROLLMENT_EXPIRED');
     }
 }
 
