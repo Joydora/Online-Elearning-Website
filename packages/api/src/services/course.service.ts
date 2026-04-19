@@ -80,6 +80,10 @@ export async function getAllCourses() {
     const rows = await prisma.course.findMany({
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
+        // Hard cap — the public course grid doesn't paginate yet, so
+        // any growth in the catalog quietly blows up the response
+        // size. 500 is well above what the grid will ever render.
+        take: 500,
     });
     return rows.map((c) => serialiseCoursePrice(c));
 }
