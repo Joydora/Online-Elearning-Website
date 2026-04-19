@@ -28,10 +28,10 @@ export type LoginResult = {
     user: SafeUser;
 };
 
-export type SafeUser = Omit<User, 'hashedPassword'>;
+export type SafeUser = Omit<User, 'hashedPassword' | 'stripeCustomerId' | 'stripePaymentMethodId'>;
 
 function excludePassword(user: User): SafeUser {
-    const { hashedPassword, ...safeUser } = user;
+    const { hashedPassword, stripeCustomerId, stripePaymentMethodId, ...safeUser } = user;
     return safeUser;
 }
 

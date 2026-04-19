@@ -90,9 +90,26 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
             where: {
                 studentId: authReq.user.userId,
             },
-            include: {
+            select: {
+                id: true,
+                enrollmentDate: true,
+                progress: true,
+                completionDate: true,
+                type: true,
+                expiresAt: true,
+                studentId: true,
+                courseId: true,
                 course: {
-                    include: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        price: true,
+                        trialDurationDays: true,
+                        teacherId: true,
+                        categoryId: true,
+                        createdAt: true,
+                        updatedAt: true,
                         teacher: {
                             select: {
                                 id: true,
@@ -101,7 +118,12 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
                                 lastName: true,
                             },
                         },
-                        category: true,
+                        category: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
             },

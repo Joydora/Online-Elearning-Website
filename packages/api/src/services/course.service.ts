@@ -7,6 +7,7 @@ const courseSummarySelect = {
     title: true,
     description: true,
     price: true,
+    trialDurationDays: true,
     createdAt: true,
     updatedAt: true,
     category: {
@@ -42,6 +43,7 @@ const courseDetailSelect = {
                     contentType: true,
                     durationInSeconds: true,
                     timeLimitInMinutes: true,
+                    isFreePreview: true,
                     // Intentionally omit video/document URLs to keep asset links hidden
                 },
             },
