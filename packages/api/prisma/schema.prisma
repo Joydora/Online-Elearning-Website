@@ -19,6 +19,11 @@ enum ContentType {
   QUIZ
 }
 
+enum EnrollmentType {
+  TRIAL
+  PAID
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -27,6 +32,9 @@ model User {
   firstName      String?
   lastName       String?
   role           Role    @default(STUDENT)
+
+  stripeCustomerId      String? @unique
+  stripePaymentMethodId String?
 
   coursesAsTeacher Course[]      @relation("TeacherCourses")
   enrollments      Enrollment[]
@@ -46,10 +54,11 @@ model Category {
 }
 
 model Course {
-  id          Int    @id @default(autoincrement())
-  title       String
-  description String
-  price       Float
+  id                Int     @id @default(autoincrement())
+  title             String
+  description       String
+  price             Float
+  trialDurationDays Int?
 
   teacherId Int
   teacher   User @relation("TeacherCourses", fields: [teacherId], references: [id])
@@ -85,6 +94,7 @@ model Content {
   documentUrl        String?
   fileType           String?
   timeLimitInMinutes Int?
+  isFreePreview      Boolean     @default(false)
 
   moduleId Int
   module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -119,6 +129,10 @@ model Enrollment {
   progress       Float     @default(0)
   completionDate DateTime?
 
+  type                 EnrollmentType @default(PAID)
+  expiresAt            DateTime?
+  trialCardFingerprint String?
+
   studentId Int
   student   User @relation(fields: [studentId], references: [id])
 
@@ -129,6 +143,7 @@ model Enrollment {
   review  Review?  @relation("EnrollmentReview")
 
   @@unique([studentId, courseId])
+  @@index([trialCardFingerprint, courseId])
 }
 
 model Review {
