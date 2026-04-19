@@ -23,6 +23,7 @@ import ManageCourses from './pages/admin/ManageCourses';
 import AdminCreateCourse from './pages/admin/CreateCourse';
 import AdminEditCourse from './pages/admin/EditCourse';
 import AdminRevenue from './pages/admin/Revenue';
+import LearningPath from './pages/LearningPath';
 
 function MainLayout() {
     return (
@@ -87,6 +88,10 @@ export const router = createBrowserRouter([
             {
                 path: '/courses/:id',
                 element: <CourseDetail />,
+            },
+            {
+                path: '/learning-path',
+                element: <LearningPath />,
             },
             {
                 element: <RoleRoute requiredRole="STUDENT" />,
