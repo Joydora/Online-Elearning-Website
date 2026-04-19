@@ -24,6 +24,25 @@ function isAuthenticatedUser(payload: unknown): payload is AuthenticatedUser {
     return typeof candidate.userId === 'number' && typeof candidate.role === 'string';
 }
 
+export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
+    const token = req.cookies?.[COOKIE_NAME];
+    if (!token) {
+        next();
+        return;
+    }
+
+    try {
+        const decoded = jwt.verify(token, getJwtSecret());
+        if (isAuthenticatedUser(decoded)) {
+            (req as AuthenticatedRequest).user = decoded;
+        }
+    } catch {
+        // ignore invalid/expired token; treat as anonymous
+    }
+
+    next();
+}
+
 export function isAuthenticated(req: Request, res: Response, next: NextFunction): void {
     try {
         const token = req.cookies?.[COOKIE_NAME];

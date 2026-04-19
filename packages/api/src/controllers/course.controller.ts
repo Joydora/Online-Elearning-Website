@@ -13,6 +13,7 @@ import {
     updateCourseForTeacher,
 } from '../services/course.service';
 import { AuthenticatedUser } from '../types/auth';
+import { getContentWithAccess } from '../services/contentAccess.service';
 
 export async function getCategoriesController(_req: Request, res: Response): Promise<Response> {
     try {
@@ -57,6 +58,42 @@ export async function getCourseDetailController(req: Request, res: Response): Pr
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch course detail',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function getContentController(req: Request, res: Response): Promise<Response> {
+    try {
+        const contentId = Number.parseInt(req.params.id, 10);
+
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'Content id must be a number' });
+        }
+
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const userId = authReq.user?.userId ?? null;
+
+        const { decision, content } = await getContentWithAccess(userId, contentId);
+
+        if (decision.reason === 'CONTENT_NOT_FOUND') {
+            return res.status(404).json({ error: 'Content not found' });
+        }
+
+        if (!decision.allowed) {
+            return res.status(403).json({
+                error: 'Access denied',
+                reason: decision.reason,
+            });
+        }
+
+        return res.status(200).json({
+            ...content,
+            accessReason: decision.reason,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch content',
             details: (error as Error).message,
         });
     }
