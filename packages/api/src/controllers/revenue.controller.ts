@@ -145,21 +145,24 @@ export async function markRevenuePaidController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Ledger id must be a number' });
         }
 
-        const existing = await prisma.revenueLedger.findUnique({ where: { id: ledgerId } });
-        if (!existing) {
-            return res.status(404).json({ error: 'Ledger entry not found' });
-        }
-
-        if (existing.payoutStatus === 'PAID') {
-            return res.status(200).json(serialiseLedger(existing));
-        }
-
-        const updated = await prisma.revenueLedger.update({
-            where: { id: ledgerId },
+        // Conditional update in a single SQL statement — no read-then-
+        // write gap where two admins could both update paidAt to
+        // different timestamps. updateMany returns count 0 when the
+        // row already has payoutStatus=PAID, so we can distinguish
+        // "not found" from "already paid" with one follow-up lookup.
+        const result = await prisma.revenueLedger.updateMany({
+            where: { id: ledgerId, payoutStatus: 'HELD' },
             data: { payoutStatus: 'PAID', paidAt: new Date() },
         });
 
-        return res.status(200).json(serialiseLedger(updated));
+        const row = await prisma.revenueLedger.findUnique({ where: { id: ledgerId } });
+        if (!row) {
+            return res.status(404).json({ error: 'Ledger entry not found' });
+        }
+        // result.count === 0 here means it was already PAID — that's a
+        // no-op success for idempotency.
+        void result;
+        return res.status(200).json(serialiseLedger(row));
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to mark revenue paid',

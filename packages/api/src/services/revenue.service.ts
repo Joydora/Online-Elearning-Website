@@ -35,13 +35,9 @@ export async function recordRevenue(paymentId: number): Promise<
       }
     | { created: false; skipped: 'ALREADY_RECORDED' }
 > {
-    const existing = await prisma.revenueLedger.findUnique({
-        where: { paymentId },
-    });
-    if (existing) {
-        return { created: false, skipped: 'ALREADY_RECORDED' };
-    }
-
+    // Don't preflight with findUnique — two parallel calls would both
+    // read null and race into a double-create. RevenueLedger.paymentId
+    // is @unique, so the DB settles the race via P2002 and we catch it.
     const payment = await prisma.payment.findUnique({
         where: { id: paymentId },
         select: {
@@ -104,21 +100,33 @@ export async function recordRevenue(paymentId: number): Promise<
         [teacher.firstName, teacher.lastName].filter(Boolean).join(' ').trim()
         || teacher.username;
 
-    const ledger = await prisma.revenueLedger.create({
-        data: {
-            paymentId: payment.id,
-            courseId,
-            teacherId,
-            courseTitleSnapshot: enrollment.course.title.slice(0, 200),
-            teacherNameSnapshot: teacherName.slice(0, 200),
-            teacherEmailSnapshot: teacher.email.slice(0, 320),
-            feePctSnapshot: new Prisma.Decimal(feePct).toDecimalPlaces(2),
-            grossAmount: gross,
-            platformFee,
-            teacherShare,
-            payoutStatus: PayoutStatus.HELD,
-        },
-    });
+    let ledger;
+    try {
+        ledger = await prisma.revenueLedger.create({
+            data: {
+                paymentId: payment.id,
+                courseId,
+                teacherId,
+                courseTitleSnapshot: enrollment.course.title.slice(0, 200),
+                teacherNameSnapshot: teacherName.slice(0, 200),
+                teacherEmailSnapshot: teacher.email.slice(0, 320),
+                feePctSnapshot: new Prisma.Decimal(feePct).toDecimalPlaces(2),
+                grossAmount: gross,
+                platformFee,
+                teacherShare,
+                payoutStatus: PayoutStatus.HELD,
+            },
+        });
+    } catch (err) {
+        if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+        ) {
+            // Concurrent caller beat us — the ledger row exists now.
+            return { created: false, skipped: 'ALREADY_RECORDED' };
+        }
+        throw err;
+    }
 
     return {
         created: true,
