@@ -30,6 +30,12 @@ enum PayoutStatus {
   PAID
 }
 
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -61,12 +67,13 @@ model Category {
 }
 
 model Course {
-  id                 Int     @id @default(autoincrement())
+  id                 Int          @id @default(autoincrement())
   title              String
   description        String
   price              Float
   trialDurationDays  Int?
   accessDurationDays Int?
+  level              CourseLevel?
 
   teacherId Int
   teacher   User @relation("TeacherCourses", fields: [teacherId], references: [id])
@@ -76,6 +83,10 @@ model Course {
 
   modules     Module[]
   enrollments Enrollment[]
+
+  // Self-many-to-many: courses this course requires the student to have done first.
+  prerequisites Course[] @relation("CoursePrerequisites")
+  prerequisiteOf Course[] @relation("CoursePrerequisites")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
