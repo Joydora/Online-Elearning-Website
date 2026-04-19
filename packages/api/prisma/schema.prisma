@@ -24,6 +24,11 @@ enum EnrollmentType {
   PAID
 }
 
+enum PayoutStatus {
+  HELD
+  PAID
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -186,7 +191,30 @@ model Payment {
   studentId Int
   student   User @relation(fields: [studentId], references: [id])
 
+  revenueLedger RevenueLedger?
+
   createdAt DateTime @default(now())
+}
+
+model RevenueLedger {
+  id           Int          @id @default(autoincrement())
+  paymentId    Int          @unique
+  payment      Payment      @relation(fields: [paymentId], references: [id])
+
+  courseId     Int
+  teacherId    Int
+
+  grossAmount  Float
+  platformFee  Float
+  teacherShare Float
+
+  payoutStatus PayoutStatus @default(HELD)
+  paidAt       DateTime?
+
+  createdAt    DateTime     @default(now())
+
+  @@index([teacherId, createdAt])
+  @@index([payoutStatus])
 }
 
 model Comment {
