@@ -339,6 +339,16 @@ model RevenueLedger {
   @@index([payoutStatus])
 }
 
+// Stripe guarantees at-least-once delivery — a retry on a dropped ACK
+// would double-enroll a student or double-book revenue. Insert a row
+// keyed on event.id inside the same transaction; the unique constraint
+// makes a duplicate land as P2002 and we short-circuit.
+model StripeWebhookEvent {
+  id          String   @id @db.VarChar(100)
+  type        String   @db.VarChar(100)
+  processedAt DateTime @default(now())
+}
+
 model Comment {
   id   Int    @id @default(autoincrement())
   text String

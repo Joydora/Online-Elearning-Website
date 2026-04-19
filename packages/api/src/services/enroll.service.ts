@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
-import { PaymentStatus } from '@prisma/client';
+import { PaymentStatus, Prisma } from '@prisma/client';
 import { recordRevenue } from './revenue.service';
 import { prisma } from '../lib/prisma';
 
@@ -394,6 +394,26 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
 
     if (event.type !== 'checkout.session.completed') {
         return;
+    }
+
+    // Idempotency gate: if we've already processed this event.id, the
+    // unique-constraint insert will throw P2002 and we bail out before
+    // running any side effects. Stripe delivers at-least-once, so
+    // without this a dropped ACK would re-enroll a student / re-book
+    // a RevenueLedger row on every retry.
+    try {
+        await prisma.stripeWebhookEvent.create({
+            data: { id: event.id, type: event.type },
+        });
+    } catch (err) {
+        if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+        ) {
+            console.log(`[stripe-webhook] duplicate event ${event.id} ignored`);
+            return;
+        }
+        throw err;
     }
 
     const session = event.data.object as Stripe.Checkout.Session;
