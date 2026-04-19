@@ -15,6 +15,7 @@ import CreateCourse from './pages/teacher/CreateCourse';
 import EditCourse from './pages/teacher/EditCourse';
 import ManageCourse from './pages/teacher/ManageCourse';
 import ManageQuiz from './pages/teacher/ManageQuiz';
+import ManageProjects from './pages/teacher/ManageProjects';
 import CoursePlayer from './pages/learning/CoursePlayer';
 import ProgressPage from './pages/learning/Progress';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -129,6 +130,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/quiz/:contentId/manage',
                         element: <ManageQuiz />,
+                    },
+                    {
+                        path: '/courses/:id/projects/manage',
+                        element: <ManageProjects />,
                     },
                 ],
             },
