@@ -16,6 +16,7 @@ import EditCourse from './pages/teacher/EditCourse';
 import ManageCourse from './pages/teacher/ManageCourse';
 import ManageQuiz from './pages/teacher/ManageQuiz';
 import CoursePlayer from './pages/learning/CoursePlayer';
+import ProgressPage from './pages/learning/Progress';
 import AdminDashboard from './pages/admin/Dashboard';
 import ManageCategories from './pages/admin/ManageCategories';
 import ManageUsers from './pages/admin/ManageUsers';
@@ -99,6 +100,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/learning/:courseId',
                         element: <CoursePlayer />,
+                    },
+                    {
+                        path: '/learning/:courseId/progress',
+                        element: <ProgressPage />,
                     },
                 ],
             },
