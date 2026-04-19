@@ -155,6 +155,7 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
                 completionDate: true,
                 type: true,
                 expiresAt: true,
+                isActive: true,
                 studentId: true,
                 courseId: true,
                 course: {
@@ -164,6 +165,7 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
                         description: true,
                         price: true,
                         trialDurationDays: true,
+                        accessDurationDays: true,
                         teacherId: true,
                         categoryId: true,
                         createdAt: true,

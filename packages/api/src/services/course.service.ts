@@ -8,6 +8,7 @@ const courseSummarySelect = {
     description: true,
     price: true,
     trialDurationDays: true,
+    accessDurationDays: true,
     createdAt: true,
     updatedAt: true,
     category: {
