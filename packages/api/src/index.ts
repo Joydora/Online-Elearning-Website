@@ -18,15 +18,33 @@ import progressRoutes from './routes/progress.routes';
 import projectRoutes from './routes/project.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { scheduleExpirySweep } from './jobs/expireEnrollments';
+import { buildCsrfMiddleware } from './middleware/csrf.middleware';
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// Allow-list of browser origins. FRONTEND_URL is typically a single
+// entry; FRONTEND_URLS (comma-separated) supports staging + preview
+// deploys. Falls back to the Vite dev server for local work.
+const trustedOrigins: string[] = (
+    process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? 'http://localhost:5173'
+)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 app.use(cors({
-    origin: frontendOrigin,
+    origin: (origin, cb) => {
+        // Browser requests without Origin (curl, same-origin) are allowed;
+        // any cross-origin request must match the allow-list exactly.
+        // Pass `false` instead of throwing so the browser receives a
+        // clean CORS denial (no Access-Control-Allow-Origin header)
+        // rather than a 500 from the cors library throwing on denial.
+        if (!origin || trustedOrigins.includes(origin)) return cb(null, true);
+        return cb(null, false);
+    },
     credentials: true,
 }));
 app.use(express.json({
@@ -38,6 +56,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(buildCsrfMiddleware(trustedOrigins));
 
 app.use('/api/auth', authRoutes);
 app.use('/api', courseRoutes);
