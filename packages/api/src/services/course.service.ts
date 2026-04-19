@@ -118,6 +118,10 @@ type CreateContentInput = {
     fileType?: string | null;
     timeLimitInMinutes?: number | null;
     isFreePreview?: boolean;
+    practicePrompt?: string;
+    practiceStarterCode?: string | null;
+    practiceExpectedOutput?: string | null;
+    practiceLanguage?: string;
     userRole?: string;
 };
 
@@ -132,6 +136,10 @@ type UpdateContentInput = {
     fileType?: string | null;
     timeLimitInMinutes?: number | null;
     isFreePreview?: boolean;
+    practicePrompt?: string;
+    practiceStarterCode?: string | null;
+    practiceExpectedOutput?: string | null;
+    practiceLanguage?: string;
     userRole?: string;
 };
 
@@ -292,7 +300,7 @@ export async function createContentForModule(input: CreateContentInput) {
             ? input.order
             : (await prisma.content.count({ where: { moduleId: input.moduleId } })) + 1;
 
-    return prisma.content.create({
+    const created = await prisma.content.create({
         data: {
             title: input.title,
             order: nextOrder,
@@ -316,6 +324,27 @@ export async function createContentForModule(input: CreateContentInput) {
             moduleId: true,
         },
     });
+
+    // For PRACTICE contents, create the paired Practice row.
+    if (input.contentType === 'PRACTICE') {
+        if (!input.practicePrompt || !input.practicePrompt.trim()) {
+            // Roll back: delete the content so the DB doesn't hold a
+            // PRACTICE content with no Practice sibling.
+            await prisma.content.delete({ where: { id: created.id } });
+            throw new Error('PRACTICE_PROMPT_REQUIRED');
+        }
+        await prisma.practice.create({
+            data: {
+                contentId: created.id,
+                prompt: input.practicePrompt,
+                starterCode: input.practiceStarterCode ?? null,
+                expectedOutput: input.practiceExpectedOutput ?? null,
+                language: input.practiceLanguage ?? 'plaintext',
+            },
+        });
+    }
+
+    return created;
 }
 
 export async function updateContentForTeacher(input: UpdateContentInput) {
@@ -340,7 +369,7 @@ export async function updateContentForTeacher(input: UpdateContentInput) {
         throw new Error('COURSE_FORBIDDEN');
     }
 
-    return prisma.content.update({
+    const updated = await prisma.content.update({
         where: { id: input.contentId },
         data: {
             title: input.title ?? undefined,
@@ -365,6 +394,40 @@ export async function updateContentForTeacher(input: UpdateContentInput) {
             moduleId: true,
         },
     });
+
+    // Propagate practice-specific fields if caller sent any — only meaningful
+    // for PRACTICE contents, but upsert so a teacher can recover from a
+    // PRACTICE row that somehow lost its Practice sibling.
+    const touchingPractice =
+        input.practicePrompt !== undefined ||
+        input.practiceStarterCode !== undefined ||
+        input.practiceExpectedOutput !== undefined ||
+        input.practiceLanguage !== undefined;
+
+    if (touchingPractice && updated.contentType === 'PRACTICE') {
+        await prisma.practice.upsert({
+            where: { contentId: updated.id },
+            create: {
+                contentId: updated.id,
+                prompt: input.practicePrompt ?? '',
+                starterCode: input.practiceStarterCode ?? null,
+                expectedOutput: input.practiceExpectedOutput ?? null,
+                language: input.practiceLanguage ?? 'plaintext',
+            },
+            update: {
+                prompt: input.practicePrompt ?? undefined,
+                starterCode:
+                    input.practiceStarterCode === undefined ? undefined : input.practiceStarterCode,
+                expectedOutput:
+                    input.practiceExpectedOutput === undefined
+                        ? undefined
+                        : input.practiceExpectedOutput,
+                language: input.practiceLanguage ?? undefined,
+            },
+        });
+    }
+
+    return updated;
 }
 
 export async function deleteContentForTeacher(contentId: number, teacherId: number, userRole?: string) {

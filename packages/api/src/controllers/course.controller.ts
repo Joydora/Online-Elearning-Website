@@ -414,6 +414,10 @@ export async function createContentController(req: Request, res: Response): Prom
             fileType,
             timeLimitInMinutes,
             isFreePreview,
+            practicePrompt,
+            practiceStarterCode,
+            practiceExpectedOutput,
+            practiceLanguage,
         } = authReq.body ?? {};
 
         if (!moduleId || !title || !contentType) {
@@ -463,6 +467,18 @@ export async function createContentController(req: Request, res: Response): Prom
                 fileType,
                 timeLimitInMinutes: numericTimeLimit,
                 isFreePreview: typeof isFreePreview === 'boolean' ? isFreePreview : undefined,
+                practicePrompt:
+                    typeof practicePrompt === 'string' ? practicePrompt : undefined,
+                practiceStarterCode:
+                    typeof practiceStarterCode === 'string' || practiceStarterCode === null
+                        ? practiceStarterCode
+                        : undefined,
+                practiceExpectedOutput:
+                    typeof practiceExpectedOutput === 'string' || practiceExpectedOutput === null
+                        ? practiceExpectedOutput
+                        : undefined,
+                practiceLanguage:
+                    typeof practiceLanguage === 'string' ? practiceLanguage : undefined,
                 userRole: authReq.user?.role,
             });
 
@@ -476,6 +492,12 @@ export async function createContentController(req: Request, res: Response): Prom
 
             if (message === 'COURSE_FORBIDDEN') {
                 return res.status(403).json({ error: 'You are not the owner of this course' });
+            }
+
+            if (message === 'PRACTICE_PROMPT_REQUIRED') {
+                return res.status(400).json({
+                    error: 'practicePrompt is required when contentType=PRACTICE',
+                });
             }
 
             throw error;
@@ -512,6 +534,10 @@ export async function updateContentController(req: Request, res: Response): Prom
             fileType,
             timeLimitInMinutes,
             isFreePreview,
+            practicePrompt,
+            practiceStarterCode,
+            practiceExpectedOutput,
+            practiceLanguage,
         } = authReq.body ?? {};
 
         if (
@@ -522,7 +548,11 @@ export async function updateContentController(req: Request, res: Response): Prom
             documentUrl === undefined &&
             fileType === undefined &&
             timeLimitInMinutes === undefined &&
-            isFreePreview === undefined
+            isFreePreview === undefined &&
+            practicePrompt === undefined &&
+            practiceStarterCode === undefined &&
+            practiceExpectedOutput === undefined &&
+            practiceLanguage === undefined
         ) {
             return res.status(400).json({ error: 'No fields provided for update' });
         }
@@ -560,6 +590,18 @@ export async function updateContentController(req: Request, res: Response): Prom
                 fileType,
                 timeLimitInMinutes: numericTimeLimit,
                 isFreePreview,
+                practicePrompt:
+                    typeof practicePrompt === 'string' ? practicePrompt : undefined,
+                practiceStarterCode:
+                    typeof practiceStarterCode === 'string' || practiceStarterCode === null
+                        ? practiceStarterCode
+                        : undefined,
+                practiceExpectedOutput:
+                    typeof practiceExpectedOutput === 'string' || practiceExpectedOutput === null
+                        ? practiceExpectedOutput
+                        : undefined,
+                practiceLanguage:
+                    typeof practiceLanguage === 'string' ? practiceLanguage : undefined,
                 userRole: authReq.user?.role,
             });
 
