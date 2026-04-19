@@ -13,6 +13,7 @@ import commentRoutes from './routes/comment.routes';
 import chatbotRoutes from './routes/chatbot.routes';
 import adminRoutes from './routes/admin.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
+import { scheduleExpirySweep } from './jobs/expireEnrollments';
 
 dotenv.config();
 
@@ -64,7 +65,10 @@ app.get('/api/health', async (_req: Request, res: Response) => {
 
 const server = app.listen(port, async () => {
     console.log(`[server]: Server is running at http://localhost:${port}`);
-    
+
+    // Schedule daily enrollment-expiry sweep (also runs once on boot).
+    scheduleExpirySweep();
+
     // Initialize chatbot in background
     try {
         console.log('🤖 Initializing AI Chatbot...');
