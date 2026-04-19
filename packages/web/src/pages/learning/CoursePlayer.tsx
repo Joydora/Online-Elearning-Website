@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CheckCircle, PlayCircle, FileText, HelpCircle, MessageCircle, Menu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { showErrorAlert } from '../../lib/sweetalert';
+import Swal from 'sweetalert2';
 
 type Content = {
-    contentId: number;
+    contentId?: number;
+    id?: number;
     title: string;
     order: number;
     contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
@@ -18,7 +20,8 @@ type Content = {
 };
 
 type Module = {
-    moduleId: number;
+    moduleId?: number;
+    id?: number;
     title: string;
     order: number;
     contents: Content[];
@@ -33,15 +36,18 @@ type CourseData = {
 };
 
 type Enrollment = {
-    enrollmentId: number;
+    id?: number;
+    enrollmentId?: number;
     progress: number;
     completionDate: string | null;
+    type?: 'TRIAL' | 'PAID';
+    expiresAt?: string | null;
 };
 
 export default function CoursePlayer() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
+    useQueryClient();
 
     const [currentModuleId, setCurrentModuleId] = useState<number | null>(null);
     const [currentContentId, setCurrentContentId] = useState<number | null>(null);
@@ -73,21 +79,71 @@ export default function CoursePlayer() {
         enabled: !!courseId,
     });
 
+    // Trial state derivation
+    const expiresAtMs = enrollment?.expiresAt ? new Date(enrollment.expiresAt).getTime() : null;
+    const nowMs = Date.now();
+    const isTrial = enrollment?.type === 'TRIAL';
+    const isExpired = expiresAtMs !== null && expiresAtMs <= nowMs;
+    const daysLeft =
+        expiresAtMs !== null
+            ? Math.max(0, Math.ceil((expiresAtMs - nowMs) / (24 * 60 * 60 * 1000)))
+            : 0;
+
+    // Redirect when trial has expired
+    useEffect(() => {
+        if (enrollment && isTrial && isExpired) {
+            showErrorAlert(
+                'Học thử đã hết hạn',
+                'Bạn cần nâng cấp lên bản đầy đủ để tiếp tục học khoá này.',
+            );
+            navigate(`/courses/${courseId}`);
+        }
+    }, [enrollment, isTrial, isExpired, courseId, navigate]);
+
+    const upgradeMutation = useMutation({
+        mutationFn: async () => {
+            const { data } = await apiClient.post(`/enroll/checkout/${courseId}`);
+            return data as { url: string };
+        },
+        onSuccess: (data) => {
+            Swal.close();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                window.location.reload();
+            }
+        },
+        onError: (error: any) => {
+            Swal.close();
+            const msg =
+                error.response?.data?.error ||
+                error.response?.data?.details ||
+                'Không thể nâng cấp. Vui lòng thử lại.';
+            showErrorAlert('Lỗi nâng cấp', msg);
+        },
+    });
+
     // Set initial content
     useState(() => {
         if (course && !currentModuleId && !currentContentId) {
             const firstModule = course.modules[0];
             if (firstModule) {
-                setCurrentModuleId(firstModule.moduleId);
+                const firstModuleId = (firstModule.moduleId ?? firstModule.id) ?? null;
+                setCurrentModuleId(firstModuleId);
                 if (firstModule.contents[0]) {
-                    setCurrentContentId(firstModule.contents[0].contentId);
+                    const firstContentId =
+                        (firstModule.contents[0].contentId ?? firstModule.contents[0].id) ?? null;
+                    setCurrentContentId(firstContentId);
                 }
             }
         }
     });
 
-    const currentModule = course?.modules.find(m => m.moduleId === currentModuleId);
-    const currentContent = currentModule?.contents.find(c => c.contentId === currentContentId);
+    const getModuleId = (m: Module) => (m.moduleId ?? m.id) as number;
+    const getContentId = (c: Content) => (c.contentId ?? c.id) as number;
+
+    const currentModule = course?.modules.find(m => getModuleId(m) === currentModuleId);
+    const currentContent = currentModule?.contents.find(c => getContentId(c) === currentContentId);
 
     const handleContentSelect = (moduleId: number, contentId: number) => {
         setCurrentModuleId(moduleId);
@@ -97,23 +153,23 @@ export default function CoursePlayer() {
     const getNextContent = () => {
         if (!course || !currentModule || !currentContent) return null;
 
-        const currentIndex = currentModule.contents.findIndex(c => c.contentId === currentContentId);
-        
+        const currentIndex = currentModule.contents.findIndex(c => getContentId(c) === currentContentId);
+
         // Next content in same module
         if (currentIndex < currentModule.contents.length - 1) {
             return {
-                moduleId: currentModule.moduleId,
+                moduleId: getModuleId(currentModule),
                 content: currentModule.contents[currentIndex + 1]
             };
         }
 
         // First content of next module
-        const moduleIndex = course.modules.findIndex(m => m.moduleId === currentModuleId);
+        const moduleIndex = course.modules.findIndex(m => getModuleId(m) === currentModuleId);
         if (moduleIndex < course.modules.length - 1) {
             const nextModule = course.modules[moduleIndex + 1];
             if (nextModule.contents.length > 0) {
                 return {
-                    moduleId: nextModule.moduleId,
+                    moduleId: getModuleId(nextModule),
                     content: nextModule.contents[0]
                 };
             }
@@ -125,23 +181,23 @@ export default function CoursePlayer() {
     const getPreviousContent = () => {
         if (!course || !currentModule || !currentContent) return null;
 
-        const currentIndex = currentModule.contents.findIndex(c => c.contentId === currentContentId);
-        
+        const currentIndex = currentModule.contents.findIndex(c => getContentId(c) === currentContentId);
+
         // Previous content in same module
         if (currentIndex > 0) {
             return {
-                moduleId: currentModule.moduleId,
+                moduleId: getModuleId(currentModule),
                 content: currentModule.contents[currentIndex - 1]
             };
         }
 
         // Last content of previous module
-        const moduleIndex = course.modules.findIndex(m => m.moduleId === currentModuleId);
+        const moduleIndex = course.modules.findIndex(m => getModuleId(m) === currentModuleId);
         if (moduleIndex > 0) {
             const prevModule = course.modules[moduleIndex - 1];
             if (prevModule.contents.length > 0) {
                 return {
-                    moduleId: prevModule.moduleId,
+                    moduleId: getModuleId(prevModule),
                     content: prevModule.contents[prevModule.contents.length - 1]
                 };
             }
@@ -153,14 +209,14 @@ export default function CoursePlayer() {
     const handleNext = () => {
         const next = getNextContent();
         if (next) {
-            handleContentSelect(next.moduleId, next.content.contentId);
+            handleContentSelect(next.moduleId, getContentId(next.content));
         }
     };
 
     const handlePrevious = () => {
         const prev = getPreviousContent();
         if (prev) {
-            handleContentSelect(prev.moduleId, prev.content.contentId);
+            handleContentSelect(prev.moduleId, getContentId(prev.content));
         }
     };
 
@@ -246,6 +302,41 @@ export default function CoursePlayer() {
                     </div>
                 </div>
 
+                {/* Trial Banner */}
+                {isTrial && !isExpired && (
+                    <div
+                        data-testid="trial-banner"
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Sparkles className="h-5 w-5 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold">Chế độ học thử</p>
+                                <p className="text-sm opacity-90">
+                                    {daysLeft > 0
+                                        ? `Còn ${daysLeft} ngày học thử — nâng cấp để giữ toàn quyền truy cập.`
+                                        : 'Hôm nay là ngày cuối của bản học thử.'}
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            onClick={() => upgradeMutation.mutate()}
+                            disabled={upgradeMutation.isPending}
+                            className="bg-white text-orange-600 hover:bg-orange-50"
+                            data-testid="upgrade-button"
+                        >
+                            {upgradeMutation.isPending ? (
+                                <>Đang xử lý...</>
+                            ) : (
+                                <>
+                                    <ArrowUpCircle className="mr-2 h-4 w-4" />
+                                    Nâng cấp ngay
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                )}
+
                 {/* Video/Content Player */}
                 <div className="flex-1 flex items-center justify-center bg-black">
                     {currentContent && (
@@ -328,18 +419,22 @@ export default function CoursePlayer() {
                         </h2>
 
                         <div className="space-y-2">
-                            {course.modules.map((module) => (
-                                <div key={module.moduleId}>
+                            {course.modules.map((module) => {
+                                const mid = getModuleId(module);
+                                return (
+                                <div key={mid}>
                                     <div className="px-4 py-2 bg-slate-700 rounded-lg text-white font-medium mb-2">
                                         {module.title}
                                     </div>
                                     <div className="space-y-1">
-                                        {module.contents.map((content) => (
+                                        {module.contents.map((content) => {
+                                            const cid = getContentId(content);
+                                            return (
                                             <button
-                                                key={content.contentId}
-                                                onClick={() => handleContentSelect(module.moduleId, content.contentId)}
+                                                key={cid}
+                                                onClick={() => handleContentSelect(mid, cid)}
                                                 className={`w-full text-left px-4 py-2 rounded-lg flex items-center gap-3 transition-colors ${
-                                                    currentContentId === content.contentId
+                                                    currentContentId === cid
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-slate-300 hover:bg-slate-700'
                                                 }`}
@@ -348,14 +443,16 @@ export default function CoursePlayer() {
                                                     {getContentIcon(content.contentType)}
                                                 </div>
                                                 <span className="flex-1 text-sm">{content.title}</span>
-                                                {currentContentId === content.contentId && (
+                                                {currentContentId === cid && (
                                                     <PlayCircle className="h-4 w-4" />
                                                 )}
                                             </button>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
