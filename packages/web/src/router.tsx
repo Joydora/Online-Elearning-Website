@@ -18,6 +18,7 @@ import ManageQuiz from './pages/teacher/ManageQuiz';
 import ManageProjects from './pages/teacher/ManageProjects';
 import CoursePlayer from './pages/learning/CoursePlayer';
 import ProgressPage from './pages/learning/Progress';
+import StudentProjects from './pages/learning/Projects';
 import AdminDashboard from './pages/admin/Dashboard';
 import ManageCategories from './pages/admin/ManageCategories';
 import ManageUsers from './pages/admin/ManageUsers';
@@ -105,6 +106,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/learning/:courseId/progress',
                         element: <ProgressPage />,
+                    },
+                    {
+                        path: '/learning/:courseId/projects',
+                        element: <StudentProjects />,
                     },
                 ],
             },
