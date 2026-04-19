@@ -22,6 +22,7 @@ import ManageUsers from './pages/admin/ManageUsers';
 import ManageCourses from './pages/admin/ManageCourses';
 import AdminCreateCourse from './pages/admin/CreateCourse';
 import AdminEditCourse from './pages/admin/EditCourse';
+import AdminRevenue from './pages/admin/Revenue';
 
 function MainLayout() {
     return (
@@ -155,6 +156,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/admin/quiz/:contentId/manage',
                         element: <ManageQuiz />,
+                    },
+                    {
+                        path: '/admin/revenue',
+                        element: <AdminRevenue />,
                     },
                 ],
             },
