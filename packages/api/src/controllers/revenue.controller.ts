@@ -133,7 +133,6 @@ export async function listRevenueController(req: Request, res: Response): Promis
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch revenue',
-            details: (error as Error).message,
         });
     }
 }
@@ -166,7 +165,6 @@ export async function markRevenuePaidController(req: Request, res: Response): Pr
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to mark revenue paid',
-            details: (error as Error).message,
         });
     }
 }
@@ -207,7 +205,6 @@ export async function getTeacherEarningsController(req: Request, res: Response):
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch earnings',
-            details: (error as Error).message,
         });
     }
 }

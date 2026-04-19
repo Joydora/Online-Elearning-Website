@@ -18,8 +18,7 @@ export async function initializeVectorStoreController(
     } catch (error) {
         console.error('Error initializing chatbot:', error);
         return res.status(500).json({
-            error: 'Failed to initialize chatbot',
-            details: (error as Error).message,
+            error: 'Failed to initialize chatbot',
         });
     }
 }
@@ -46,8 +45,7 @@ export async function askQuestionController(
     } catch (error) {
         console.error('Error generating answer:', error);
         return res.status(500).json({
-            error: 'Failed to generate answer',
-            details: (error as Error).message,
+            error: 'Failed to generate answer',
         });
     }
 }
@@ -86,8 +84,7 @@ export async function askQuestionStreamController(
     } catch (error) {
         console.error('Error streaming answer:', error);
         res.status(500).json({
-            error: 'Failed to stream answer',
-            details: (error as Error).message,
+            error: 'Failed to stream answer',
         });
     }
 }
@@ -104,8 +101,7 @@ export async function getVectorStoreStatsController(
     } catch (error) {
         console.error('Error getting chatbot stats:', error);
         return res.status(500).json({
-            error: 'Failed to get chatbot stats',
-            details: (error as Error).message,
+            error: 'Failed to get chatbot stats',
         });
     }
 }

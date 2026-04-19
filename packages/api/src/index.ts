@@ -19,8 +19,13 @@ import projectRoutes from './routes/project.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { scheduleExpirySweep } from './jobs/expireEnrollments';
 import { buildCsrfMiddleware } from './middleware/csrf.middleware';
+import { errorHandler } from './middleware/error.middleware';
+import { validateEnv } from './lib/env';
 
 dotenv.config();
+
+// Fail fast if DATABASE_URL / JWT_SECRET / etc. are missing.
+validateEnv();
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
@@ -81,13 +86,12 @@ app.get('/api/health', async (_req: Request, res: Response) => {
         await prisma.$queryRaw`SELECT 1`;
         res.status(200).json({ status: 'ok' });
     } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'Database unreachable',
-            error: (error as Error).message,
-        });
+        console.error('[health] database unreachable', error);
+        res.status(500).json({ status: 'error', message: 'Database unreachable' });
     }
 });
+
+app.use(errorHandler);
 
 const server = app.listen(port, async () => {
     console.log(`[server]: Server is running at http://localhost:${port}`);

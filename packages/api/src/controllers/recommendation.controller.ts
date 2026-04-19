@@ -53,7 +53,6 @@ export async function recommendPathController(req: Request, res: Response): Prom
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to generate learning path',
-            details: (error as Error).message,
         });
     }
 }

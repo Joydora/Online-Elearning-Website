@@ -79,8 +79,7 @@ export async function createQuestionController(req: Request, res: Response): Pro
         return res.status(201).json(question);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create question',
-            details: (error as Error).message,
+            error: 'Unable to create question',
         });
     }
 }
@@ -136,8 +135,7 @@ export async function deleteQuestionController(req: Request, res: Response): Pro
         return res.status(200).json({ message: 'Question deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete question',
-            details: (error as Error).message,
+            error: 'Unable to delete question',
         });
     }
 }
@@ -209,8 +207,7 @@ export async function createOptionController(req: Request, res: Response): Promi
         return res.status(201).json(option);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create option',
-            details: (error as Error).message,
+            error: 'Unable to create option',
         });
     }
 }
@@ -270,8 +267,7 @@ export async function deleteOptionController(req: Request, res: Response): Promi
         return res.status(200).json({ message: 'Option deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete option',
-            details: (error as Error).message,
+            error: 'Unable to delete option',
         });
     }
 }
@@ -341,8 +337,7 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
         return res.status(200).json(content);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch quiz',
-            details: (error as Error).message,
+            error: 'Unable to fetch quiz',
         });
     }
 }

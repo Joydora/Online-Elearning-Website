@@ -32,8 +32,7 @@ export async function createCategoryController(req: Request, res: Response): Pro
         return res.status(201).json(category);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create category',
-            details: (error as Error).message,
+            error: 'Unable to create category',
         });
     }
 }
@@ -80,8 +79,7 @@ export async function updateCategoryController(req: Request, res: Response): Pro
         return res.status(200).json(updated);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update category',
-            details: (error as Error).message,
+            error: 'Unable to update category',
         });
     }
 }
@@ -112,8 +110,7 @@ export async function deleteCategoryController(req: Request, res: Response): Pro
         return res.status(200).json({ message: 'Category deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete category',
-            details: (error as Error).message,
+            error: 'Unable to delete category',
         });
     }
 }
@@ -162,8 +159,7 @@ export async function getAllUsersController(req: Request, res: Response): Promis
         return res.status(200).json(users);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch users',
-            details: (error as Error).message,
+            error: 'Unable to fetch users',
         });
     }
 }
@@ -205,8 +201,7 @@ export async function updateUserRoleController(req: Request, res: Response): Pro
         return res.status(200).json(updated);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update user role',
-            details: (error as Error).message,
+            error: 'Unable to update user role',
         });
     }
 }
@@ -240,8 +235,7 @@ export async function deleteUserController(req: Request, res: Response): Promise
         return res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete user',
-            details: (error as Error).message,
+            error: 'Unable to delete user',
         });
     }
 }
@@ -300,8 +294,7 @@ export async function createUserController(req: Request, res: Response): Promise
         return res.status(201).json(user);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create user',
-            details: (error as Error).message,
+            error: 'Unable to create user',
         });
     }
 }
@@ -360,8 +353,7 @@ export async function createCourseAdminController(req: Request, res: Response): 
         return res.status(201).json({ ...course, price: course.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create course',
-            details: (error as Error).message,
+            error: 'Unable to create course',
         });
     }
 }
@@ -429,8 +421,7 @@ export async function updateCourseAdminController(req: Request, res: Response): 
         return res.status(200).json({ ...updated, price: updated.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update course',
-            details: (error as Error).message,
+            error: 'Unable to update course',
         });
     }
 }
@@ -476,8 +467,7 @@ export async function getCourseAdminController(req: Request, res: Response): Pro
         return res.status(200).json({ ...course, price: course.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch course',
-            details: (error as Error).message,
+            error: 'Unable to fetch course',
         });
     }
 }
@@ -526,8 +516,7 @@ export async function getAllCoursesAdminController(req: Request, res: Response):
         );
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch courses',
-            details: (error as Error).message,
+            error: 'Unable to fetch courses',
         });
     }
 }
@@ -567,8 +556,7 @@ export async function deleteCourseAdminController(req: Request, res: Response): 
         return res.status(200).json({ message: 'Course deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete course',
-            details: (error as Error).message,
+            error: 'Unable to delete course',
         });
     }
 }
@@ -618,8 +606,7 @@ export async function getAdminStatsController(req: Request, res: Response): Prom
         return res.status(200).json(stats);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch admin stats',
-            details: (error as Error).message,
+            error: 'Unable to fetch admin stats',
         });
     }
 }

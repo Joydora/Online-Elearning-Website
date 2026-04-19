@@ -38,8 +38,7 @@ export async function getQuizController(req: Request, res: Response): Promise<Re
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to load quiz',
-            details: (error as Error).message,
+            error: 'Unable to load quiz',
         });
     }
 }
@@ -92,8 +91,7 @@ export async function submitQuizController(req: Request, res: Response): Promise
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to submit quiz',
-            details: (error as Error).message,
+            error: 'Unable to submit quiz',
         });
     }
 }
