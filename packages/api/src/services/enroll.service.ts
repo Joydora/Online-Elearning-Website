@@ -56,30 +56,35 @@ export async function checkoutCourse(options: {
         throw new Error('USER_NOT_FOUND');
     }
 
-    // Reuse existing TRIAL enrollment (upgrade path) or create a fresh one for a new purchase.
-    const enrollment = existingEnrollment
-        ? existingEnrollment
-        : await prisma.enrollment.create({
-              data: {
-                  studentId: options.studentId,
-                  courseId: options.courseId,
-              },
-          });
-
-    // Reuse a pending Payment if one already exists (e.g. a previous abandoned checkout);
-    // the unique constraint on enrollmentId means we can have at most one Payment row per enrollment.
-    const payment =
-        existingEnrollment?.payment && existingEnrollment.payment.status !== PaymentStatus.SUCCESSFUL
-            ? existingEnrollment.payment
-            : await prisma.payment.create({
+    // Enrollment + Payment must land together or not at all. Without a
+    // transaction, if the Payment insert fails (DB hiccup, unique
+    // violation), the new Enrollment row is orphaned and the student
+    // can't retry — the @@unique(studentId, courseId) now blocks them.
+    const { enrollment, payment } = await prisma.$transaction(async (tx) => {
+        const enrol = existingEnrollment
+            ? existingEnrollment
+            : await tx.enrollment.create({
                   data: {
-                      amount: course.price,
-                      status: PaymentStatus.PENDING,
-                      stripeSessionId: `pending_${randomUUID()}`,
-                      enrollmentId: enrollment.id,
                       studentId: options.studentId,
+                      courseId: options.courseId,
                   },
               });
+
+        const pay =
+            existingEnrollment?.payment && existingEnrollment.payment.status !== PaymentStatus.SUCCESSFUL
+                ? existingEnrollment.payment
+                : await tx.payment.create({
+                      data: {
+                          amount: course.price,
+                          status: PaymentStatus.PENDING,
+                          stripeSessionId: `pending_${randomUUID()}`,
+                          enrollmentId: enrol.id,
+                          studentId: options.studentId,
+                      },
+                  });
+
+        return { enrollment: enrol, payment: pay };
+    });
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',

@@ -324,56 +324,60 @@ export async function createContentForModule(input: CreateContentInput) {
         throw new Error('COURSE_FORBIDDEN');
     }
 
-    const nextOrder =
-        input.order !== undefined
-            ? input.order
-            : (await prisma.content.count({ where: { moduleId: input.moduleId } })) + 1;
-
-    const created = await prisma.content.create({
-        data: {
-            title: input.title,
-            order: nextOrder,
-            contentType: input.contentType,
-            videoUrl: input.videoUrl ?? null,
-            durationInSeconds: input.durationInSeconds ?? null,
-            documentUrl: input.documentUrl ?? null,
-            fileType: input.fileType ?? null,
-            timeLimitInMinutes: input.timeLimitInMinutes ?? null,
-            isFreePreview: input.isFreePreview ?? false,
-            moduleId: input.moduleId,
-        },
-        select: {
-            id: true,
-            title: true,
-            order: true,
-            contentType: true,
-            durationInSeconds: true,
-            timeLimitInMinutes: true,
-            isFreePreview: true,
-            moduleId: true,
-        },
-    });
-
-    // For PRACTICE contents, create the paired Practice row.
-    if (input.contentType === 'PRACTICE') {
-        if (!input.practicePrompt || !input.practicePrompt.trim()) {
-            // Roll back: delete the content so the DB doesn't hold a
-            // PRACTICE content with no Practice sibling.
-            await prisma.content.delete({ where: { id: created.id } });
-            throw new Error('PRACTICE_PROMPT_REQUIRED');
-        }
-        await prisma.practice.create({
-            data: {
-                contentId: created.id,
-                prompt: input.practicePrompt,
-                starterCode: input.practiceStarterCode ?? null,
-                expectedOutput: input.practiceExpectedOutput ?? null,
-                language: input.practiceLanguage ?? 'plaintext',
-            },
-        });
+    // Validate before opening the transaction so we never speculatively
+    // write a Content row just to roll it back on a trivial input error.
+    if (input.contentType === 'PRACTICE' && !input.practicePrompt?.trim()) {
+        throw new Error('PRACTICE_PROMPT_REQUIRED');
     }
 
-    return created;
+    // Content + Practice must land (or not) together. Previously the
+    // rollback was a manual follow-up delete, which silently failed on
+    // DB hiccups and left orphan Content rows with no Practice sibling.
+    return prisma.$transaction(async (tx) => {
+        const nextOrder =
+            input.order !== undefined
+                ? input.order
+                : (await tx.content.count({ where: { moduleId: input.moduleId } })) + 1;
+
+        const created = await tx.content.create({
+            data: {
+                title: input.title,
+                order: nextOrder,
+                contentType: input.contentType,
+                videoUrl: input.videoUrl ?? null,
+                durationInSeconds: input.durationInSeconds ?? null,
+                documentUrl: input.documentUrl ?? null,
+                fileType: input.fileType ?? null,
+                timeLimitInMinutes: input.timeLimitInMinutes ?? null,
+                isFreePreview: input.isFreePreview ?? false,
+                moduleId: input.moduleId,
+            },
+            select: {
+                id: true,
+                title: true,
+                order: true,
+                contentType: true,
+                durationInSeconds: true,
+                timeLimitInMinutes: true,
+                isFreePreview: true,
+                moduleId: true,
+            },
+        });
+
+        if (input.contentType === 'PRACTICE') {
+            await tx.practice.create({
+                data: {
+                    contentId: created.id,
+                    prompt: input.practicePrompt!,
+                    starterCode: input.practiceStarterCode ?? null,
+                    expectedOutput: input.practiceExpectedOutput ?? null,
+                    language: input.practiceLanguage ?? 'plaintext',
+                },
+            });
+        }
+
+        return created;
+    });
 }
 
 export async function updateContentForTeacher(input: UpdateContentInput) {
