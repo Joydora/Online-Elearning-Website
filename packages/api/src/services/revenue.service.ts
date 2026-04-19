@@ -1,4 +1,4 @@
-import { PayoutStatus } from '@prisma/client';
+import { PayoutStatus, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
 const DEFAULT_PLATFORM_FEE_PCT = 20;
@@ -29,9 +29,9 @@ export async function recordRevenue(paymentId: number): Promise<
     | {
           created: true;
           ledgerId: number;
-          grossAmount: number;
-          platformFee: number;
-          teacherShare: number;
+          grossAmount: Prisma.Decimal;
+          platformFee: Prisma.Decimal;
+          teacherShare: Prisma.Decimal;
       }
     | { created: false; skipped: 'ALREADY_RECORDED' }
 > {
@@ -74,9 +74,16 @@ export async function recordRevenue(paymentId: number): Promise<
 
     const feePct = getPlatformFeePct();
     const gross = payment.amount;
-    // Round to 2 decimals to avoid floating-point dust in reports.
-    const platformFee = Math.round(gross * (feePct / 100) * 100) / 100;
-    const teacherShare = Math.round((gross - platformFee) * 100) / 100;
+    // Decimal arithmetic — money fields are Prisma.Decimal, so `*` / `-`
+    // would coerce to number and reintroduce the float dust we're
+    // migrating away from. toDecimalPlaces(2) keeps reports stable.
+    const platformFee = gross
+        .mul(feePct)
+        .div(100)
+        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    const teacherShare = gross
+        .sub(platformFee)
+        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
     const ledger = await prisma.revenueLedger.create({
         data: {

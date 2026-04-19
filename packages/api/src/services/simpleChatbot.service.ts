@@ -54,7 +54,7 @@ class SimpleChatbotService {
 - Giảng viên: ${teacherName}
 - Danh mục: ${course.category.name}
 - Mô tả: ${course.description}
-- Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
+- Giá: ${course.price.isZero() ? 'Miễn phí' : `${course.price.toString()} VND`}
 - Số chương: ${course.modules.length}
 `;
 

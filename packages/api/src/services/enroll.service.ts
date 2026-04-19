@@ -93,7 +93,7 @@ export async function checkoutCourse(options: {
                 quantity: 1,
                 price_data: {
                     currency: 'usd',
-                    unit_amount: Math.round(course.price * 100),
+                    unit_amount: course.price.mul(100).round().toNumber(),
                     product_data: {
                         name: course.title,
                     },

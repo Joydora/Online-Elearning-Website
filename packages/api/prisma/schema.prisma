@@ -72,7 +72,7 @@ model Course {
   id                 Int          @id @default(autoincrement())
   title              String
   description        String
-  price              Float
+  price              Decimal @db.Decimal(10, 2)
   trialDurationDays  Int?
   accessDurationDays Int?
   level              CourseLevel?
@@ -282,10 +282,10 @@ model QuizAttempt {
 }
 
 model Payment {
-  id              Int    @id @default(autoincrement())
-  amount          Float
+  id              Int     @id @default(autoincrement())
+  amount          Decimal @db.Decimal(10, 2)
   status          String
-  stripeSessionId String @unique
+  stripeSessionId String  @unique
 
   enrollmentId Int        @unique
   enrollment   Enrollment @relation("EnrollmentPayment", fields: [enrollmentId], references: [id])
@@ -306,9 +306,9 @@ model RevenueLedger {
   courseId     Int
   teacherId    Int
 
-  grossAmount  Float
-  platformFee  Float
-  teacherShare Float
+  grossAmount  Decimal @db.Decimal(10, 2)
+  platformFee  Decimal @db.Decimal(10, 2)
+  teacherShare Decimal @db.Decimal(10, 2)
 
   payoutStatus PayoutStatus @default(HELD)
   paidAt       DateTime?

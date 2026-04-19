@@ -357,7 +357,7 @@ export async function createCourseAdminController(req: Request, res: Response): 
             },
         });
 
-        return res.status(201).json(course);
+        return res.status(201).json({ ...course, price: course.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to create course',
@@ -426,7 +426,7 @@ export async function updateCourseAdminController(req: Request, res: Response): 
             },
         });
 
-        return res.status(200).json(updated);
+        return res.status(200).json({ ...updated, price: updated.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to update course',
@@ -473,7 +473,7 @@ export async function getCourseAdminController(req: Request, res: Response): Pro
             return res.status(404).json({ error: 'Course not found' });
         }
 
-        return res.status(200).json(course);
+        return res.status(200).json({ ...course, price: course.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch course',
@@ -521,7 +521,9 @@ export async function getAllCoursesAdminController(req: Request, res: Response):
             orderBy: { createdAt: 'desc' },
         });
 
-        return res.status(200).json(courses);
+        return res.status(200).json(
+            courses.map((c) => ({ ...c, price: c.price.toNumber() })),
+        );
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch courses',

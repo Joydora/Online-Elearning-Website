@@ -190,7 +190,13 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
             },
         });
 
-        return res.status(200).json(enrollments);
+        // price is DECIMAL — JSON.stringify would emit a string.
+        // Frontend is typed Number, so coerce at the boundary.
+        const serialised = enrollments.map((e) => ({
+            ...e,
+            course: { ...e.course, price: e.course.price.toNumber() },
+        }));
+        return res.status(200).json(serialised);
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch enrollments',

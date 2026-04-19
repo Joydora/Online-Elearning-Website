@@ -65,18 +65,31 @@ export async function getAllCategories() {
     });
 }
 
+// price is DECIMAL(10,2) in the DB — Prisma returns it as Prisma.Decimal,
+// which JSON.stringify turns into a string. The frontend is typed as
+// `number` and does arithmetic on it, so coerce at the API boundary and
+// keep the wire contract stable.
+function serialiseCoursePrice<T extends { price: { toNumber(): number } } | null>(
+    course: T,
+): T extends null ? null : Omit<NonNullable<T>, 'price'> & { price: number } {
+    if (!course) return null as never;
+    return { ...course, price: course.price.toNumber() } as never;
+}
+
 export async function getAllCourses() {
-    return prisma.course.findMany({
+    const rows = await prisma.course.findMany({
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
     });
+    return rows.map((c) => serialiseCoursePrice(c));
 }
 
 export async function getCourseById(courseId: number) {
-    return prisma.course.findUnique({
+    const course = await prisma.course.findUnique({
         where: { id: courseId },
         select: courseDetailSelect,
     });
+    return serialiseCoursePrice(course);
 }
 
 type CreateCourseInput = {
