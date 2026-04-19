@@ -3,17 +3,20 @@ import { ChevronDown, PlayCircle, FileText, CheckCircle, Lock } from 'lucide-rea
 import { Card } from './ui/card';
 
 type Content = {
-    contentId: number;
+    contentId?: number;
+    id?: number;
     title: string;
     order: number;
     contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
+    isFreePreview?: boolean;
 };
 
 type Module = {
-    moduleId: number;
+    moduleId?: number;
+    id?: number;
     title: string;
     order: number;
     contents: Content[];
@@ -70,14 +73,15 @@ export function ModuleAccordion({
     return (
         <div className="space-y-3">
             {modules.map((module) => {
-                const isOpen = openModules.includes(module.moduleId);
+                const mid = (module.moduleId ?? module.id) as number;
+                const isOpen = openModules.includes(mid);
                 const totalDuration = getTotalDuration(module.contents);
 
                 return (
-                    <Card key={module.moduleId} className="overflow-hidden border-slate-200 dark:border-slate-800">
+                    <Card key={mid} className="overflow-hidden border-slate-200 dark:border-slate-800">
                         {/* Module Header */}
                         <button
-                            onClick={() => toggleModule(module.moduleId)}
+                            onClick={() => toggleModule(mid)}
                             className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                         >
                             <div className="flex items-center gap-3 text-left">
@@ -105,18 +109,21 @@ export function ModuleAccordion({
                         {isOpen && (
                             <div className="border-t border-slate-200 dark:border-slate-700">
                                 {module.contents.map((content) => {
-                                    const isCompleted = completedContents.includes(content.contentId);
+                                    const cid = (content.contentId ?? content.id) as number;
+                                    const isCompleted = completedContents.includes(cid);
+                                    const isPreview = !!content.isFreePreview;
+                                    const clickable = isEnrolled || isPreview;
 
                                     return (
                                         <button
-                                            key={content.contentId}
-                                            onClick={() => onContentClick?.(content.contentId, module.moduleId)}
-                                            disabled={!isEnrolled}
+                                            key={cid}
+                                            onClick={() => clickable && onContentClick?.(cid, mid)}
+                                            disabled={!clickable}
                                             className={`w-full px-6 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${
-                                                !isEnrolled ? 'cursor-not-allowed opacity-60' : ''
+                                                !clickable ? 'cursor-not-allowed opacity-60' : ''
                                             }`}
                                         >
-                                            <div className="flex items-center gap-3 text-left">
+                                            <div className="flex items-center gap-3 text-left w-full">
                                                 <div className={`text-slate-500 dark:text-slate-400 ${
                                                     isCompleted ? 'text-green-500 dark:text-green-400' : ''
                                                 }`}>
@@ -138,7 +145,12 @@ export function ModuleAccordion({
                                                         )}
                                                     </div>
                                                 </div>
-                                                {!isEnrolled && (
+                                                {isPreview && (
+                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                                                        Miễn phí
+                                                    </span>
+                                                )}
+                                                {!isEnrolled && !isPreview && (
                                                     <Lock className="h-4 w-4 text-slate-400" />
                                                 )}
                                                 {isCompleted && (
