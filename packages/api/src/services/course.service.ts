@@ -1,6 +1,5 @@
-import { ContentType, CourseLevel, PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { ContentType, CourseLevel } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 const courseSummarySelect = {
     id: true,

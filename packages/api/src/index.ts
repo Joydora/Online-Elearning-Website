@@ -2,7 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './lib/prisma';
 import authRoutes from './routes/auth.routes';
 import courseRoutes from './routes/course.routes';
 import uploadRoutes from './routes/upload.routes';
@@ -24,7 +24,6 @@ dotenv.config();
 const app: Express = express();
 const port = process.env.PORT || 3001;
 const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-const prisma = new PrismaClient();
 
 app.use(cors({
     origin: frontendOrigin,

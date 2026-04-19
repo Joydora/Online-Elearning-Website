@@ -1,8 +1,6 @@
 import { Ollama } from 'ollama';
 import { vectorStoreService } from './vectorStore.service';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * RAG (Retrieval-Augmented Generation) Service

@@ -1,9 +1,7 @@
 import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
-import { PrismaClient } from '@prisma/client';
 import { recordRevenue } from './revenue.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 function getStripeClient(): Stripe {
     const secretKey = process.env.STRIPE_SECRET_KEY;

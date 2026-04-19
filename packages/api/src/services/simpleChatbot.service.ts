@@ -1,7 +1,5 @@
 import { Ollama } from 'ollama';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * Simple Chatbot Service (without embeddings/RAG)

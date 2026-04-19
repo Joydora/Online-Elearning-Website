@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient, ContentType, Role } from '@prisma/client';
+import { ContentType, Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 

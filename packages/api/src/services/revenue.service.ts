@@ -1,6 +1,5 @@
-import { PrismaClient, PayoutStatus } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PayoutStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 const DEFAULT_PLATFORM_FEE_PCT = 20;
 

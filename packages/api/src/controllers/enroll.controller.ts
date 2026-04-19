@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { checkoutCourse, handleStripeWebhook, startTrialSetup } from '../services/enroll.service';
 import { AuthenticatedUser } from '../types/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const STUDENT_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL ?? 'http://localhost:3000/payment-success';
 const STUDENT_CANCEL_URL = process.env.STRIPE_CANCEL_URL ?? 'http://localhost:3000/payment-cancel';
