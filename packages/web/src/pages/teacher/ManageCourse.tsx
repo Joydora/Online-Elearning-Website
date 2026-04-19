@@ -28,7 +28,7 @@ type Content = {
     id: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string;
     durationInSeconds?: number;
     documentUrl?: string;

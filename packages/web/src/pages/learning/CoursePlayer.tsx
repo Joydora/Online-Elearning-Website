@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock, Code2 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { showErrorAlert } from '../../lib/sweetalert';
 import Swal from 'sweetalert2';
+import { PracticePanel } from '../../components/PracticePanel';
 
 type Content = {
     contentId?: number;
     id?: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
@@ -236,6 +237,8 @@ export default function CoursePlayer() {
                 return <FileText className="h-4 w-4" />;
             case 'QUIZ':
                 return <HelpCircle className="h-4 w-4" />;
+            case 'PRACTICE':
+                return <Code2 className="h-4 w-4" />;
         }
     };
 
@@ -399,6 +402,10 @@ export default function CoursePlayer() {
                                         <Button>Bắt đầu làm bài</Button>
                                     </Card>
                                 </div>
+                            )}
+
+                            {currentContent.contentType === 'PRACTICE' && (
+                                <PracticePanel contentId={getContentId(currentContent)} />
                             )}
                         </div>
                     )}
