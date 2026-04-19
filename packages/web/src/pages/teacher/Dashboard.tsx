@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, Users, DollarSign, TrendingUp, Edit, Trash2, BarChart3 } from 'lucide-react';
+import { Plus, BookOpen, Users, Wallet, ShoppingBag, DollarSign, Edit, Trash2, BarChart3 } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { CourseCard, type Course } from '../../components/CourseCard';
 import Swal from 'sweetalert2';
+
+type TeacherEarnings = {
+    totalGross: number;
+    totalPlatformFee: number;
+    totalTeacherShare: number;
+    heldTeacherShare: number;
+    paidTeacherShare: number;
+    salesCount: number;
+};
 
 export default function Dashboard() {
     const user = useAuthStore((state) => state.user);
@@ -71,15 +80,26 @@ export default function Dashboard() {
         }
     };
 
+    // Teacher earnings — read-only, from the revenue ledger (admin controls payouts).
+    const { data: earnings } = useQuery<TeacherEarnings>({
+        queryKey: ['teacher-earnings'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/teacher/earnings');
+            return data;
+        },
+        enabled: !!user,
+    });
+
     // Calculate stats
     const totalCourses = courses.length;
     const totalStudents = courses.reduce((acc, course) => acc + (course.totalEnrollments || 0), 0);
-    const totalRevenue = courses.reduce((acc, course) => acc + (course.price * (course.totalEnrollments || 0)), 0);
 
-    const formattedRevenue = new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-    }).format(totalRevenue);
+    const formatCurrency = (n: number) =>
+        new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+
+    const heldAmount = earnings?.heldTeacherShare ?? 0;
+    const paidAmount = earnings?.paidTeacherShare ?? 0;
+    const salesCount = earnings?.salesCount ?? 0;
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -128,34 +148,40 @@ export default function Dashboard() {
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-slate-200 dark:border-slate-800">
+                    <Card className="p-6 border-slate-200 dark:border-slate-800" data-testid="held-card">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                                    Doanh thu
+                                    Thu nhập đang giữ
                                 </p>
                                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                                    {formattedRevenue}
+                                    {formatCurrency(heldAmount)}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Đã chi trả: {formatCurrency(paidAmount)}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-green-600">
-                                <DollarSign className="h-6 w-6 text-white" />
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
+                                <Wallet className="h-6 w-6 text-white" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-slate-200 dark:border-slate-800">
+                    <Card className="p-6 border-slate-200 dark:border-slate-800" data-testid="sales-card">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                                    Đánh giá TB
+                                    Đã bán
                                 </p>
                                 <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                                    4.8
+                                    {salesCount}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Admin quản lý chi trả.
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600">
-                                <TrendingUp className="h-6 w-6 text-white" />
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
+                                <ShoppingBag className="h-6 w-6 text-white" />
                             </div>
                         </div>
                     </Card>
