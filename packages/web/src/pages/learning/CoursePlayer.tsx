@@ -132,21 +132,24 @@ export default function CoursePlayer() {
         },
     });
 
-    // Set initial content
-    useState(() => {
-        if (course && !currentModuleId && !currentContentId) {
-            const firstModule = course.modules[0];
-            if (firstModule) {
-                const firstModuleId = (firstModule.moduleId ?? firstModule.id) ?? null;
-                setCurrentModuleId(firstModuleId);
-                if (firstModule.contents[0]) {
-                    const firstContentId =
-                        (firstModule.contents[0].contentId ?? firstModule.contents[0].id) ?? null;
-                    setCurrentContentId(firstContentId);
-                }
-            }
+    // Set initial content once the course finishes loading. Previously this used
+    // useState(() => ...) which (a) doesn't run on later renders and (b) doesn't
+    // observe `course` becoming truthy, so the player was stuck without a default
+    // selection. useEffect with course as dep gives us the right "init when ready"
+    // behaviour without re-firing every render.
+    useEffect(() => {
+        if (!course) return;
+        if (currentModuleId !== null && currentContentId !== null) return;
+        const firstModule = course.modules[0];
+        if (!firstModule) return;
+        const firstModuleId = (firstModule.moduleId ?? firstModule.id) ?? null;
+        if (firstModuleId !== null) setCurrentModuleId(firstModuleId);
+        const firstContent = firstModule.contents[0];
+        if (firstContent) {
+            const firstContentId = (firstContent.contentId ?? firstContent.id) ?? null;
+            if (firstContentId !== null) setCurrentContentId(firstContentId);
         }
-    });
+    }, [course, currentModuleId, currentContentId]);
 
     const getModuleId = (m: Module) => (m.moduleId ?? m.id) as number;
     const getContentId = (c: Content) => (c.contentId ?? c.id) as number;
