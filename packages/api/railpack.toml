@@ -1,0 +1,11 @@
+# Railway Railpack configuration for pnpm
+# Railway will use this to detect pnpm instead of npm
+
+[build]
+install = "pnpm install --frozen-lockfile"
+build = "pnpm prisma generate"
+# Note: prisma db push should be run manually after deployment, not in build
+
+[start]
+cmd = "pnpm dev"
+

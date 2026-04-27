@@ -1,0 +1,27 @@
+# Exclude node_modules from Docker build (must be at top)
+node_modules/
+**/node_modules/
+packages/*/node_modules/
+packages/api/node_modules/
+packages/web/node_modules/
+
+# Exclude build artifacts
+dist
+build
+.next
+out
+
+# Exclude development files
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+
+# Exclude git
+.git
+.gitignore
+
+# Exclude documentation
+*.md
+
