@@ -27,7 +27,12 @@ export default function ManageCourses() {
             showSuccessAlert('Thành công', 'Đã xóa khóa học');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.message || 'Không thể xóa khóa học');
+            // Surface server-side message (e.g., cannot delete because course has enrollments)
+            const apiMessage =
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                'Không thể xóa khóa học';
+            showErrorAlert('Lỗi', apiMessage);
         },
     });
 
