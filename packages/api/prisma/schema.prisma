@@ -30,6 +30,13 @@ enum PayoutStatus {
   PAID
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  CANCELED
+}
+
 enum CourseLevel {
   BEGINNER
   INTERMEDIATE
@@ -38,15 +45,15 @@ enum CourseLevel {
 
 model User {
   id             Int     @id @default(autoincrement())
-  email          String  @unique
-  username       String  @unique
-  hashedPassword String
-  firstName      String?
-  lastName       String?
+  email          String  @unique @db.VarChar(320)
+  username       String  @unique @db.VarChar(64)
+  hashedPassword String  @db.VarChar(100)
+  firstName      String? @db.VarChar(100)
+  lastName       String? @db.VarChar(100)
   role           Role    @default(STUDENT)
 
-  stripeCustomerId      String? @unique
-  stripePaymentMethodId String?
+  stripeCustomerId      String? @unique @db.VarChar(100)
+  stripePaymentMethodId String?         @db.VarChar(100)
 
   coursesAsTeacher Course[]      @relation("TeacherCourses")
   enrollments      Enrollment[]
@@ -64,15 +71,15 @@ model User {
 
 model Category {
   id      Int      @id @default(autoincrement())
-  name    String   @unique
+  name    String   @unique @db.VarChar(100)
   courses Course[]
 }
 
 model Course {
-  id                 Int          @id @default(autoincrement())
-  title              String
-  description        String
-  price              Float
+  id                 Int     @id @default(autoincrement())
+  title              String  @db.VarChar(200)
+  description        String  @db.VarChar(5000)
+  price              Decimal @db.Decimal(10, 2)
   trialDurationDays  Int?
   accessDurationDays Int?
   level              CourseLevel?
@@ -253,6 +260,8 @@ model Enrollment {
 
   @@unique([studentId, courseId])
   @@index([trialCardFingerprint, courseId])
+  @@index([studentId, isActive])
+  @@index([expiresAt])
 }
 
 model Review {
@@ -282,10 +291,10 @@ model QuizAttempt {
 }
 
 model Payment {
-  id              Int    @id @default(autoincrement())
-  amount          Float
-  status          String
-  stripeSessionId String @unique
+  id              Int           @id @default(autoincrement())
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(PENDING)
+  stripeSessionId String        @unique
 
   enrollmentId Int        @unique
   enrollment   Enrollment @relation("EnrollmentPayment", fields: [enrollmentId], references: [id])
@@ -296,6 +305,9 @@ model Payment {
   revenueLedger RevenueLedger?
 
   createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
+  @@index([status, createdAt])
 }
 
 model RevenueLedger {
@@ -306,9 +318,17 @@ model RevenueLedger {
   courseId     Int
   teacherId    Int
 
-  grossAmount  Float
-  platformFee  Float
-  teacherShare Float
+  // Snapshots at time-of-sale. Courses get renamed / teachers get
+  // offboarded, but the ledger needs to stay explainable for audit
+  // years later — don't JOIN against live rows for historical reports.
+  courseTitleSnapshot  String @db.VarChar(200)
+  teacherNameSnapshot  String @db.VarChar(200)
+  teacherEmailSnapshot String @db.VarChar(320)
+  feePctSnapshot       Decimal @db.Decimal(5, 2)
+
+  grossAmount  Decimal @db.Decimal(10, 2)
+  platformFee  Decimal @db.Decimal(10, 2)
+  teacherShare Decimal @db.Decimal(10, 2)
 
   payoutStatus PayoutStatus @default(HELD)
   paidAt       DateTime?
@@ -317,6 +337,16 @@ model RevenueLedger {
 
   @@index([teacherId, createdAt])
   @@index([payoutStatus])
+}
+
+// Stripe guarantees at-least-once delivery — a retry on a dropped ACK
+// would double-enroll a student or double-book revenue. Insert a row
+// keyed on event.id inside the same transaction; the unique constraint
+// makes a duplicate land as P2002 and we short-circuit.
+model StripeWebhookEvent {
+  id          String   @id @db.VarChar(100)
+  type        String   @db.VarChar(100)
+  processedAt DateTime @default(now())
 }
 
 model Comment {

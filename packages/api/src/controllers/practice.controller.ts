@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import { gradePractice } from '../services/practice.service';
 import { refreshEnrollmentProgress } from '../services/progress.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 type AuthRequest = Request & { user?: AuthenticatedUser };
 
@@ -88,7 +86,6 @@ export async function getPracticeController(req: Request, res: Response): Promis
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch practice',
-            details: (error as Error).message,
         });
     }
 }
@@ -174,7 +171,6 @@ export async function submitPracticeController(req: Request, res: Response): Pro
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to submit practice',
-            details: (error as Error).message,
         });
     }
 }
@@ -209,7 +205,6 @@ export async function listMyPracticeAttemptsController(req: Request, res: Respon
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to list attempts',
-            details: (error as Error).message,
         });
     }
 }

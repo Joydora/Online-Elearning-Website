@@ -1,7 +1,6 @@
-import { CourseLevel, PrismaClient } from '@prisma/client';
+import { CourseLevel } from '@prisma/client';
 import { Ollama as OllamaClient } from 'ollama';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const ollamaHost = process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434';
 const ollamaModel = process.env.OLLAMA_MODEL ?? 'gemma3:4b';

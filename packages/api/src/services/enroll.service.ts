@@ -1,9 +1,8 @@
 import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
-import { PrismaClient } from '@prisma/client';
+import { PaymentStatus, Prisma } from '@prisma/client';
 import { recordRevenue } from './revenue.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 function getStripeClient(): Stripe {
     const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -57,30 +56,35 @@ export async function checkoutCourse(options: {
         throw new Error('USER_NOT_FOUND');
     }
 
-    // Reuse existing TRIAL enrollment (upgrade path) or create a fresh one for a new purchase.
-    const enrollment = existingEnrollment
-        ? existingEnrollment
-        : await prisma.enrollment.create({
-              data: {
-                  studentId: options.studentId,
-                  courseId: options.courseId,
-              },
-          });
-
-    // Reuse a pending Payment if one already exists (e.g. a previous abandoned checkout);
-    // the unique constraint on enrollmentId means we can have at most one Payment row per enrollment.
-    const payment =
-        existingEnrollment?.payment && existingEnrollment.payment.status !== 'SUCCESSFUL'
-            ? existingEnrollment.payment
-            : await prisma.payment.create({
+    // Enrollment + Payment must land together or not at all. Without a
+    // transaction, if the Payment insert fails (DB hiccup, unique
+    // violation), the new Enrollment row is orphaned and the student
+    // can't retry — the @@unique(studentId, courseId) now blocks them.
+    const { enrollment, payment } = await prisma.$transaction(async (tx) => {
+        const enrol = existingEnrollment
+            ? existingEnrollment
+            : await tx.enrollment.create({
                   data: {
-                      amount: course.price,
-                      status: 'PENDING',
-                      stripeSessionId: `pending_${randomUUID()}`,
-                      enrollmentId: enrollment.id,
                       studentId: options.studentId,
+                      courseId: options.courseId,
                   },
               });
+
+        const pay =
+            existingEnrollment?.payment && existingEnrollment.payment.status !== PaymentStatus.SUCCESSFUL
+                ? existingEnrollment.payment
+                : await tx.payment.create({
+                      data: {
+                          amount: course.price,
+                          status: PaymentStatus.PENDING,
+                          stripeSessionId: `pending_${randomUUID()}`,
+                          enrollmentId: enrol.id,
+                          studentId: options.studentId,
+                      },
+                  });
+
+        return { enrollment: enrol, payment: pay };
+    });
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',
@@ -95,7 +99,7 @@ export async function checkoutCourse(options: {
                 quantity: 1,
                 price_data: {
                     currency: 'usd',
-                    unit_amount: Math.round(course.price * 100),
+                    unit_amount: course.price.mul(100).round().toNumber(),
                     product_data: {
                         name: course.title,
                     },
@@ -133,7 +137,7 @@ export async function finalizePaidEnrollment(
         throw new Error('PAYMENT_NOT_FOUND');
     }
 
-    if (payment.status === 'SUCCESSFUL') {
+    if (payment.status === PaymentStatus.SUCCESSFUL) {
         return { enrollmentId: payment.enrollmentId, upgradedFromTrial: false, alreadyProcessed: true };
     }
 
@@ -158,7 +162,7 @@ export async function finalizePaidEnrollment(
         prisma.payment.update({
             where: { id: payment.id },
             data: {
-                status: 'SUCCESSFUL',
+                status: PaymentStatus.SUCCESSFUL,
                 ...(stripeSessionId ? { stripeSessionId } : {}),
             },
         }),
@@ -395,6 +399,26 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
 
     if (event.type !== 'checkout.session.completed') {
         return;
+    }
+
+    // Idempotency gate: if we've already processed this event.id, the
+    // unique-constraint insert will throw P2002 and we bail out before
+    // running any side effects. Stripe delivers at-least-once, so
+    // without this a dropped ACK would re-enroll a student / re-book
+    // a RevenueLedger row on every retry.
+    try {
+        await prisma.stripeWebhookEvent.create({
+            data: { id: event.id, type: event.type },
+        });
+    } catch (err) {
+        if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+        ) {
+            console.log(`[stripe-webhook] duplicate event ${event.id} ignored`);
+            return;
+        }
+        throw err;
     }
 
     const session = event.data.object as Stripe.Checkout.Session;

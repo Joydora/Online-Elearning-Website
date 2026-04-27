@@ -68,8 +68,6 @@ export default function ManageCourse() {
     const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
     const [isAddingModule, setIsAddingModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState('');
-    const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
-    const [editingModuleTitle, setEditingModuleTitle] = useState('');
     const [addingContentToModule, setAddingContentToModule] = useState<number | null>(null);
 
     // Fetch course detail with modules and contents

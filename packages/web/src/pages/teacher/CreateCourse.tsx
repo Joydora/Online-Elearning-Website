@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -74,7 +73,7 @@ export default function CreateCourse() {
             const { data } = await apiClient.post('/courses', payload);
             return data;
         },
-        onSuccess: async (data) => {
+        onSuccess: async () => {
             await showSuccessAlert(
                 'Tạo khóa học thành công!',
                 'Khóa học của bạn đã được tạo. Bạn có thể thêm modules và nội dung bây giờ.'

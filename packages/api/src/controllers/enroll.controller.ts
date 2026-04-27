@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { checkoutCourse, handleStripeWebhook, startTrialSetup } from '../services/enroll.service';
 import { AuthenticatedUser } from '../types/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const STUDENT_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL ?? 'http://localhost:3000/payment-success';
 const STUDENT_CANCEL_URL = process.env.STRIPE_CANCEL_URL ?? 'http://localhost:3000/payment-cancel';
@@ -52,8 +50,7 @@ export async function checkoutCourseController(req: Request, res: Response): Pro
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to initiate checkout',
-            details: (error as Error).message,
+            error: 'Unable to initiate checkout',
         });
     }
 }
@@ -108,8 +105,7 @@ export async function startTrialController(req: Request, res: Response): Promise
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to start trial',
-            details: (error as Error).message,
+            error: 'Unable to start trial',
         });
     }
 }
@@ -130,8 +126,7 @@ export async function stripeWebhookController(req: Request, res: Response): Prom
         return res.status(200).json({ received: true });
     } catch (error) {
         return res.status(400).json({
-            error: 'Webhook processing failed',
-            details: (error as Error).message,
+            error: 'Webhook processing failed',
         });
     }
 }
@@ -192,11 +187,16 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
             },
         });
 
-        return res.status(200).json(enrollments);
+        // price is DECIMAL — JSON.stringify would emit a string.
+        // Frontend is typed Number, so coerce at the boundary.
+        const serialised = enrollments.map((e) => ({
+            ...e,
+            course: { ...e.course, price: e.course.price.toNumber() },
+        }));
+        return res.status(200).json(serialised);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch enrollments',
-            details: (error as Error).message,
+            error: 'Unable to fetch enrollments',
         });
     }
 }

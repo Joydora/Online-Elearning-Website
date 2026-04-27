@@ -1,7 +1,6 @@
-import { PrismaClient, ContentType } from '@prisma/client';
+import { ContentType } from '@prisma/client';
 import { refreshEnrollmentProgress } from './progress.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 function toNumber(value: unknown): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {

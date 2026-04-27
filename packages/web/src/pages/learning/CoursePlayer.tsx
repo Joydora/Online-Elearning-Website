@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/card';
 import { showErrorAlert } from '../../lib/sweetalert';
 import Swal from 'sweetalert2';
 import { PracticePanel } from '../../components/PracticePanel';
+import { safeHttpUrl } from '../../lib/safeUrl';
 
 type Content = {
     contentId?: number;
@@ -371,25 +372,25 @@ export default function CoursePlayer() {
                 <div className="flex-1 flex items-center justify-center bg-black">
                     {currentContent && (
                         <div className="w-full h-full">
-                            {currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
+                            {currentContent.contentType === 'VIDEO' && safeHttpUrl(currentContent.videoUrl) && (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <video
-                                        key={currentContent.videoUrl}
+                                        key={safeHttpUrl(currentContent.videoUrl) ?? ''}
                                         controls
                                         className="w-full h-full"
-                                        src={currentContent.videoUrl}
+                                        src={safeHttpUrl(currentContent.videoUrl) ?? undefined}
                                     >
                                         Trình duyệt của bạn không hỗ trợ video.
                                     </video>
                                 </div>
                             )}
 
-                            {currentContent.contentType === 'DOCUMENT' && currentContent.documentUrl && (
+                            {currentContent.contentType === 'DOCUMENT' && safeHttpUrl(currentContent.documentUrl) && (
                                 <div className="w-full h-full flex items-center justify-center p-8">
                                     <Card className="w-full max-w-4xl p-8 bg-white dark:bg-slate-800">
                                         <h2 className="text-2xl font-bold mb-4">{currentContent.title}</h2>
                                         <div className="prose dark:prose-invert max-w-none">
-                                            <p>Tài liệu: <a href={currentContent.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600">Tải xuống</a></p>
+                                            <p>Tài liệu: <a href={safeHttpUrl(currentContent.documentUrl) ?? '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600">Tải xuống</a></p>
                                         </div>
                                     </Card>
                                 </div>

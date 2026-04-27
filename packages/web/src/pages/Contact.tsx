@@ -3,7 +3,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useState } from 'react';
-import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
+import { showSuccessAlert } from '../lib/sweetalert';
 
 export default function Contact() {
     const [formData, setFormData] = useState({

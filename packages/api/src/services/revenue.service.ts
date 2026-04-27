@@ -1,6 +1,5 @@
-import { PrismaClient, PayoutStatus } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PayoutStatus, PaymentStatus, Prisma } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 const DEFAULT_PLATFORM_FEE_PCT = 20;
 
@@ -30,19 +29,15 @@ export async function recordRevenue(paymentId: number): Promise<
     | {
           created: true;
           ledgerId: number;
-          grossAmount: number;
-          platformFee: number;
-          teacherShare: number;
+          grossAmount: Prisma.Decimal;
+          platformFee: Prisma.Decimal;
+          teacherShare: Prisma.Decimal;
       }
     | { created: false; skipped: 'ALREADY_RECORDED' }
 > {
-    const existing = await prisma.revenueLedger.findUnique({
-        where: { paymentId },
-    });
-    if (existing) {
-        return { created: false, skipped: 'ALREADY_RECORDED' };
-    }
-
+    // Don't preflight with findUnique — two parallel calls would both
+    // read null and race into a double-create. RevenueLedger.paymentId
+    // is @unique, so the DB settles the race via P2002 and we catch it.
     const payment = await prisma.payment.findUnique({
         where: { id: paymentId },
         select: {
@@ -52,7 +47,20 @@ export async function recordRevenue(paymentId: number): Promise<
             enrollment: {
                 select: {
                     courseId: true,
-                    course: { select: { teacherId: true } },
+                    course: {
+                        select: {
+                            title: true,
+                            teacherId: true,
+                            teacher: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                    username: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -62,34 +70,63 @@ export async function recordRevenue(paymentId: number): Promise<
         throw new Error('PAYMENT_NOT_FOUND');
     }
 
-    if (payment.status !== 'SUCCESSFUL') {
+    if (payment.status !== PaymentStatus.SUCCESSFUL) {
         throw new Error('PAYMENT_NOT_PAID');
     }
 
-    const courseId = payment.enrollment?.courseId;
-    const teacherId = payment.enrollment?.course.teacherId;
+    const enrollment = payment.enrollment;
+    const courseId = enrollment?.courseId;
+    const teacher = enrollment?.course.teacher;
+    const teacherId = enrollment?.course.teacherId;
 
-    if (!courseId || !teacherId) {
+    if (!courseId || !teacherId || !teacher) {
         throw new Error('ENROLLMENT_MISSING');
     }
 
     const feePct = getPlatformFeePct();
     const gross = payment.amount;
-    // Round to 2 decimals to avoid floating-point dust in reports.
-    const platformFee = Math.round(gross * (feePct / 100) * 100) / 100;
-    const teacherShare = Math.round((gross - platformFee) * 100) / 100;
+    // Decimal arithmetic — money fields are Prisma.Decimal, so `*` / `-`
+    // would coerce to number and reintroduce the float dust we're
+    // migrating away from. toDecimalPlaces(2) keeps reports stable.
+    const platformFee = gross
+        .mul(feePct)
+        .div(100)
+        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    const teacherShare = gross
+        .sub(platformFee)
+        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 
-    const ledger = await prisma.revenueLedger.create({
-        data: {
-            paymentId: payment.id,
-            courseId,
-            teacherId,
-            grossAmount: gross,
-            platformFee,
-            teacherShare,
-            payoutStatus: PayoutStatus.HELD,
-        },
-    });
+    const teacherName =
+        [teacher.firstName, teacher.lastName].filter(Boolean).join(' ').trim()
+        || teacher.username;
+
+    let ledger;
+    try {
+        ledger = await prisma.revenueLedger.create({
+            data: {
+                paymentId: payment.id,
+                courseId,
+                teacherId,
+                courseTitleSnapshot: enrollment.course.title.slice(0, 200),
+                teacherNameSnapshot: teacherName.slice(0, 200),
+                teacherEmailSnapshot: teacher.email.slice(0, 320),
+                feePctSnapshot: new Prisma.Decimal(feePct).toDecimalPlaces(2),
+                grossAmount: gross,
+                platformFee,
+                teacherShare,
+                payoutStatus: PayoutStatus.HELD,
+            },
+        });
+    } catch (err) {
+        if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === 'P2002'
+        ) {
+            // Concurrent caller beat us — the ledger row exists now.
+            return { created: false, skipped: 'ALREADY_RECORDED' };
+        }
+        throw err;
+    }
 
     return {
         created: true,

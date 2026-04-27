@@ -54,20 +54,6 @@ export default function ManageUsers() {
         }
     };
 
-    const handleRoleChange = async (userId: number, currentRole: string) => {
-        const result = await showConfirmAlert(
-            'Thay đổi quyền',
-            'Chọn quyền mới cho người dùng',
-            'question',
-            'Cập nhật'
-        );
-        if (result.isConfirmed) {
-            // Show a simple prompt for role selection
-            const newRole = currentRole === 'STUDENT' ? 'TEACHER' : 'STUDENT';
-            updateRoleMutation.mutate({ userId, role: newRole });
-        }
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-8">
             <div className="container mx-auto max-w-6xl">

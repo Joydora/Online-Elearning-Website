@@ -53,8 +53,7 @@ export async function getCategoriesController(_req: Request, res: Response): Pro
         return res.status(200).json(categories);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch categories',
-            details: (error as Error).message,
+            error: 'Unable to fetch categories',
         });
     }
 }
@@ -65,8 +64,7 @@ export async function getCoursesController(_req: Request, res: Response): Promis
         return res.status(200).json(courses);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch courses',
-            details: (error as Error).message,
+            error: 'Unable to fetch courses',
         });
     }
 }
@@ -89,8 +87,7 @@ export async function getCourseDetailController(req: Request, res: Response): Pr
         return res.status(200).json(course);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch course detail',
-            details: (error as Error).message,
+            error: 'Unable to fetch course detail',
         });
     }
 }
@@ -125,8 +122,7 @@ export async function getContentController(req: Request, res: Response): Promise
         });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch content',
-            details: (error as Error).message,
+            error: 'Unable to fetch content',
         });
     }
 }
@@ -220,8 +216,7 @@ export async function createCourseController(req: Request, res: Response): Promi
         return res.status(201).json(course);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create course',
-            details: (error as Error).message,
+            error: 'Unable to create course',
         });
     }
 }
@@ -340,8 +335,7 @@ export async function updateCourseController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update course',
-            details: (error as Error).message,
+            error: 'Unable to update course',
         });
     }
 }
@@ -379,8 +373,7 @@ export async function deleteCourseController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete course',
-            details: (error as Error).message,
+            error: 'Unable to delete course',
         });
     }
 }
@@ -437,8 +430,7 @@ export async function createModuleController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create module',
-            details: (error as Error).message,
+            error: 'Unable to create module',
         });
     }
 }
@@ -553,8 +545,7 @@ export async function createContentController(req: Request, res: Response): Prom
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create content',
-            details: (error as Error).message,
+            error: 'Unable to create content',
         });
     }
 }
@@ -670,8 +661,7 @@ export async function updateContentController(req: Request, res: Response): Prom
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update content',
-            details: (error as Error).message,
+            error: 'Unable to update content',
         });
     }
 }
@@ -709,8 +699,7 @@ export async function deleteModuleController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete module',
-            details: (error as Error).message,
+            error: 'Unable to delete module',
         });
     }
 }
@@ -748,8 +737,7 @@ export async function deleteContentController(req: Request, res: Response): Prom
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete content',
-            details: (error as Error).message,
+            error: 'Unable to delete content',
         });
     }
 }

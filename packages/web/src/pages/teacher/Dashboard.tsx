@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, BookOpen, Users, Wallet, ShoppingBag, DollarSign, Edit, Trash2, BarChart3 } from 'lucide-react';
@@ -6,7 +5,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
-import { CourseCard, type Course } from '../../components/CourseCard';
+import { type Course } from '../../components/CourseCard';
 import Swal from 'sweetalert2';
 
 type TeacherEarnings = {
@@ -20,7 +19,6 @@ type TeacherEarnings = {
 
 export default function Dashboard() {
     const user = useAuthStore((state) => state.user);
-    const [showCreateModal, setShowCreateModal] = useState(false);
     const queryClient = useQueryClient();
 
     // Fetch teacher's courses

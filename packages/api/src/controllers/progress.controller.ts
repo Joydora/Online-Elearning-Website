@@ -1,13 +1,11 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import {
     computeProgress,
     refreshEnrollmentProgress,
     summariseProgress,
 } from '../services/progress.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 type AuthRequest = Request & { user?: AuthenticatedUser };
 
@@ -39,7 +37,6 @@ export async function getEnrollmentProgressController(req: Request, res: Respons
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch progress',
-            details: (error as Error).message,
         });
     }
 }
@@ -69,7 +66,6 @@ export async function getEnrollmentSummaryController(req: Request, res: Response
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to summarise progress',
-            details: (error as Error).message,
         });
     }
 }
@@ -135,7 +131,6 @@ export async function markContentCompleteController(req: Request, res: Response)
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to mark content complete',
-            details: (error as Error).message,
         });
     }
 }

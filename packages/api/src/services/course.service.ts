@@ -1,6 +1,5 @@
-import { ContentType, CourseLevel, PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { ContentType, CourseLevel } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 const courseSummarySelect = {
     id: true,
@@ -66,18 +65,35 @@ export async function getAllCategories() {
     });
 }
 
+// price is DECIMAL(10,2) in the DB — Prisma returns it as Prisma.Decimal,
+// which JSON.stringify turns into a string. The frontend is typed as
+// `number` and does arithmetic on it, so coerce at the API boundary and
+// keep the wire contract stable.
+function serialiseCoursePrice<T extends { price: { toNumber(): number } } | null>(
+    course: T,
+): T extends null ? null : Omit<NonNullable<T>, 'price'> & { price: number } {
+    if (!course) return null as never;
+    return { ...course, price: course.price.toNumber() } as never;
+}
+
 export async function getAllCourses() {
-    return prisma.course.findMany({
+    const rows = await prisma.course.findMany({
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
+        // Hard cap — the public course grid doesn't paginate yet, so
+        // any growth in the catalog quietly blows up the response
+        // size. 500 is well above what the grid will ever render.
+        take: 500,
     });
+    return rows.map((c) => serialiseCoursePrice(c));
 }
 
 export async function getCourseById(courseId: number) {
-    return prisma.course.findUnique({
+    const course = await prisma.course.findUnique({
         where: { id: courseId },
         select: courseDetailSelect,
     });
+    return serialiseCoursePrice(course);
 }
 
 type CreateCourseInput = {
@@ -312,56 +328,60 @@ export async function createContentForModule(input: CreateContentInput) {
         throw new Error('COURSE_FORBIDDEN');
     }
 
-    const nextOrder =
-        input.order !== undefined
-            ? input.order
-            : (await prisma.content.count({ where: { moduleId: input.moduleId } })) + 1;
-
-    const created = await prisma.content.create({
-        data: {
-            title: input.title,
-            order: nextOrder,
-            contentType: input.contentType,
-            videoUrl: input.videoUrl ?? null,
-            durationInSeconds: input.durationInSeconds ?? null,
-            documentUrl: input.documentUrl ?? null,
-            fileType: input.fileType ?? null,
-            timeLimitInMinutes: input.timeLimitInMinutes ?? null,
-            isFreePreview: input.isFreePreview ?? false,
-            moduleId: input.moduleId,
-        },
-        select: {
-            id: true,
-            title: true,
-            order: true,
-            contentType: true,
-            durationInSeconds: true,
-            timeLimitInMinutes: true,
-            isFreePreview: true,
-            moduleId: true,
-        },
-    });
-
-    // For PRACTICE contents, create the paired Practice row.
-    if (input.contentType === 'PRACTICE') {
-        if (!input.practicePrompt || !input.practicePrompt.trim()) {
-            // Roll back: delete the content so the DB doesn't hold a
-            // PRACTICE content with no Practice sibling.
-            await prisma.content.delete({ where: { id: created.id } });
-            throw new Error('PRACTICE_PROMPT_REQUIRED');
-        }
-        await prisma.practice.create({
-            data: {
-                contentId: created.id,
-                prompt: input.practicePrompt,
-                starterCode: input.practiceStarterCode ?? null,
-                expectedOutput: input.practiceExpectedOutput ?? null,
-                language: input.practiceLanguage ?? 'plaintext',
-            },
-        });
+    // Validate before opening the transaction so we never speculatively
+    // write a Content row just to roll it back on a trivial input error.
+    if (input.contentType === 'PRACTICE' && !input.practicePrompt?.trim()) {
+        throw new Error('PRACTICE_PROMPT_REQUIRED');
     }
 
-    return created;
+    // Content + Practice must land (or not) together. Previously the
+    // rollback was a manual follow-up delete, which silently failed on
+    // DB hiccups and left orphan Content rows with no Practice sibling.
+    return prisma.$transaction(async (tx) => {
+        const nextOrder =
+            input.order !== undefined
+                ? input.order
+                : (await tx.content.count({ where: { moduleId: input.moduleId } })) + 1;
+
+        const created = await tx.content.create({
+            data: {
+                title: input.title,
+                order: nextOrder,
+                contentType: input.contentType,
+                videoUrl: input.videoUrl ?? null,
+                durationInSeconds: input.durationInSeconds ?? null,
+                documentUrl: input.documentUrl ?? null,
+                fileType: input.fileType ?? null,
+                timeLimitInMinutes: input.timeLimitInMinutes ?? null,
+                isFreePreview: input.isFreePreview ?? false,
+                moduleId: input.moduleId,
+            },
+            select: {
+                id: true,
+                title: true,
+                order: true,
+                contentType: true,
+                durationInSeconds: true,
+                timeLimitInMinutes: true,
+                isFreePreview: true,
+                moduleId: true,
+            },
+        });
+
+        if (input.contentType === 'PRACTICE') {
+            await tx.practice.create({
+                data: {
+                    contentId: created.id,
+                    prompt: input.practicePrompt!,
+                    starterCode: input.practiceStarterCode ?? null,
+                    expectedOutput: input.practiceExpectedOutput ?? null,
+                    language: input.practiceLanguage ?? 'plaintext',
+                },
+            });
+        }
+
+        return created;
+    });
 }
 
 export async function updateContentForTeacher(input: UpdateContentInput) {

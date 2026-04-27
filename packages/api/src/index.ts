@@ -2,7 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './lib/prisma';
 import authRoutes from './routes/auth.routes';
 import courseRoutes from './routes/course.routes';
 import uploadRoutes from './routes/upload.routes';
@@ -18,16 +18,38 @@ import progressRoutes from './routes/progress.routes';
 import projectRoutes from './routes/project.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { scheduleExpirySweep } from './jobs/expireEnrollments';
+import { buildCsrfMiddleware } from './middleware/csrf.middleware';
+import { errorHandler } from './middleware/error.middleware';
+import { validateEnv } from './lib/env';
 
 dotenv.config();
 
+// Fail fast if DATABASE_URL / JWT_SECRET / etc. are missing.
+validateEnv();
+
 const app: Express = express();
 const port = process.env.PORT || 3001;
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-const prisma = new PrismaClient();
+
+// Allow-list of browser origins. FRONTEND_URL is typically a single
+// entry; FRONTEND_URLS (comma-separated) supports staging + preview
+// deploys. Falls back to the Vite dev server for local work.
+const trustedOrigins: string[] = (
+    process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? 'http://localhost:5173'
+)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 app.use(cors({
-    origin: frontendOrigin,
+    origin: (origin, cb) => {
+        // Browser requests without Origin (curl, same-origin) are allowed;
+        // any cross-origin request must match the allow-list exactly.
+        // Pass `false` instead of throwing so the browser receives a
+        // clean CORS denial (no Access-Control-Allow-Origin header)
+        // rather than a 500 from the cors library throwing on denial.
+        if (!origin || trustedOrigins.includes(origin)) return cb(null, true);
+        return cb(null, false);
+    },
     credentials: true,
 }));
 app.use(express.json({
@@ -39,6 +61,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(buildCsrfMiddleware(trustedOrigins));
 
 app.use('/api/auth', authRoutes);
 app.use('/api', courseRoutes);
@@ -63,13 +86,12 @@ app.get('/api/health', async (_req: Request, res: Response) => {
         await prisma.$queryRaw`SELECT 1`;
         res.status(200).json({ status: 'ok' });
     } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'Database unreachable',
-            error: (error as Error).message,
-        });
+        console.error('[health] database unreachable', error);
+        res.status(500).json({ status: 'error', message: 'Database unreachable' });
     }
 });
+
+app.use(errorHandler);
 
 const server = app.listen(port, async () => {
     console.log(`[server]: Server is running at http://localhost:${port}`);

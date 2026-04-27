@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import Editor from '@monaco-editor/react';
 import { Loader2, Send, History, CheckCircle2, AlertCircle } from 'lucide-react';
+
+// @monaco-editor/react ships Monaco itself in workers — about 6 MB once
+// uncompressed. Lazy-load so anyone who never opens a PRACTICE content
+// (the vast majority of pageviews) doesn't pay the cost. Other learning
+// pages (course player, progress) stay light.
+const Editor = lazy(() => import('@monaco-editor/react'));
 import { apiClient } from '../lib/api';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -107,20 +112,29 @@ export function PracticePanel({ contentId }: Props) {
                 </Card>
 
                 <Card className="flex-1 bg-white dark:bg-slate-800 overflow-hidden" data-testid="practice-editor-card">
-                    <Editor
-                        height="100%"
-                        defaultLanguage={practice.language}
-                        language={practice.language}
-                        theme="vs-dark"
-                        value={code}
-                        onChange={(value) => setCode(value ?? '')}
-                        options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                        }}
-                    />
+                    <Suspense
+                        fallback={
+                            <div className="h-full flex items-center justify-center text-slate-400">
+                                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                Đang tải editor...
+                            </div>
+                        }
+                    >
+                        <Editor
+                            height="100%"
+                            defaultLanguage={practice.language}
+                            language={practice.language}
+                            theme="vs-dark"
+                            value={code}
+                            onChange={(value) => setCode(value ?? '')}
+                            options={{
+                                minimap: { enabled: false },
+                                fontSize: 14,
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                            }}
+                        />
+                    </Suspense>
                 </Card>
 
                 <div className="flex items-center gap-3 flex-shrink-0">

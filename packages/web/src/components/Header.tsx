@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, User, Menu, X } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';

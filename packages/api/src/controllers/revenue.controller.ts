@@ -1,10 +1,32 @@
 import { Request, Response } from 'express';
-import { PrismaClient, PayoutStatus } from '@prisma/client';
+import { PayoutStatus, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 type AuthRequest = Request & { user?: AuthenticatedUser };
+
+// Prisma.Decimal fields serialise as strings via JSON.stringify, but the
+// UI expects numbers. The amounts we handle (single-course revenue,
+// per-teacher aggregates) fit comfortably in Number precision, so we
+// collapse on the way out.
+function decimalToNumber(value: Prisma.Decimal | null | undefined): number {
+    return value ? value.toNumber() : 0;
+}
+
+function serialiseLedger<R extends { grossAmount: Prisma.Decimal; platformFee: Prisma.Decimal; teacherShare: Prisma.Decimal; feePctSnapshot: Prisma.Decimal; payment?: { amount: Prisma.Decimal } | null }>(
+    r: R,
+) {
+    return {
+        ...r,
+        grossAmount: r.grossAmount.toNumber(),
+        platformFee: r.platformFee.toNumber(),
+        teacherShare: r.teacherShare.toNumber(),
+        feePctSnapshot: r.feePctSnapshot.toNumber(),
+        ...(r.payment
+            ? { payment: { ...r.payment, amount: r.payment.amount.toNumber() } }
+            : {}),
+    };
+}
 
 function parseIntOrUndefined(raw: unknown): number | undefined {
     if (raw === undefined || raw === null || raw === '') return undefined;
@@ -88,16 +110,21 @@ export async function listRevenueController(req: Request, res: Response): Promis
         const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
         return res.status(200).json({
-            rows: rows.map((r) => ({
-                ...r,
-                course: courseMap.get(r.courseId) ?? null,
-                teacher: teacherMap.get(r.teacherId) ?? null,
-            })),
+            rows: rows.map((r) => {
+                const courseRaw = courseMap.get(r.courseId) ?? null;
+                return {
+                    ...serialiseLedger(r),
+                    course: courseRaw
+                        ? { ...courseRaw, price: courseRaw.price.toNumber() }
+                        : null,
+                    teacher: teacherMap.get(r.teacherId) ?? null,
+                };
+            }),
             pagination: { total, limit: take, offset: skip },
             aggregates: {
-                totalGross: aggregates._sum.grossAmount ?? 0,
-                totalPlatformFee: aggregates._sum.platformFee ?? 0,
-                totalTeacherShare: aggregates._sum.teacherShare ?? 0,
+                totalGross: decimalToNumber(aggregates._sum.grossAmount),
+                totalPlatformFee: decimalToNumber(aggregates._sum.platformFee),
+                totalTeacherShare: decimalToNumber(aggregates._sum.teacherShare),
                 rowCount: aggregates._count._all,
                 heldCount,
                 paidCount,
@@ -106,7 +133,6 @@ export async function listRevenueController(req: Request, res: Response): Promis
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch revenue',
-            details: (error as Error).message,
         });
     }
 }
@@ -118,25 +144,27 @@ export async function markRevenuePaidController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Ledger id must be a number' });
         }
 
-        const existing = await prisma.revenueLedger.findUnique({ where: { id: ledgerId } });
-        if (!existing) {
-            return res.status(404).json({ error: 'Ledger entry not found' });
-        }
-
-        if (existing.payoutStatus === 'PAID') {
-            return res.status(200).json(existing);
-        }
-
-        const updated = await prisma.revenueLedger.update({
-            where: { id: ledgerId },
+        // Conditional update in a single SQL statement — no read-then-
+        // write gap where two admins could both update paidAt to
+        // different timestamps. updateMany returns count 0 when the
+        // row already has payoutStatus=PAID, so we can distinguish
+        // "not found" from "already paid" with one follow-up lookup.
+        const result = await prisma.revenueLedger.updateMany({
+            where: { id: ledgerId, payoutStatus: 'HELD' },
             data: { payoutStatus: 'PAID', paidAt: new Date() },
         });
 
-        return res.status(200).json(updated);
+        const row = await prisma.revenueLedger.findUnique({ where: { id: ledgerId } });
+        if (!row) {
+            return res.status(404).json({ error: 'Ledger entry not found' });
+        }
+        // result.count === 0 here means it was already PAID — that's a
+        // no-op success for idempotency.
+        void result;
+        return res.status(200).json(serialiseLedger(row));
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to mark revenue paid',
-            details: (error as Error).message,
         });
     }
 }
@@ -167,17 +195,16 @@ export async function getTeacherEarningsController(req: Request, res: Response):
         ]);
 
         return res.status(200).json({
-            totalGross: aggregate._sum.grossAmount ?? 0,
-            totalPlatformFee: aggregate._sum.platformFee ?? 0,
-            totalTeacherShare: aggregate._sum.teacherShare ?? 0,
-            heldTeacherShare: held._sum.teacherShare ?? 0,
-            paidTeacherShare: paid._sum.teacherShare ?? 0,
+            totalGross: decimalToNumber(aggregate._sum.grossAmount),
+            totalPlatformFee: decimalToNumber(aggregate._sum.platformFee),
+            totalTeacherShare: decimalToNumber(aggregate._sum.teacherShare),
+            heldTeacherShare: decimalToNumber(held._sum.teacherShare),
+            paidTeacherShare: decimalToNumber(paid._sum.teacherShare),
             salesCount: aggregate._count._all,
         });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch earnings',
-            details: (error as Error).message,
         });
     }
 }

@@ -1,8 +1,6 @@
 import { Ollama } from 'ollama';
 import { vectorStoreService } from './vectorStore.service';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /**
  * RAG (Retrieval-Augmented Generation) Service
@@ -56,7 +54,7 @@ Khóa học: ${course.title}
 Giảng viên: ${course.teacher.firstName} ${course.teacher.lastName} (${course.teacher.username})
 Danh mục: ${course.category.name}
 Mô tả: ${course.description}
-Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
+Giá: ${course.price.isZero() ? 'Miễn phí' : `${course.price.toString()} VND`}
             `.trim();
 
             await vectorStoreService.addDocument(courseContent, {
@@ -65,7 +63,7 @@ Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
                 type: 'course',
                 teacherName: `${course.teacher.firstName} ${course.teacher.lastName}`,
                 category: course.category.name,
-                price: course.price,
+                price: course.price.toNumber(),
             });
 
             // 2. Module documents
