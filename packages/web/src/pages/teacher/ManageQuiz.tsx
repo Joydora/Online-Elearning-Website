@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,22 +30,52 @@ type Question = {
     options: Option[];
 };
 
+type VideoContentForMarker = {
+    id: number;
+    title: string;
+    videoUrl: string | null;
+    durationInSeconds: number | null;
+    module: {
+        id: number;
+        title: string;
+    };
+};
+
+type VideoQuizMarker = {
+    id: number;
+    contentId: number;
+    timestampSec: number;
+    blockingMode: 'pause' | 'non-blocking';
+    questionId: number;
+    content: {
+        id: number;
+        title: string;
+    };
+};
+
 type QuizDetail = {
     id: number;
     title: string;
     timeLimitInMinutes: number | null;
     questions: Question[];
+    availableVideoContents: VideoContentForMarker[];
+    markers: VideoQuizMarker[];
 };
 
 export default function ManageQuiz() {
     const { contentId } = useParams<{ contentId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const markerVideoRef = useRef<HTMLVideoElement | null>(null);
     const [isAddingQuestion, setIsAddingQuestion] = useState(false);
     const [newQuestionText, setNewQuestionText] = useState('');
     const [addingOptionsFor, setAddingOptionsFor] = useState<number | null>(null);
     const [newOptionText, setNewOptionText] = useState('');
     const [newOptionIsCorrect, setNewOptionIsCorrect] = useState(false);
+    const [selectedVideoContentId, setSelectedVideoContentId] = useState<number | null>(null);
+    const [markerTimestampSec, setMarkerTimestampSec] = useState(0);
+    const [markerQuestionId, setMarkerQuestionId] = useState<number | null>(null);
+    const [markerBlockingMode, setMarkerBlockingMode] = useState<'pause' | 'non-blocking'>('pause');
 
     // Fetch quiz with questions
     const { data: quiz, isLoading } = useQuery<QuizDetail>({
@@ -56,6 +86,18 @@ export default function ManageQuiz() {
         },
         enabled: !!contentId,
     });
+
+    useEffect(() => {
+        if (!quiz) return;
+
+        if (!selectedVideoContentId && quiz.availableVideoContents.length > 0) {
+            setSelectedVideoContentId(quiz.availableVideoContents[0].id);
+        }
+
+        if (!markerQuestionId && quiz.questions.length > 0) {
+            setMarkerQuestionId(quiz.questions[0].id);
+        }
+    }, [quiz, selectedVideoContentId, markerQuestionId]);
 
     // Create question mutation
     const createQuestionMutation = useMutation({
@@ -134,6 +176,42 @@ export default function ManageQuiz() {
         },
     });
 
+    const createMarkerMutation = useMutation({
+        mutationFn: async () => {
+            if (!selectedVideoContentId || !markerQuestionId) {
+                throw new Error('Missing marker data');
+            }
+
+            const { data } = await apiClient.post('/markers', {
+                contentId: selectedVideoContentId,
+                timestampSec: markerTimestampSec,
+                questionId: markerQuestionId,
+                blockingMode: markerBlockingMode,
+            });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
+            showSuccessAlert('Thêm marker thành công!', '');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể tạo marker');
+        },
+    });
+
+    const deleteMarkerMutation = useMutation({
+        mutationFn: async (markerId: number) => {
+            await apiClient.delete(`/markers/${markerId}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
+            showSuccessAlert('Xóa marker thành công!', '');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể xóa marker');
+        },
+    });
+
     const handleDeleteQuestion = async (questionId: number, questionText: string) => {
         const result = await Swal.fire({
             title: 'Xác nhận xóa câu hỏi?',
@@ -181,6 +259,50 @@ export default function ManageQuiz() {
                 optionText: newOptionText.trim(),
                 isCorrect: newOptionIsCorrect,
             });
+        }
+    };
+
+    const selectedVideo = quiz?.availableVideoContents.find((video) => video.id === selectedVideoContentId);
+    const selectedVideoMarkers = quiz?.markers.filter((marker) => marker.contentId === selectedVideoContentId) ?? [];
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    const handleUseCurrentVideoTime = () => {
+        if (!markerVideoRef.current) return;
+        setMarkerTimestampSec(Math.floor(markerVideoRef.current.currentTime));
+    };
+
+    const handleCreateMarker = () => {
+        if (!selectedVideoContentId) {
+            showErrorAlert('Vui lòng chọn video');
+            return;
+        }
+
+        if (!markerQuestionId) {
+            showErrorAlert('Vui lòng chọn câu hỏi');
+            return;
+        }
+
+        createMarkerMutation.mutate();
+    };
+
+    const handleDeleteMarker = async (markerId: number) => {
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa marker?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy',
+        });
+
+        if (result.isConfirmed) {
+            deleteMarkerMutation.mutate(markerId);
         }
     };
 
@@ -232,6 +354,176 @@ export default function ManageQuiz() {
                         </p>
                     )}
                 </div>
+
+                {/* Video Quiz Markers */}
+                <Card className="p-6 mb-8">
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                                Quiz nhúng trong video
+                            </h2>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                Chọn video, lấy timestamp trên timeline và gắn câu hỏi của quiz này vào video.
+                            </p>
+                        </div>
+                    </div>
+
+                    {quiz.availableVideoContents.length === 0 ? (
+                        <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-500 dark:text-zinc-400">
+                            Khóa học này chưa có video để gắn marker.
+                        </div>
+                    ) : quiz.questions.length === 0 ? (
+                        <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-500 dark:text-zinc-400">
+                            Hãy tạo ít nhất một câu hỏi trước khi thêm marker.
+                        </div>
+                    ) : (
+                        <div className="space-y-5">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Video
+                                    </label>
+                                    <select
+                                        value={selectedVideoContentId ?? ''}
+                                        onChange={(e) => setSelectedVideoContentId(Number(e.target.value))}
+                                        className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-white"
+                                    >
+                                        {quiz.availableVideoContents.map((video) => (
+                                            <option key={video.id} value={video.id}>
+                                                {video.module.title} - {video.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Câu hỏi
+                                    </label>
+                                    <select
+                                        value={markerQuestionId ?? ''}
+                                        onChange={(e) => setMarkerQuestionId(Number(e.target.value))}
+                                        className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-white"
+                                    >
+                                        {quiz.questions.map((question, index) => (
+                                            <option key={question.id} value={question.id}>
+                                                Câu {index + 1}: {question.questionText}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {selectedVideo?.videoUrl && (
+                                <video
+                                    ref={markerVideoRef}
+                                    controls
+                                    src={selectedVideo.videoUrl}
+                                    className="w-full rounded-lg bg-black max-h-[360px]"
+                                >
+                                    Trình duyệt của bạn không hỗ trợ video.
+                                </video>
+                            )}
+
+                            <div className="grid md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Timestamp (giây)
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        max={selectedVideo?.durationInSeconds ?? undefined}
+                                        value={markerTimestampSec}
+                                        onChange={(e) => setMarkerTimestampSec(Number(e.target.value))}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Chế độ
+                                    </label>
+                                    <select
+                                        value={markerBlockingMode}
+                                        onChange={(e) => setMarkerBlockingMode(e.target.value as 'pause' | 'non-blocking')}
+                                        className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-white"
+                                    >
+                                        <option value="pause">Pause video</option>
+                                        <option value="non-blocking">Không chặn video</option>
+                                    </select>
+                                </div>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleUseCurrentVideoTime}
+                                    disabled={!selectedVideo?.videoUrl}
+                                >
+                                    Lấy thời điểm hiện tại
+                                </Button>
+                            </div>
+
+                            <Button
+                                onClick={handleCreateMarker}
+                                disabled={createMarkerMutation.isPending}
+                                className="bg-red-600 hover:bg-red-700"
+                            >
+                                {createMarkerMutation.isPending ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Đang thêm...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Thêm marker
+                                    </>
+                                )}
+                            </Button>
+
+                            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                                <h3 className="font-medium text-zinc-900 dark:text-white mb-3">
+                                    Marker trên video đã chọn
+                                </h3>
+                                {selectedVideoMarkers.length === 0 ? (
+                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                        Chưa có marker nào trên video này.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {selectedVideoMarkers.map((marker) => {
+                                            const questionIndex = quiz.questions.findIndex((question) => question.id === marker.questionId);
+                                            return (
+                                                <div
+                                                    key={marker.id}
+                                                    className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
+                                                >
+                                                    <span className="font-mono text-sm text-red-600 dark:text-red-400">
+                                                        {formatTime(marker.timestampSec)}
+                                                    </span>
+                                                    <span className="flex-1 text-sm text-zinc-700 dark:text-zinc-300">
+                                                        Câu {questionIndex >= 0 ? questionIndex + 1 : '?'}: {quiz.questions[questionIndex]?.questionText ?? 'Câu hỏi đã xóa'}
+                                                    </span>
+                                                    <span className="text-xs px-2 py-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
+                                                        {marker.blockingMode === 'pause' ? 'Pause' : 'Non-blocking'}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                        onClick={() => handleDeleteMarker(marker.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </Card>
 
                 {/* Questions List */}
                 <div className="space-y-6">

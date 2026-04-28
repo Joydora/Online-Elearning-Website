@@ -19,6 +19,11 @@ enum ContentType {
   QUIZ
 }
 
+enum VideoQuizBlockingMode {
+  PAUSE        @map("pause")
+  NON_BLOCKING @map("non-blocking")
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -58,6 +63,7 @@ model Course {
   id           Int     @id @default(autoincrement())
   title        String
   description  String
+  syllabus     Json    @default("{}")
   price        Float
   thumbnailUrl String?
 
@@ -103,6 +109,7 @@ model Content {
   quizAttempts      QuizAttempt[]
   comments          Comment[]
   contentProgresses ContentProgress[]
+  videoQuizMarkers  VideoQuizMarker[]
 }
 
 model Question {
@@ -113,6 +120,7 @@ model Question {
   content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   options AnswerOption[]
+  videoQuizMarkers VideoQuizMarker[]
 }
 
 model AnswerOption {
@@ -180,6 +188,23 @@ model QuizAttempt {
 
   quizContentId Int
   quizContent   Content @relation(fields: [quizContentId], references: [id])
+}
+
+model VideoQuizMarker {
+  id           Int                   @id @default(autoincrement())
+  contentId    Int
+  content      Content               @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  timestampSec Int
+  questionId   Int
+  question     Question              @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  blockingMode VideoQuizBlockingMode @default(PAUSE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([contentId, timestampSec, questionId])
+  @@index([contentId, timestampSec])
+  @@index([questionId])
 }
 
 model Payment {

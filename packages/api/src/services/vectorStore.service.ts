@@ -7,7 +7,8 @@ export interface VectorDocument {
     metadata: {
         courseId: number;
         courseTitle: string;
-        type: 'course' | 'module' | 'content';
+        type: 'course' | 'module' | 'content' | 'syllabus';
+        namespace?: string;
         [key: string]: any;
     };
     embedding: number[];
@@ -67,7 +68,7 @@ class VectorStoreService {
     async search(
         query: string,
         topK: number = 5,
-        filter?: { courseId?: number; type?: string }
+        filter?: { courseId?: number; type?: string; namespace?: string }
     ): Promise<Array<{ document: VectorDocument; score: number }>> {
         const queryEmbedding = await embeddingService.generateEmbedding(query);
 
@@ -79,6 +80,9 @@ class VectorStoreService {
                     return false;
                 }
                 if (filter.type && doc.metadata.type !== filter.type) {
+                    return false;
+                }
+                if (filter.namespace && doc.metadata.namespace !== filter.namespace) {
                     return false;
                 }
                 return true;
@@ -106,10 +110,21 @@ class VectorStoreService {
     }
 
     /**
+     * Clear documents for a single namespace, e.g. course:12
+     */
+    clearNamespace(namespace: string): void {
+        this.documents = this.documents.filter((doc) => doc.metadata.namespace !== namespace);
+    }
+
+    /**
      * Get document count
      */
     getDocumentCount(): number {
         return this.documents.length;
+    }
+
+    getNamespaceDocumentCount(namespace: string): number {
+        return this.documents.filter((doc) => doc.metadata.namespace === namespace).length;
     }
 
     /**

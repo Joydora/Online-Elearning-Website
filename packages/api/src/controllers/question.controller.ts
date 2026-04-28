@@ -43,6 +43,7 @@ export async function createQuestionController(req: Request, res: Response): Pro
                 contentType: true,
                 module: {
                     select: {
+                        courseId: true,
                         course: {
                             select: { teacherId: true },
                         },
@@ -303,6 +304,7 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
                 timeLimitInMinutes: true,
                 module: {
                     select: {
+                        courseId: true,
                         course: {
                             select: { teacherId: true },
                         },
@@ -339,7 +341,62 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
             return res.status(403).json({ error: 'You are not the owner of this course' });
         }
 
-        return res.status(200).json(content);
+        const [availableVideoContents, markers] = await Promise.all([
+            prisma.content.findMany({
+                where: {
+                    contentType: ContentType.VIDEO,
+                    module: {
+                        courseId: content.module.courseId,
+                    },
+                },
+                orderBy: [{ module: { order: 'asc' } }, { order: 'asc' }],
+                select: {
+                    id: true,
+                    title: true,
+                    videoUrl: true,
+                    durationInSeconds: true,
+                    module: {
+                        select: {
+                            id: true,
+                            title: true,
+                        },
+                    },
+                },
+            }),
+            prisma.videoQuizMarker.findMany({
+                where: {
+                    question: {
+                        contentId,
+                    },
+                },
+                orderBy: [{ timestampSec: 'asc' }, { id: 'asc' }],
+                select: {
+                    id: true,
+                    contentId: true,
+                    timestampSec: true,
+                    blockingMode: true,
+                    questionId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                        },
+                    },
+                },
+            }),
+        ]);
+
+        return res.status(200).json({
+            ...content,
+            availableVideoContents,
+            markers: markers.map((marker) => ({
+                ...marker,
+                blockingMode:
+                    String(marker.blockingMode) === 'NON_BLOCKING' || String(marker.blockingMode) === 'non-blocking'
+                        ? 'non-blocking'
+                        : 'pause',
+            })),
+        });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch quiz',

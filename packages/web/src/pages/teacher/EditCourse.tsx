@@ -18,6 +18,7 @@ type Category = {
 type CourseFormValues = {
     title: string;
     description: string;
+    syllabus: string;
     price: number;
     categoryId: number;
     thumbnailUrl: string;
@@ -27,6 +28,9 @@ type CourseDetail = {
     id: number;
     title: string;
     description: string;
+    syllabus?: {
+        outline?: string;
+    } | string | null;
     price: number;
     thumbnailUrl?: string;
     category: {
@@ -44,6 +48,7 @@ export default function EditCourse() {
         defaultValues: {
             title: '',
             description: '',
+            syllabus: '',
             price: 0,
             categoryId: 0,
             thumbnailUrl: '',
@@ -110,6 +115,9 @@ export default function EditCourse() {
             form.reset({
                 title: course.title,
                 description: course.description,
+                syllabus: typeof course.syllabus === 'string'
+                    ? course.syllabus
+                    : course.syllabus?.outline || '',
                 price: course.price,
                 categoryId: course.category.id,
                 thumbnailUrl: course.thumbnailUrl || '',
@@ -120,7 +128,12 @@ export default function EditCourse() {
     // Update course mutation
     const updateMutation = useMutation({
         mutationFn: async (values: CourseFormValues) => {
-            const { data } = await apiClient.put(`/courses/${id}`, values);
+            const { data } = await apiClient.put(`/courses/${id}`, {
+                ...values,
+                syllabus: {
+                    outline: values.syllabus,
+                },
+            });
             return data;
         },
         onSuccess: async () => {
@@ -241,6 +254,30 @@ export default function EditCourse() {
                                                 {...field}
                                             />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* Syllabus */}
+                            <FormField
+                                control={form.control}
+                                name="syllabus"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                                            Syllabus / Mục lục môn học
+                                        </FormLabel>
+                                        <FormControl>
+                                            <textarea
+                                                placeholder="Nhập mục lục, mục tiêu, phạm vi kiến thức. AI Teaching Assistant sẽ chỉ trả lời trong phạm vi này."
+                                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[160px]"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                                            Khi lưu syllabus, hệ thống sẽ re-ingest dữ liệu cho AI Teaching Assistant.
+                                        </p>
                                         <FormMessage />
                                     </FormItem>
                                 )}

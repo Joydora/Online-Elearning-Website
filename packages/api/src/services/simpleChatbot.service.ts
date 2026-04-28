@@ -3,6 +3,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+function stringifySyllabus(syllabus: unknown): string {
+    if (!syllabus || (typeof syllabus === 'object' && Object.keys(syllabus).length === 0)) {
+        return 'Chưa có syllabus chi tiết.';
+    }
+
+    if (typeof syllabus === 'string') {
+        return syllabus;
+    }
+
+    return JSON.stringify(syllabus, null, 2);
+}
+
 /**
  * Simple Chatbot Service (without embeddings/RAG)
  * Just loads all course data and uses LLM with full context
@@ -56,6 +68,7 @@ class SimpleChatbotService {
 - Giảng viên: ${teacherName}
 - Danh mục: ${course.category.name}
 - Mô tả: ${course.description}
+- Syllabus: ${stringifySyllabus(course.syllabus)}
 - Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
 - Số chương: ${course.modules.length}
 `;

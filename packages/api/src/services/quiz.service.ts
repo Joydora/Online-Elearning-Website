@@ -1,6 +1,9 @@
-import { PrismaClient, ContentType } from '@prisma/client';
+import { PrismaClient, ContentType, Role, VideoQuizBlockingMode } from '@prisma/client';
+import { markContentCompleted } from './progress.service';
 
 const prisma = new PrismaClient();
+
+type MarkerBlockingMode = 'pause' | 'non-blocking';
 
 function toNumber(value: unknown): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -13,6 +16,18 @@ function toNumber(value: unknown): number | null {
     }
 
     return null;
+}
+
+function toPrismaBlockingMode(value: unknown): VideoQuizBlockingMode {
+    if (value === 'non-blocking' || value === VideoQuizBlockingMode.NON_BLOCKING) {
+        return VideoQuizBlockingMode.NON_BLOCKING;
+    }
+
+    return VideoQuizBlockingMode.PAUSE;
+}
+
+function fromPrismaBlockingMode(value: VideoQuizBlockingMode): MarkerBlockingMode {
+    return value === VideoQuizBlockingMode.NON_BLOCKING ? 'non-blocking' : 'pause';
 }
 
 async function assertStudentEnrollment(courseId: number, studentId: number): Promise<void> {
@@ -118,6 +133,337 @@ export async function getQuizForStudent(contentId: number, studentId: number) {
                 optionText: option.optionText,
             })),
         })),
+    };
+}
+
+function canManageCourse(userRole: Role | string | undefined, teacherId: number, userId: number): boolean {
+    return userRole === Role.ADMIN || teacherId === userId;
+}
+
+function serializeMarker(marker: {
+    id: number;
+    timestampSec: number;
+    blockingMode: VideoQuizBlockingMode;
+    question: {
+        id: number;
+        questionText: string;
+        contentId: number;
+        content: {
+            id: number;
+            title: string;
+        };
+        options: Array<{
+            id: number;
+            optionText: string;
+        }>;
+    };
+}) {
+    return {
+        id: marker.id,
+        timestampSec: marker.timestampSec,
+        blockingMode: fromPrismaBlockingMode(marker.blockingMode),
+        questionId: marker.question.id,
+        quizContentId: marker.question.contentId,
+        quizTitle: marker.question.content.title,
+        question: {
+            id: marker.question.id,
+            questionText: marker.question.questionText,
+            options: marker.question.options,
+        },
+    };
+}
+
+export async function getVideoQuizMarkersForContent(
+    contentId: number,
+    userId: number,
+    userRole?: Role | string
+) {
+    const content = await prisma.content.findUnique({
+        where: { id: contentId },
+        select: {
+            id: true,
+            contentType: true,
+            module: {
+                select: {
+                    courseId: true,
+                    course: {
+                        select: {
+                            teacherId: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!content || !content.module) {
+        throw new Error('CONTENT_NOT_FOUND');
+    }
+
+    if (content.contentType !== ContentType.VIDEO) {
+        throw new Error('NOT_A_VIDEO');
+    }
+
+    if (userRole === Role.STUDENT) {
+        await assertStudentEnrollment(content.module.courseId, userId);
+    } else if (!canManageCourse(userRole, content.module.course.teacherId, userId)) {
+        throw new Error('COURSE_FORBIDDEN');
+    }
+
+    const markers = await prisma.videoQuizMarker.findMany({
+        where: { contentId },
+        orderBy: [{ timestampSec: 'asc' }, { id: 'asc' }],
+        select: {
+            id: true,
+            timestampSec: true,
+            blockingMode: true,
+            question: {
+                select: {
+                    id: true,
+                    questionText: true,
+                    contentId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                        },
+                    },
+                    options: {
+                        orderBy: { id: 'asc' },
+                        select: {
+                            id: true,
+                            optionText: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    return markers.map(serializeMarker);
+}
+
+export async function createVideoQuizMarker(input: {
+    contentId: number;
+    timestampSec: number;
+    questionId: number;
+    blockingMode?: unknown;
+    teacherId: number;
+    userRole?: Role | string;
+}) {
+    const content = await prisma.content.findUnique({
+        where: { id: input.contentId },
+        select: {
+            id: true,
+            contentType: true,
+            durationInSeconds: true,
+            module: {
+                select: {
+                    courseId: true,
+                    course: {
+                        select: {
+                            teacherId: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!content || !content.module) {
+        throw new Error('CONTENT_NOT_FOUND');
+    }
+
+    if (content.contentType !== ContentType.VIDEO) {
+        throw new Error('NOT_A_VIDEO');
+    }
+
+    if (!canManageCourse(input.userRole, content.module.course.teacherId, input.teacherId)) {
+        throw new Error('COURSE_FORBIDDEN');
+    }
+
+    if (input.timestampSec < 0 || !Number.isInteger(input.timestampSec)) {
+        throw new Error('INVALID_TIMESTAMP');
+    }
+
+    if (content.durationInSeconds !== null && input.timestampSec > content.durationInSeconds) {
+        throw new Error('INVALID_TIMESTAMP');
+    }
+
+    const question = await prisma.question.findUnique({
+        where: { id: input.questionId },
+        select: {
+            id: true,
+            content: {
+                select: {
+                    contentType: true,
+                    module: {
+                        select: {
+                            courseId: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!question) {
+        throw new Error('QUESTION_NOT_FOUND');
+    }
+
+    if (question.content.contentType !== ContentType.QUIZ) {
+        throw new Error('QUESTION_NOT_IN_QUIZ');
+    }
+
+    if (question.content.module.courseId !== content.module.courseId) {
+        throw new Error('QUESTION_COURSE_MISMATCH');
+    }
+
+    const marker = await prisma.videoQuizMarker.create({
+        data: {
+            contentId: input.contentId,
+            timestampSec: input.timestampSec,
+            questionId: input.questionId,
+            blockingMode: toPrismaBlockingMode(input.blockingMode),
+        },
+        select: {
+            id: true,
+            timestampSec: true,
+            blockingMode: true,
+            question: {
+                select: {
+                    id: true,
+                    questionText: true,
+                    contentId: true,
+                    content: {
+                        select: {
+                            id: true,
+                            title: true,
+                        },
+                    },
+                    options: {
+                        orderBy: { id: 'asc' },
+                        select: {
+                            id: true,
+                            optionText: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    return serializeMarker(marker);
+}
+
+export async function deleteVideoQuizMarker(markerId: number, teacherId: number, userRole?: Role | string) {
+    const marker = await prisma.videoQuizMarker.findUnique({
+        where: { id: markerId },
+        select: {
+            content: {
+                select: {
+                    module: {
+                        select: {
+                            course: {
+                                select: {
+                                    teacherId: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!marker) {
+        throw new Error('MARKER_NOT_FOUND');
+    }
+
+    if (!canManageCourse(userRole, marker.content.module.course.teacherId, teacherId)) {
+        throw new Error('COURSE_FORBIDDEN');
+    }
+
+    await prisma.videoQuizMarker.delete({
+        where: { id: markerId },
+    });
+
+    return { success: true };
+}
+
+export async function submitVideoQuizMarkerAnswer(
+    markerId: number,
+    studentId: number,
+    rawAnswerOptionId: unknown
+) {
+    const answerOptionId = toNumber(rawAnswerOptionId);
+
+    if (answerOptionId === null) {
+        throw new Error('INVALID_ANSWER');
+    }
+
+    const marker = await prisma.videoQuizMarker.findUnique({
+        where: { id: markerId },
+        select: {
+            id: true,
+            question: {
+                select: {
+                    id: true,
+                    contentId: true,
+                    options: {
+                        select: {
+                            id: true,
+                            isCorrect: true,
+                        },
+                    },
+                    content: {
+                        select: {
+                            module: {
+                                select: {
+                                    courseId: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!marker) {
+        throw new Error('MARKER_NOT_FOUND');
+    }
+
+    await assertStudentEnrollment(marker.question.content.module.courseId, studentId);
+
+    const selectedOption = marker.question.options.find((option) => option.id === answerOptionId);
+
+    if (!selectedOption) {
+        throw new Error('ANSWER_OPTION_NOT_FOUND');
+    }
+
+    const score = selectedOption.isCorrect ? 100 : 0;
+    const now = new Date();
+
+    const attempt = await prisma.quizAttempt.create({
+        data: {
+            score,
+            startTime: now,
+            endTime: now,
+            studentId,
+            quizContentId: marker.question.contentId,
+        },
+    });
+
+    const progress = await markContentCompleted(marker.question.contentId, studentId);
+
+    return {
+        markerId: marker.id,
+        attemptId: attempt.id,
+        score,
+        correctCount: selectedOption.isCorrect ? 1 : 0,
+        totalQuestions: 1,
+        progress,
     };
 }
 

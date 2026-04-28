@@ -6,11 +6,46 @@ import { Ollama } from 'ollama';
 class EmbeddingService {
     private ollama: Ollama;
     private model: string;
+    private readonly fallbackDimensions = 384;
 
     constructor() {
         // Initialize Ollama client (use IPv4 to avoid IPv6 connection issues)
         this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-        this.model = 'gemma3:4b'; // Using gemma3:4b model
+        this.model = process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text';
+    }
+
+    private hashToken(token: string): number {
+        let hash = 2166136261;
+
+        for (let i = 0; i < token.length; i++) {
+            hash ^= token.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+
+        return hash >>> 0;
+    }
+
+    private generateFallbackEmbedding(text: string): number[] {
+        const vector = new Array(this.fallbackDimensions).fill(0);
+        const tokens = text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .split(/[^a-z0-9]+/)
+            .filter(Boolean);
+
+        if (tokens.length === 0) {
+            vector[0] = 1;
+            return vector;
+        }
+
+        for (const token of tokens) {
+            const hash = this.hashToken(token);
+            const index = hash % this.fallbackDimensions;
+            vector[index] += 1;
+        }
+
+        return vector;
     }
 
     /**
@@ -25,8 +60,11 @@ class EmbeddingService {
 
             return response.embedding;
         } catch (error) {
-            console.error('Error generating embedding:', error);
-            throw new Error('Failed to generate embedding');
+            console.warn(
+                `Ollama embedding model "${this.model}" unavailable; using local fallback embedding.`,
+                (error as Error).message
+            );
+            return this.generateFallbackEmbedding(text);
         }
     }
 
@@ -60,6 +98,10 @@ class EmbeddingService {
             dotProduct += a[i] * b[i];
             normA += a[i] * a[i];
             normB += b[i] * b[i];
+        }
+
+        if (normA === 0 || normB === 0) {
+            return 0;
         }
 
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));

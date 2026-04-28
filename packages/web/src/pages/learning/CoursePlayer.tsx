@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { SyntheticEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle } from 'lucide-react';
+import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -101,6 +102,29 @@ type QuizResult = {
     totalQuestions: number;
 };
 
+type VideoQuizMarker = {
+    id: number;
+    timestampSec: number;
+    blockingMode: 'pause' | 'non-blocking';
+    questionId: number;
+    quizContentId: number;
+    quizTitle: string;
+    question: QuizQuestion;
+};
+
+type MarkerQuizResult = QuizResult & {
+    markerId: number;
+    progress?: {
+        progress: number;
+        isCompleted: boolean;
+    };
+};
+
+type TeachingAssistantMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+};
+
 type QuizAttemptHistory = {
     attemptId: number;
     score: number;
@@ -112,6 +136,7 @@ export default function CoursePlayer() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const videoRef = useRef<HTMLVideoElement | null>(null);
 
     const [currentModuleId, setCurrentModuleId] = useState<number | null>(null);
     const [currentContentId, setCurrentContentId] = useState<number | null>(null);
@@ -127,6 +152,15 @@ export default function CoursePlayer() {
     const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
     const [quizLoading, setQuizLoading] = useState(false);
     const [quizAttempts, setQuizAttempts] = useState<QuizAttemptHistory[]>([]);
+    const [activeMarker, setActiveMarker] = useState<VideoQuizMarker | null>(null);
+    const [answeredMarkerIds, setAnsweredMarkerIds] = useState<number[]>([]);
+    const [markerSelectedAnswer, setMarkerSelectedAnswer] = useState<number | null>(null);
+    const [markerResult, setMarkerResult] = useState<MarkerQuizResult | null>(null);
+    const [markerSubmitting, setMarkerSubmitting] = useState(false);
+    const [taMessages, setTaMessages] = useState<TeachingAssistantMessage[]>([]);
+    const [taQuestion, setTaQuestion] = useState('');
+    const [taLoading, setTaLoading] = useState(false);
+    const [taQuizLoading, setTaQuizLoading] = useState(false);
 
     // Fetch course data with content (enrolled students only)
     const {
@@ -237,11 +271,24 @@ export default function CoursePlayer() {
         setQuizResult(null);
         setDocumentReadTime(0); // Reset document timer
         setQuizAttempts([]); // Reset quiz attempts
+        setActiveMarker(null);
+        setAnsweredMarkerIds([]);
+        setMarkerSelectedAnswer(null);
+        setMarkerResult(null);
     }, [currentContentId]);
 
     // Get current content info
     const currentModule = course?.modules.find(m => m.moduleId === currentModuleId);
     const currentContent = currentModule?.contents.find(c => c.contentId === currentContentId);
+
+    const { data: videoMarkers = [] } = useQuery<VideoQuizMarker[]>({
+        queryKey: ['content-markers', currentContentId],
+        queryFn: async () => {
+            const { data } = await apiClient.get<VideoQuizMarker[]>(`/contents/${currentContentId}/markers`);
+            return data;
+        },
+        enabled: !!currentContentId && currentContent?.contentType === 'VIDEO',
+    });
 
     // Fetch quiz attempts when viewing a quiz
     useEffect(() => {
@@ -328,6 +375,121 @@ export default function CoursePlayer() {
             showErrorAlert('Không thể nộp bài. Vui lòng thử lại.');
         } finally {
             setQuizLoading(false);
+        }
+    };
+
+    const handleVideoTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
+        if (activeMarker || videoMarkers.length === 0) return;
+
+        const currentTime = Math.floor(event.currentTarget.currentTime);
+        const marker = videoMarkers.find((item) =>
+            item.timestampSec <= currentTime && !answeredMarkerIds.includes(item.id)
+        );
+
+        if (!marker) return;
+
+        setActiveMarker(marker);
+        setMarkerSelectedAnswer(null);
+        setMarkerResult(null);
+
+        if (marker.blockingMode === 'pause') {
+            event.currentTarget.pause();
+        }
+    };
+
+    const submitMarkerAnswer = async () => {
+        if (!activeMarker || markerSelectedAnswer === null) {
+            showErrorAlert('Vui lòng chọn một câu trả lời');
+            return;
+        }
+
+        setMarkerSubmitting(true);
+        try {
+            const { data } = await apiClient.post<MarkerQuizResult>(`/markers/${activeMarker.id}/submit`, {
+                answerOptionId: markerSelectedAnswer,
+            });
+            setMarkerResult(data);
+            setAnsweredMarkerIds(prev => prev.includes(activeMarker.id) ? prev : [...prev, activeMarker.id]);
+
+            if (data.progress) {
+                setCurrentProgress(data.progress.progress);
+                setCompletedContentIds(prev =>
+                    prev.includes(activeMarker.quizContentId) ? prev : [...prev, activeMarker.quizContentId]
+                );
+                queryClient.invalidateQueries({ queryKey: ['completed-contents', courseId] });
+                queryClient.invalidateQueries({ queryKey: ['enrolled-course-content', courseId] });
+            }
+        } catch (error) {
+            showErrorAlert('Không thể nộp câu trả lời trong video. Vui lòng thử lại.');
+        } finally {
+            setMarkerSubmitting(false);
+        }
+    };
+
+    const closeMarkerQuiz = () => {
+        if (activeMarker && activeMarker.blockingMode === 'non-blocking' && !markerResult) {
+            setAnsweredMarkerIds(prev => prev.includes(activeMarker.id) ? prev : [...prev, activeMarker.id]);
+        }
+
+        setActiveMarker(null);
+        setMarkerSelectedAnswer(null);
+        setMarkerResult(null);
+    };
+
+    const askTeachingAssistant = async () => {
+        const question = taQuestion.trim();
+
+        if (!courseId || !question) return;
+
+        const userMessage: TeachingAssistantMessage = { role: 'user', content: question };
+        setTaMessages(prev => [...prev, userMessage]);
+        setTaQuestion('');
+        setTaLoading(true);
+
+        try {
+            const { data } = await apiClient.post<{ answer: string }>(`/ta/${courseId}/ask`, {
+                question,
+                currentContentId,
+            });
+            setTaMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
+        } catch (error) {
+            setTaMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: 'Không thể kết nối AI Teaching Assistant. Vui lòng thử lại sau.',
+                },
+            ]);
+        } finally {
+            setTaLoading(false);
+        }
+    };
+
+    const generateQuizSuggestions = async () => {
+        if (!courseId) return;
+
+        setTaQuizLoading(true);
+        try {
+            const { data } = await apiClient.post<{ suggestions: string }>(`/ta/${courseId}/quiz-suggestions`, {
+                currentContentId,
+            });
+            setTaMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: data.suggestions,
+                },
+            ]);
+        } catch (error) {
+            setTaMessages(prev => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: 'Không thể tạo câu hỏi gợi ý lúc này. Vui lòng thử lại sau.',
+                },
+            ]);
+        } finally {
+            setTaQuizLoading(false);
         }
     };
 
@@ -496,16 +658,94 @@ export default function CoursePlayer() {
                         <div className="w-full h-full">
                             {currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
                                 <div className="w-full h-full flex flex-col">
-                                    <div className="flex-1 flex items-center justify-center">
+                                    <div className="flex-1 flex items-center justify-center relative">
                                         <video
                                             key={currentContent.videoUrl}
+                                            ref={videoRef}
                                             controls
                                             className="w-full h-full"
                                             src={currentContent.videoUrl}
+                                            onTimeUpdate={handleVideoTimeUpdate}
                                             onEnded={markCurrentContentComplete}
                                         >
                                             Trình duyệt của bạn không hỗ trợ video.
                                         </video>
+                                        {activeMarker && (
+                                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-6 z-10">
+                                                <Card className="w-full max-w-2xl p-6 bg-white dark:bg-zinc-800">
+                                                    <div className="mb-4">
+                                                        <p className="text-sm text-red-500 font-medium mb-1">
+                                                            Quiz trong video - {activeMarker.quizTitle}
+                                                        </p>
+                                                        <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+                                                            {activeMarker.question.questionText}
+                                                        </h2>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        {activeMarker.question.options.map((option) => (
+                                                            <label
+                                                                key={option.id}
+                                                                className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${markerSelectedAnswer === option.id
+                                                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                                                        : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                                                    }`}
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    name={`marker-question-${activeMarker.question.id}`}
+                                                                    checked={markerSelectedAnswer === option.id}
+                                                                    onChange={() => setMarkerSelectedAnswer(option.id)}
+                                                                    disabled={!!markerResult}
+                                                                    className="mr-3"
+                                                                />
+                                                                <span className="text-zinc-700 dark:text-zinc-300">
+                                                                    {option.optionText}
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+
+                                                    {markerResult && (
+                                                        <div className={`mt-4 p-3 rounded-lg ${markerResult.score === 100
+                                                                ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                                : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                                            }`}>
+                                                            {markerResult.score === 100
+                                                                ? 'Chính xác! Kết quả đã được lưu.'
+                                                                : 'Chưa chính xác. Kết quả đã được lưu.'}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex justify-end gap-3 mt-6">
+                                                        {activeMarker.blockingMode === 'non-blocking' && !markerResult && (
+                                                            <Button variant="outline" onClick={closeMarkerQuiz}>
+                                                                Để sau
+                                                            </Button>
+                                                        )}
+                                                        {!markerResult ? (
+                                                            <Button
+                                                                onClick={submitMarkerAnswer}
+                                                                disabled={markerSubmitting || markerSelectedAnswer === null}
+                                                                className="bg-red-600 hover:bg-red-700"
+                                                            >
+                                                                {markerSubmitting ? 'Đang nộp...' : 'Nộp câu trả lời'}
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                onClick={() => {
+                                                                    closeMarkerQuiz();
+                                                                    videoRef.current?.play();
+                                                                }}
+                                                                className="bg-red-600 hover:bg-red-700"
+                                                            >
+                                                                Tiếp tục video
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </Card>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Video action bar */}
                                     <div className="bg-zinc-800 px-4 py-3 flex items-center justify-between">
@@ -917,6 +1157,81 @@ export default function CoursePlayer() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        <div className="mt-6 border-t border-zinc-700 pt-6">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Bot className="h-5 w-5 text-red-400" />
+                                <h3 className="text-white font-semibold">AI Teaching Assistant</h3>
+                            </div>
+                            <p className="text-xs text-zinc-400 mb-3">
+                                Hỏi AI theo syllabus khóa học và bài đang xem.
+                            </p>
+
+                            <div className="space-y-3 max-h-80 overflow-y-auto mb-3 pr-1">
+                                {taMessages.length === 0 ? (
+                                    <div className="text-xs text-zinc-500 bg-zinc-900/60 rounded-lg p-3">
+                                        Ví dụ: "Bài này cần nhớ ý chính nào?" hoặc bấm tạo câu hỏi quiz gợi ý.
+                                    </div>
+                                ) : (
+                                    taMessages.map((message, index) => (
+                                        <div
+                                            key={`${message.role}-${index}`}
+                                            className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${message.role === 'user'
+                                                    ? 'bg-red-600 text-white'
+                                                    : 'bg-zinc-900 text-zinc-200 border border-zinc-700'
+                                                }`}
+                                        >
+                                            {message.content}
+                                        </div>
+                                    ))
+                                )}
+                                {(taLoading || taQuizLoading) && (
+                                    <div className="flex items-center gap-2 text-sm text-zinc-400">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        AI đang suy nghĩ...
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2 mb-2">
+                                <input
+                                    value={taQuestion}
+                                    onChange={(event) => setTaQuestion(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' && !event.shiftKey) {
+                                            event.preventDefault();
+                                            askTeachingAssistant();
+                                        }
+                                    }}
+                                    placeholder="Hỏi về bài này..."
+                                    className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    disabled={taLoading}
+                                />
+                                <Button
+                                    size="sm"
+                                    onClick={askTeachingAssistant}
+                                    disabled={taLoading || !taQuestion.trim()}
+                                    className="bg-red-600 hover:bg-red-700"
+                                >
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={generateQuizSuggestions}
+                                disabled={taQuizLoading}
+                                className="w-full gap-2"
+                            >
+                                {taQuizLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Sparkles className="h-4 w-4" />
+                                )}
+                                Gợi ý câu hỏi quiz từ bài này
+                            </Button>
                         </div>
                     </div>
                 </div>

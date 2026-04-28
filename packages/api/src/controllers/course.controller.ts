@@ -72,6 +72,28 @@ function getTeacherId(req: AuthenticatedRequest): number | null {
     return req.user.userId;
 }
 
+function normalizeSyllabus(value: unknown) {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(trimmed);
+        } catch (error) {
+            return { outline: trimmed };
+        }
+    }
+
+    return value ?? {};
+}
+
 export async function createCourseController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as AuthenticatedRequest;
@@ -81,7 +103,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, price, categoryId, thumbnailUrl } = authReq.body ?? {};
+        const { title, description, price, categoryId, thumbnailUrl, syllabus } = authReq.body ?? {};
 
         if (!title || !description || price === undefined || categoryId === undefined) {
             return res.status(400).json({
@@ -103,6 +125,7 @@ export async function createCourseController(req: Request, res: Response): Promi
         const course = await createCourseForTeacher({
             title,
             description,
+            syllabus: normalizeSyllabus(syllabus),
             price: numericPrice,
             categoryId: numericCategoryId,
             teacherId,
@@ -137,14 +160,15 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const { title, description, price, categoryId, thumbnailUrl } = authReq.body ?? {};
+        const { title, description, price, categoryId, thumbnailUrl, syllabus } = authReq.body ?? {};
 
         if (
             title === undefined &&
             description === undefined &&
             price === undefined &&
             categoryId === undefined &&
-            thumbnailUrl === undefined
+            thumbnailUrl === undefined &&
+            syllabus === undefined
         ) {
             return res.status(400).json({ error: 'No fields provided for update' });
         }
@@ -168,6 +192,7 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 teacherId,
                 title,
                 description,
+                syllabus: normalizeSyllabus(syllabus),
                 price: numericPrice,
                 categoryId: numericCategoryId,
                 thumbnailUrl,

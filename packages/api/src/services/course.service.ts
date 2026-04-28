@@ -1,4 +1,5 @@
-import { ContentType, PrismaClient } from '@prisma/client';
+import { ContentType, Prisma, PrismaClient } from '@prisma/client';
+import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
 
@@ -6,6 +7,7 @@ const courseSummarySelect = {
     id: true,
     title: true,
     description: true,
+    syllabus: true,
     price: true,
     thumbnailUrl: true,
     createdAt: true,
@@ -82,6 +84,7 @@ export async function getCourseById(courseId: number) {
 type CreateCourseInput = {
     title: string;
     description: string;
+    syllabus?: Prisma.InputJsonValue;
     price: number;
     categoryId: number;
     teacherId: number;
@@ -93,6 +96,7 @@ type UpdateCourseInput = {
     teacherId: number;
     title?: string;
     description?: string;
+    syllabus?: Prisma.InputJsonValue;
     price?: number;
     categoryId?: number;
     thumbnailUrl?: string;
@@ -126,11 +130,16 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
         data: {
             title: input.title,
             description: input.description,
+            syllabus: input.syllabus ?? {},
             price: input.price,
             categoryId: input.categoryId,
             teacherId: input.teacherId,
             thumbnailUrl: input.thumbnailUrl || null,
         },
+    });
+
+    await ragService.reingestCourseSyllabus(course.id).catch((error) => {
+        console.error('Unable to ingest course syllabus:', error);
     });
 
     return getCourseById(course.id);
@@ -156,11 +165,18 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
         data: {
             title: input.title ?? undefined,
             description: input.description ?? undefined,
+            syllabus: input.syllabus !== undefined ? input.syllabus : undefined,
             price: input.price ?? undefined,
             categoryId: input.categoryId ?? undefined,
             thumbnailUrl: input.thumbnailUrl !== undefined ? (input.thumbnailUrl || null) : undefined,
         },
     });
+
+    if (input.syllabus !== undefined || input.title !== undefined || input.description !== undefined) {
+        await ragService.reingestCourseSyllabus(input.courseId).catch((error) => {
+            console.error('Unable to re-ingest course syllabus:', error);
+        });
+    }
 
     return getCourseById(input.courseId);
 }
