@@ -91,9 +91,9 @@ export default function AdminRevenue() {
             {data?.summary && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     {[
-                        { label: 'Doanh thu nền tảng', value: data.summary.totalPlatformRevenue, color: 'text-blue-600' },
-                        { label: 'Đã thanh toán GV', value: data.summary.totalTeacherPayouts, color: 'text-green-600' },
-                        { label: 'Đang giữ', value: data.summary.heldAmount, color: 'text-yellow-600' },
+                        { label: 'Doanh thu nền tảng', value: data.summary.platformFee, color: 'text-blue-600' },
+                        { label: 'Phần GV', value: data.summary.teacherShare, color: 'text-green-600' },
+                        { label: 'Tổng doanh thu', value: data.summary.grossAmount, color: 'text-yellow-600' },
                     ].map(({ label, value, color }) => (
                         <Card key={label} className="p-5">
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>

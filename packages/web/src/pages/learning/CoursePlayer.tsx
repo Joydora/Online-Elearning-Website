@@ -289,6 +289,9 @@ export default function CoursePlayer() {
                 showSuccessAlert('Chúc mừng!', 'Bạn đã hoàn thành khóa học này! 🎉');
             }
         },
+        onError: () => {
+            showErrorAlert('Không thể đánh dấu hoàn thành. Vui lòng thử lại.');
+        },
     });
 
     // Function to mark current content as complete
@@ -348,7 +351,7 @@ export default function CoursePlayer() {
         if (!practiceData || !practiceCode.trim()) return;
         setPracticeSubmitting(true);
         try {
-            const { data } = await apiClient.post<PracticeResult>(`/practice/${practiceData.id}/submit`, { code: practiceCode });
+            const { data } = await apiClient.post<PracticeResult>(`/practice/${practiceData.id}/submit`, { submittedCode: practiceCode });
             setPracticeResult(data);
             if (data.passed && currentContentId && !completedContentIds.includes(currentContentId)) {
                 markCompleteMutation.mutate(currentContentId);

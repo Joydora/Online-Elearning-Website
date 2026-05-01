@@ -1,5 +1,5 @@
 // File: packages/api/prisma/seed.ts
-import { PrismaClient, Role, ContentType, EnrollmentType, PayoutStatus, CourseLevel } from '@prisma/client';
+import { PrismaClient, Role, ContentType, EnrollmentType, PayoutStatus, CourseLevel, CourseStatus } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -11,25 +11,14 @@ const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 *
 async function main(): Promise<void> {
     console.log('🗑️  Deleting old data...');
 
-    await prisma.revenueLedger.deleteMany();
-    await prisma.projectSubmission.deleteMany();
-    await prisma.project.deleteMany();
-    await prisma.practiceSubmission.deleteMany();
-    await prisma.practice.deleteMany();
-    await prisma.videoQuizMarker.deleteMany();
-    await prisma.contentProgress.deleteMany();
-    await prisma.comment.deleteMany();
-    await prisma.answerOption.deleteMany();
-    await prisma.question.deleteMany();
-    await prisma.quizAttempt.deleteMany();
-    await prisma.content.deleteMany();
-    await prisma.module.deleteMany();
-    await prisma.review.deleteMany();
-    await prisma.payment.deleteMany();
-    await prisma.enrollment.deleteMany();
-    await prisma.course.deleteMany();
-    await prisma.category.deleteMany();
-    await prisma.user.deleteMany();
+    // Truncate all tables and reset sequences so IDs always start from 1
+    await prisma.$executeRaw`TRUNCATE TABLE
+        "RevenueLedger", "ProjectSubmission", "Project",
+        "PracticeSubmission", "Practice", "VideoQuizMarker",
+        "ContentProgress", "Comment", "AnswerOption", "Question",
+        "QuizAttempt", "Content", "Module", "Review", "Payment",
+        "Enrollment", "Course", "Category", "User"
+        RESTART IDENTITY CASCADE`;
 
     console.log('✅ Old data deleted.\n');
 
@@ -181,6 +170,7 @@ async function main(): Promise<void> {
             thumbnailUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
             trialDurationDays: 7,
             level: CourseLevel.BEGINNER,
+            status: CourseStatus.PUBLISHED,
             syllabus: {
                 chapters: [
                     { title: 'Giới thiệu React', lessons: ['React là gì?', 'Cài đặt môi trường'] },
@@ -329,6 +319,7 @@ async function main(): Promise<void> {
             thumbnailUrl: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800',
             accessDurationDays: 30,
             level: CourseLevel.INTERMEDIATE,
+            status: CourseStatus.PUBLISHED,
             syllabus: {
                 chapters: [
                     { title: 'Nền tảng TypeScript', lessons: ['Types', 'Interfaces'] },
@@ -450,6 +441,7 @@ async function main(): Promise<void> {
             price: 0,
             thumbnailUrl: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800',
             level: CourseLevel.BEGINNER,
+            status: CourseStatus.PUBLISHED,
             teacherId: teachers[1].id,
             categoryId: categories[0].id,
             modules: {
@@ -537,6 +529,7 @@ async function main(): Promise<void> {
             thumbnailUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800',
             accessDurationDays: 60,
             level: CourseLevel.INTERMEDIATE,
+            status: CourseStatus.PUBLISHED,
             syllabus: {
                 chapters: [
                     { title: 'Node.js Fundamentals', lessons: ['Node.js là gì?', 'NPM'] },
@@ -627,6 +620,7 @@ async function main(): Promise<void> {
             thumbnailUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
             accessDurationDays: 45,
             level: CourseLevel.BEGINNER,
+            status: CourseStatus.PUBLISHED,
             teacherId: teachers[2].id,
             categoryId: categories[3].id, // UI/UX
             modules: {
@@ -713,6 +707,7 @@ async function main(): Promise<void> {
             price: 0,
             thumbnailUrl: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=800',
             level: CourseLevel.BEGINNER,
+            status: CourseStatus.PUBLISHED,
             teacherId: teachers[2].id,
             categoryId: categories[4].id, // DevOps
             modules: {
@@ -754,6 +749,7 @@ async function main(): Promise<void> {
             price: 2.49,
             thumbnailUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800',
             level: CourseLevel.INTERMEDIATE,
+            status: CourseStatus.PUBLISHED,
             teacherId: teachers[1].id,
             categoryId: categories[2].id, // Database
             modules: {
@@ -841,6 +837,7 @@ async function main(): Promise<void> {
             price: 3.99,
             thumbnailUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
             level: CourseLevel.ADVANCED,
+            status: CourseStatus.PUBLISHED,
             teacherId: teachers[0].id,
             categoryId: categories[5].id, // AI
             modules: {
@@ -1038,8 +1035,8 @@ async function main(): Promise<void> {
                 studentId: students[2].id,
                 courseId: course4.id,
                 type: EnrollmentType.PAID,
-                expiresAt: daysAgo(2),
-                isActive: false,
+                expiresAt: daysFromNow(30),
+                isActive: true,
             },
         }),
 
