@@ -37,8 +37,8 @@ export default function LearningPath() {
 
     const recommendMutation = useMutation({
         mutationFn: async () => {
-            const { data } = await apiClient.post<RecommendedCourse[]>('/recommend/path', { goal, currentLevel });
-            return data;
+            const { data } = await apiClient.post<{ courses: RecommendedCourse[] }>('/recommend/path', { goal, currentLevel });
+            return data.courses ?? [];
         },
     });
 
