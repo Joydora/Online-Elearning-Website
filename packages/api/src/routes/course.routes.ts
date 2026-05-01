@@ -10,6 +10,7 @@ import {
     getCategoriesController,
     getCourseDetailController,
     getCoursesController,
+    submitForReviewController,
     updateCourseController,
 } from '../controllers/course.controller';
 import { isAuthenticated, isAuthorized } from '../middleware/auth.middleware';
@@ -23,6 +24,9 @@ router.get('/courses/:id', getCourseDetailController);
 router.post('/courses', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), createCourseController);
 router.put('/courses/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), updateCourseController);
 router.delete('/courses/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), deleteCourseController);
+
+// EPIC 2: Submit course for admin review
+router.post('/courses/:id/submit', isAuthenticated, isAuthorized([Role.TEACHER]), submitForReviewController);
 
 router.post('/modules', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), createModuleController);
 router.delete('/modules/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), deleteModuleController);

@@ -15,6 +15,10 @@ import {
     getCourseAdminController,
     deleteCourseAdminController,
     getAdminStatsController,
+    getPendingCoursesController,
+    getAllCoursesAdminReviewController,
+    approveCourseController,
+    rejectCourseController,
 } from '../controllers/admin.controller';
 import {
     getRevenueLedgerController,
@@ -44,6 +48,13 @@ router.delete('/admin/users/:id', ...adminOnly, deleteUserController);
 // Course Management
 router.get('/admin/courses', ...adminOnly, getAllCoursesAdminController);
 router.post('/admin/courses', ...adminOnly, createCourseAdminController);
+
+// EPIC 2: Course Moderation (must be defined before /admin/courses/:id catch-all)
+router.get('/admin/courses/review', ...adminOnly, getPendingCoursesController);
+router.get('/admin/courses/all', ...adminOnly, getAllCoursesAdminReviewController);
+router.post('/admin/courses/:id/approve', ...adminOnly, approveCourseController);
+router.post('/admin/courses/:id/reject', ...adminOnly, rejectCourseController);
+
 router.get('/admin/courses/:id', ...adminOnly, getCourseAdminController);
 router.put('/admin/courses/:id', ...adminOnly, updateCourseAdminController);
 router.delete('/admin/courses/:id', ...adminOnly, deleteCourseAdminController);

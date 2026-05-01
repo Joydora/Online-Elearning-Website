@@ -29,10 +29,13 @@ export async function checkoutCourse(options: {
 }): Promise<string> {
     const course = await prisma.course.findUnique({
         where: { id: options.courseId },
-        select: { id: true, title: true, price: true, trialDurationDays: true, accessDurationDays: true },
+        select: { id: true, title: true, price: true, trialDurationDays: true, accessDurationDays: true, status: true },
     });
 
     if (!course) throw new Error('COURSE_NOT_FOUND');
+
+    // EPIC 2: only allow enrollment for PUBLISHED courses
+    if (course.status !== 'PUBLISHED') throw new Error('COURSE_NOT_PUBLISHED');
 
     const existingEnrollment = await prisma.enrollment.findUnique({
         where: { studentId_courseId: { studentId: options.studentId, courseId: options.courseId } },

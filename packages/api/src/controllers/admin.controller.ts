@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import bcrypt from 'bcrypt';
+import {
+    approveCourse,
+    getAllCoursesForAdmin,
+    getPendingCourses,
+    rejectCourse,
+} from '../services/courseReview.service';
 
 const prisma = new PrismaClient();
 
@@ -570,6 +576,91 @@ export async function deleteCourseAdminController(req: Request, res: Response): 
         return res.status(500).json({
             error: 'Unable to delete course',
             details: (error as Error).message,
+        });
+    }
+}
+
+// ==================== COURSE MODERATION (EPIC 2) ====================
+
+export async function getPendingCoursesController(_req: Request, res: Response): Promise<Response> {
+    try {
+        const courses = await getPendingCourses();
+        return res.status(200).json(courses);
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch pending courses',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function getAllCoursesAdminReviewController(_req: Request, res: Response): Promise<Response> {
+    try {
+        const courses = await getAllCoursesForAdmin();
+        return res.status(200).json(courses);
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch courses',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function approveCourseController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const courseId = Number.parseInt(req.params.id, 10);
+
+        if (Number.isNaN(courseId)) {
+            return res.status(400).json({ error: 'Invalid course ID' });
+        }
+
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const updated = await approveCourse(courseId, authReq.user.userId);
+        return res.status(200).json(updated);
+    } catch (error) {
+        const message = (error as Error).message;
+        if (message === 'NOT_FOUND') {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+        return res.status(500).json({
+            error: 'Unable to approve course',
+            details: message,
+        });
+    }
+}
+
+export async function rejectCourseController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const courseId = Number.parseInt(req.params.id, 10);
+        const { reason } = req.body ?? {};
+
+        if (Number.isNaN(courseId)) {
+            return res.status(400).json({ error: 'Invalid course ID' });
+        }
+
+        if (!reason || typeof reason !== 'string' || !reason.trim()) {
+            return res.status(400).json({ error: 'Rejection reason is required' });
+        }
+
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const updated = await rejectCourse(courseId, authReq.user.userId, reason.trim());
+        return res.status(200).json(updated);
+    } catch (error) {
+        const message = (error as Error).message;
+        if (message === 'NOT_FOUND') {
+            return res.status(404).json({ error: 'Course not found' });
+        }
+        return res.status(500).json({
+            error: 'Unable to reject course',
+            details: message,
         });
     }
 }

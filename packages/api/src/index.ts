@@ -23,6 +23,7 @@ import promotionRoutes from './routes/promotion.routes';
 import recommendRoutes from './routes/recommend.routes';
 import practiceRoutes from './routes/practice.routes';
 import projectRoutes from './routes/project.routes';
+import syllabusRoutes from './routes/syllabus.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { startEnrollmentExpiryJob } from './jobs/expireEnrollments';
 import './config/passport'; // Initialize passport strategies
@@ -68,6 +69,7 @@ app.use('/api', promotionRoutes);
 app.use('/api', recommendRoutes);
 app.use('/api', practiceRoutes);
 app.use('/api', projectRoutes);
+app.use('/api', syllabusRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');

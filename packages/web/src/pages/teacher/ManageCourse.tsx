@@ -15,7 +15,9 @@ import {
     Save,
     X,
     UserCheck,
-    Github
+    Github,
+    Send,
+    Sparkles
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -45,12 +47,32 @@ type Module = {
     contents: Content[];
 };
 
+type CourseStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
+
 type CourseDetail = {
     id: number;
     title: string;
     description: string;
     price: number;
+    status?: CourseStatus;
+    rejectionReason?: string | null;
     modules: Module[];
+};
+
+const STATUS_LABELS: Record<CourseStatus, string> = {
+    DRAFT: 'Bản nháp',
+    PENDING_REVIEW: 'Chờ duyệt',
+    APPROVED: 'Đã duyệt',
+    REJECTED: 'Bị từ chối',
+    PUBLISHED: 'Đã xuất bản',
+};
+
+const STATUS_COLORS: Record<CourseStatus, string> = {
+    DRAFT: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200',
+    PENDING_REVIEW: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+    APPROVED: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+    REJECTED: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+    PUBLISHED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
 };
 
 export default function ManageCourse() {
@@ -129,6 +151,42 @@ export default function ManageCourse() {
             showErrorAlert('Lỗi xóa nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
+
+    // Submit for review mutation
+    const submitForReviewMutation = useMutation({
+        mutationFn: async () => {
+            await apiClient.post(`/courses/${id}/submit`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
+            showSuccessAlert(
+                'Đã gửi duyệt!',
+                'Khoá học đã được gửi tới quản trị viên để duyệt.',
+            );
+        },
+        onError: (error: any) => {
+            showErrorAlert(
+                'Lỗi gửi duyệt',
+                error.response?.data?.error || 'Đã có lỗi xảy ra',
+            );
+        },
+    });
+
+    const handleSubmitForReview = async () => {
+        const result = await Swal.fire({
+            title: 'Gửi khoá học để duyệt?',
+            text: 'Sau khi gửi, bạn sẽ không thể chỉnh sửa cho đến khi có kết quả duyệt.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Gửi duyệt',
+            cancelButtonText: 'Huỷ',
+        });
+        if (result.isConfirmed) {
+            submitForReviewMutation.mutate();
+        }
+    };
 
     const toggleModule = (moduleId: number) => {
         setExpandedModules(prev => {
@@ -250,11 +308,45 @@ export default function ManageCourse() {
                             <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                                 Quản lý khóa học
                             </h1>
-                            <p className="text-zinc-600 dark:text-zinc-400">
-                                {course.title}
-                            </p>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <p className="text-zinc-600 dark:text-zinc-400">
+                                    {course.title}
+                                </p>
+                                {course.status && (
+                                    <span
+                                        className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLORS[course.status]}`}
+                                    >
+                                        {STATUS_LABELS[course.status]}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <div className="flex gap-2 flex-wrap">
+                            {!isAdmin &&
+                                (course.status === 'DRAFT' || course.status === 'REJECTED') && (
+                                    <Button
+                                        onClick={handleSubmitForReview}
+                                        disabled={submitForReviewMutation.isPending}
+                                        className="gap-2 bg-red-600 hover:bg-red-700 text-white"
+                                    >
+                                        {submitForReviewMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Send className="h-4 w-4" />
+                                        )}
+                                        Gửi duyệt
+                                    </Button>
+                                )}
+                            {!isAdmin && (
+                                <Button
+                                    onClick={() => navigate(`/courses/${id}/syllabus`)}
+                                    variant="outline"
+                                    className="gap-2"
+                                >
+                                    <Sparkles className="h-4 w-4" />
+                                    Cấu trúc AI
+                                </Button>
+                            )}
                             <Button
                                 onClick={() => navigate(studentsPath)}
                                 variant="outline"
@@ -283,6 +375,24 @@ export default function ManageCourse() {
                             </Button>
                         </div>
                     </div>
+
+                    {course.status === 'REJECTED' && course.rejectionReason && (
+                        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
+                            <p className="font-semibold mb-1">Khoá học bị từ chối</p>
+                            <p>
+                                <strong>Lý do:</strong> {course.rejectionReason}
+                            </p>
+                            <p className="mt-2 text-xs">
+                                Vui lòng chỉnh sửa khoá học theo phản hồi và nhấn "Gửi duyệt" lại.
+                            </p>
+                        </div>
+                    )}
+
+                    {course.status === 'PENDING_REVIEW' && (
+                        <div className="mt-4 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900/50 dark:bg-yellow-950/40 dark:text-yellow-300">
+                            Khoá học đang chờ quản trị viên duyệt. Bạn sẽ nhận được thông báo khi có kết quả.
+                        </div>
+                    )}
                 </div>
 
                 {/* Modules List */}

@@ -12,6 +12,7 @@ import {
     getCourseById,
     updateCourseForTeacher,
 } from '../services/course.service';
+import { submitForReview } from '../services/courseReview.service';
 import { AuthenticatedUser } from '../types/auth';
 
 export async function getCategoriesController(_req: Request, res: Response): Promise<Response> {
@@ -448,6 +449,48 @@ export async function deleteModuleController(req: Request, res: Response): Promi
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to delete module',
+            details: (error as Error).message,
+        });
+    }
+}
+
+// EPIC 2: Submit course for admin review
+export async function submitForReviewController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const courseId = Number.parseInt(req.params.id, 10);
+
+        if (Number.isNaN(courseId)) {
+            return res.status(400).json({ error: 'Course id must be a number' });
+        }
+
+        try {
+            const updated = await submitForReview(courseId, teacherId);
+            return res.status(200).json(updated);
+        } catch (error) {
+            const message = (error as Error).message;
+
+            if (message === 'FORBIDDEN') {
+                return res.status(403).json({ error: 'You are not the owner of this course' });
+            }
+
+            if (message === 'INVALID_STATUS') {
+                return res.status(400).json({
+                    error: 'Course can only be submitted from DRAFT or REJECTED status',
+                });
+            }
+
+            throw error;
+        }
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to submit course for review',
             details: (error as Error).message,
         });
     }

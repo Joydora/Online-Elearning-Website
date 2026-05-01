@@ -384,6 +384,101 @@ E-Learning Platform
     }
 }
 
+// EPIC 2: Course rejection notification
+export async function sendRejectionEmail(
+    to: string,
+    username: string,
+    courseTitle: string,
+    reason: string,
+): Promise<boolean> {
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khoá học bị từ chối</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">E-Learning</h1>
+                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">Khoá học bị từ chối</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Khoá học chưa được duyệt</h2>
+                            <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Xin chào <strong>${username}</strong>,
+                            </p>
+                            <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Rất tiếc, khoá học <strong>"${courseTitle}"</strong> của bạn chưa đáp ứng yêu cầu phê duyệt và đã bị từ chối.
+                            </p>
+                            <div style="margin: 25px 0; padding: 20px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
+                                <h3 style="margin: 0 0 10px; color: #991b1b; font-size: 16px;">Lý do từ chối:</h3>
+                                <p style="margin: 0; color: #7f1d1d; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${reason}</p>
+                            </div>
+                            <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                                Vui lòng chỉnh sửa khoá học theo phản hồi và gửi lại để được duyệt. Đội ngũ kiểm duyệt sẵn sàng hỗ trợ bạn.
+                            </p>
+                            <table role="presentation" style="width: 100%;">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a href="${FRONTEND_URL}/dashboard" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 8px;">
+                                            Mở dashboard giảng viên
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0; color: #6b7280; font-size: 12px; text-align: center;">
+                                © 2026 E-Learning Platform. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+
+    const textContent = `Khoá học "${courseTitle}" bị từ chối
+
+Xin chào ${username},
+
+Khoá học của bạn chưa được phê duyệt.
+
+Lý do: ${reason}
+
+Vui lòng chỉnh sửa và gửi lại.
+
+E-Learning Platform`;
+
+    try {
+        await transporter.sendMail({
+            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+            to,
+            subject: `[E-Learning] Khoá học "${courseTitle}" bị từ chối`,
+            text: textContent,
+            html: htmlContent,
+        });
+        console.log(`✅ Rejection email sent to ${to}`);
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to send rejection email:', (error as Error).message);
+        return false;
+    }
+}
+
 // EPIC 2: Enrollment expiry reminder
 export async function sendEnrollmentExpiryReminder(
     to: string,

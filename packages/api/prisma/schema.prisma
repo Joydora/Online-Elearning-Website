@@ -42,6 +42,14 @@ enum CourseLevel {
   ADVANCED
 }
 
+enum CourseStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -67,6 +75,7 @@ model User {
   practiceSubmissions PracticeSubmission[]
   projectSubmissions  ProjectSubmission[]
   revenueLedgers     RevenueLedger[]    @relation("TeacherLedger")
+  reviewedCourses    Course[]           @relation("CourseReviewer")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -109,6 +118,13 @@ model Course {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // EPIC 2: Content moderation / approval flow
+  status          CourseStatus @default(DRAFT)
+  rejectionReason String?
+  submittedAt     DateTime?
+  reviewedById    Int?
+  reviewedBy      User?        @relation("CourseReviewer", fields: [reviewedById], references: [id])
 }
 
 model Module {

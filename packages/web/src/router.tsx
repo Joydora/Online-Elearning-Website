@@ -45,6 +45,8 @@ import LearningPath from './pages/LearningPath';
 import Progress from './pages/learning/Progress';
 import Projects from './pages/learning/Projects';
 import ManageProjects from './pages/teacher/ManageProjects';
+import SyllabusImport from './pages/teacher/SyllabusImport';
+import ReviewCourses from './pages/admin/ReviewCourses';
 
 function MainLayout() {
     return (
@@ -241,6 +243,10 @@ export const router = createBrowserRouter([
                         path: '/courses/:id/projects',
                         element: <ManageProjects />,
                     },
+                    {
+                        path: '/courses/:courseId/syllabus',
+                        element: <SyllabusImport />,
+                    },
                 ],
             },
             {
@@ -285,6 +291,10 @@ export const router = createBrowserRouter([
                         {
                             path: '/admin/revenue',
                             element: <AdminRevenue />,
+                        },
+                        {
+                            path: '/admin/courses/review',
+                            element: <ReviewCourses />,
                         },
                 ],
             },

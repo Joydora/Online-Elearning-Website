@@ -36,6 +36,7 @@ export async function checkoutCourseController(req: Request, res: Response): Pro
         } catch (error) {
             const message = (error as Error).message;
             if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
+            if (message === 'COURSE_NOT_PUBLISHED') return res.status(400).json({ error: 'Course is not published' });
             if (message === 'ALREADY_ENROLLED') return res.status(409).json({ error: 'Already enrolled' });
             throw error;
         }
@@ -65,6 +66,7 @@ export async function trialEnrollController(req: Request, res: Response): Promis
         } catch (error) {
             const message = (error as Error).message;
             if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
+            if (message === 'COURSE_NOT_PUBLISHED') return res.status(400).json({ error: 'Course is not published' });
             if (message === 'ALREADY_ENROLLED') return res.status(409).json({ error: 'Already enrolled' });
             if (message === 'TRIAL_NOT_AVAILABLE') return res.status(400).json({ error: 'Trial not available for this course' });
             throw error;
