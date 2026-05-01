@@ -10,6 +10,11 @@ const courseSummarySelect = {
     syllabus: true,
     price: true,
     thumbnailUrl: true,
+    status: true,
+    rejectionReason: true,
+    trialDurationDays: true,
+    accessDurationDays: true,
+    level: true,
     createdAt: true,
     updatedAt: true,
     category: {
