@@ -14,7 +14,8 @@ import {
     Loader2,
     Save,
     X,
-    UserCheck
+    UserCheck,
+    Github
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -253,7 +254,7 @@ export default function ManageCourse() {
                                 {course.title}
                             </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                             <Button
                                 onClick={() => navigate(studentsPath)}
                                 variant="outline"
@@ -262,6 +263,16 @@ export default function ManageCourse() {
                                 <UserCheck className="h-4 w-4" />
                                 Xem học viên
                             </Button>
+                            {!isAdmin && (
+                                <Button
+                                    onClick={() => navigate(`/courses/${id}/projects`)}
+                                    variant="outline"
+                                    className="gap-2"
+                                >
+                                    <Github className="h-4 w-4" />
+                                    Dự án
+                                </Button>
+                            )}
                             <Button
                                 onClick={() => navigate(editPath)}
                                 variant="outline"

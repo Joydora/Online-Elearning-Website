@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -185,6 +185,13 @@ export default function AdminDashboard() {
                         <Button className="w-full h-20 bg-red-600 hover:bg-red-700 text-white">
                             <Tag className="mr-2 h-5 w-5" />
                             Mã khuyến mãi
+                        </Button>
+                    </Link>
+
+                    <Link to="/admin/revenue">
+                        <Button className="w-full h-20 bg-green-600 hover:bg-green-700 text-white">
+                            <DollarSign className="mr-2 h-5 w-5" />
+                            Doanh thu
                         </Button>
                     </Link>
                 </div>

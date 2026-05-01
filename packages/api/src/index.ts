@@ -20,7 +20,11 @@ import reviewRoutes from './routes/review.routes';
 import userRoutes from './routes/user.routes';
 import passwordRoutes from './routes/password.routes';
 import promotionRoutes from './routes/promotion.routes';
+import recommendRoutes from './routes/recommend.routes';
+import practiceRoutes from './routes/practice.routes';
+import projectRoutes from './routes/project.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
+import { startEnrollmentExpiryJob } from './jobs/expireEnrollments';
 import './config/passport'; // Initialize passport strategies
 
 dotenv.config();
@@ -61,6 +65,9 @@ app.use('/api', reviewRoutes);
 app.use('/api', userRoutes);
 app.use('/api', passwordRoutes);
 app.use('/api', promotionRoutes);
+app.use('/api', recommendRoutes);
+app.use('/api', practiceRoutes);
+app.use('/api', projectRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');
@@ -81,7 +88,9 @@ app.get('/api/health', async (_req: Request, res: Response) => {
 
 const server = app.listen(port, async () => {
     console.log(`[server]: Server is running at http://localhost:${port}`);
-    
+
+    startEnrollmentExpiryJob();
+
     // Initialize chatbot in background
     try {
         console.log('🤖 Initializing AI Chatbot...');

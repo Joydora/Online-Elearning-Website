@@ -17,11 +17,29 @@ enum ContentType {
   VIDEO
   DOCUMENT
   QUIZ
+  PRACTICE
 }
 
 enum VideoQuizBlockingMode {
   PAUSE        @map("pause")
   NON_BLOCKING @map("non-blocking")
+}
+
+enum EnrollmentType {
+  TRIAL
+  PAID
+  FREE
+}
+
+enum PayoutStatus {
+  HELD
+  PAID
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 }
 
 model User {
@@ -33,21 +51,22 @@ model User {
   lastName       String?
   role           Role    @default(STUDENT)
 
-  // Email verification
   isVerified              Boolean   @default(false)
   verificationToken       String?   @unique
   verificationTokenExpiry DateTime?
 
-  // Password reset
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
 
-  coursesAsTeacher Course[]      @relation("TeacherCourses")
-  enrollments      Enrollment[]
-  quizAttempts     QuizAttempt[]
-  payments         Payment[]
-  reviews          Review[]
-  comments         Comment[]
+  coursesAsTeacher   Course[]           @relation("TeacherCourses")
+  enrollments        Enrollment[]
+  quizAttempts       QuizAttempt[]
+  payments           Payment[]
+  reviews            Review[]
+  comments           Comment[]
+  practiceSubmissions PracticeSubmission[]
+  projectSubmissions  ProjectSubmission[]
+  revenueLedgers     RevenueLedger[]    @relation("TeacherLedger")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -60,12 +79,18 @@ model Category {
 }
 
 model Course {
-  id           Int     @id @default(autoincrement())
-  title        String
-  description  String
-  syllabus     Json    @default("{}")
-  price        Float
-  thumbnailUrl String?
+  id                Int          @id @default(autoincrement())
+  title             String
+  description       String
+  syllabus          Json         @default("{}")
+  price             Float
+  thumbnailUrl      String?
+  // EPIC 1: trial support
+  trialDurationDays Int?
+  // EPIC 2: time-limit access
+  accessDurationDays Int?
+  // EPIC 5: learning path
+  level             CourseLevel?
 
   teacherId Int
   teacher   User @relation("TeacherCourses", fields: [teacherId], references: [id])
@@ -73,8 +98,14 @@ model Course {
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
 
-  modules     Module[]
-  enrollments Enrollment[]
+  // EPIC 5: self-relation prerequisites
+  prerequisites   Course[] @relation("CoursePrerequisites")
+  prerequisiteOf  Course[] @relation("CoursePrerequisites")
+
+  modules        Module[]
+  enrollments    Enrollment[]
+  revenueLedgers RevenueLedger[]
+  projects       Project[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -101,6 +132,8 @@ model Content {
   documentUrl        String?
   fileType           String?
   timeLimitInMinutes Int?
+  // EPIC 1: free preview for guests
+  isFreePreview      Boolean     @default(false)
 
   moduleId Int
   module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -110,6 +143,7 @@ model Content {
   comments          Comment[]
   contentProgresses ContentProgress[]
   videoQuizMarkers  VideoQuizMarker[]
+  practice          Practice?
 }
 
 model Question {
@@ -119,7 +153,7 @@ model Question {
   contentId Int
   content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  options AnswerOption[]
+  options          AnswerOption[]
   videoQuizMarkers VideoQuizMarker[]
 }
 
@@ -133,10 +167,15 @@ model AnswerOption {
 }
 
 model Enrollment {
-  id             Int       @id @default(autoincrement())
-  enrollmentDate DateTime  @default(now())
-  progress       Float     @default(0)
+  id             Int            @id @default(autoincrement())
+  enrollmentDate DateTime       @default(now())
+  progress       Float          @default(0)
   completionDate DateTime?
+  // EPIC 1: trial vs paid
+  type           EnrollmentType @default(PAID)
+  // EPIC 2: expiry
+  expiresAt      DateTime?
+  isActive       Boolean        @default(true)
 
   studentId Int
   student   User @relation(fields: [studentId], references: [id])
@@ -147,13 +186,18 @@ model Enrollment {
   payment           Payment?          @relation("EnrollmentPayment")
   review            Review?           @relation("EnrollmentReview")
   contentProgresses ContentProgress[]
+  revenueLedger     RevenueLedger?
 
   @@unique([studentId, courseId])
+  @@index([isActive, expiresAt])
+  @@index([studentId, isActive])
 }
 
 model ContentProgress {
   id          Int      @id @default(autoincrement())
   completedAt DateTime @default(now())
+  // EPIC 7: for video, track watch percentage
+  watchedSeconds Int?
 
   enrollmentId Int
   enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
@@ -207,6 +251,40 @@ model VideoQuizMarker {
   @@index([questionId])
 }
 
+// EPIC 3: Practice alongside theory
+model Practice {
+  id             Int     @id @default(autoincrement())
+  prompt         String
+  starterCode    String?
+  expectedOutput String?
+  rubric         String?
+  language       String  @default("javascript")
+
+  contentId Int     @unique
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  submissions PracticeSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PracticeSubmission {
+  id            Int      @id @default(autoincrement())
+  submittedCode String
+  aiFeedback    String?
+  score         Float?
+  passed        Boolean  @default(false)
+  submittedAt   DateTime @default(now())
+
+  studentId  Int
+  student    User     @relation(fields: [studentId], references: [id])
+  practiceId Int
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, practiceId])
+}
+
 model Payment {
   id              Int    @id @default(autoincrement())
   amount          Float
@@ -219,7 +297,37 @@ model Payment {
   studentId Int
   student   User @relation(fields: [studentId], references: [id])
 
+  revenueLedger RevenueLedger?
+
   createdAt DateTime @default(now())
+}
+
+// EPIC 4: Revenue Ledger
+model RevenueLedger {
+  id           Int          @id @default(autoincrement())
+  grossAmount  Float
+  platformFee  Float
+  teacherShare Float
+  payoutStatus PayoutStatus @default(HELD)
+  paidAt       DateTime?
+
+  paymentId Int     @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  enrollmentId Int        @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id])
+
+  teacherId Int
+  teacher   User  @relation("TeacherLedger", fields: [teacherId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([teacherId, payoutStatus])
+  @@index([courseId])
+  @@index([createdAt])
 }
 
 model Comment {
@@ -240,19 +348,56 @@ model Comment {
 }
 
 model Promotion {
-  id          Int       @id @default(autoincrement())
-  code        String    @unique
-  description String?
-  discountType String  // 'PERCENTAGE' or 'FIXED'
-  discountValue Float   // Percentage (0-100) or fixed amount
-  minPurchaseAmount Float? // Minimum purchase to apply
-  maxDiscountAmount Float? // Maximum discount (for percentage)
-  usageLimit  Int?      // Total usage limit (null = unlimited)
-  usedCount   Int       @default(0)
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean   @default(true)
+  id                Int       @id @default(autoincrement())
+  code              String    @unique
+  description       String?
+  discountType      String
+  discountValue     Float
+  minPurchaseAmount Float?
+  maxDiscountAmount Float?
+  usageLimit        Int?
+  usedCount         Int       @default(0)
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean   @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// EPIC 6: Project-based Learning
+model Project {
+  id           Int       @id @default(autoincrement())
+  title        String
+  description  String
+  requirements String
+  deadline     DateTime?
+
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  submissions ProjectSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectSubmission {
+  id            Int    @id @default(autoincrement())
+  repoUrl       String
+  commitHistory Json   @default("[]")
+  feedback      String?
+  grade         Float?
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projectId Int
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   User @relation(fields: [studentId], references: [id])
+
+  @@unique([projectId, studentId])
+  @@index([projectId])
+  @@index([studentId])
 }

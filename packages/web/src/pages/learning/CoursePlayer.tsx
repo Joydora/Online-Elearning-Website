@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import type { SyntheticEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -12,7 +12,7 @@ type ContentRaw = {
     id: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
@@ -34,6 +34,9 @@ type CourseDataRaw = {
         enrollmentId: number;
         progress: number;
         completionDate: string | null;
+        expiresAt: string | null;
+        isActive: boolean;
+        type: 'TRIAL' | 'PAID' | 'FREE';
     };
 };
 
@@ -42,7 +45,7 @@ type Content = {
     contentId: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
@@ -66,6 +69,23 @@ type Enrollment = {
     enrollmentId: number;
     progress: number;
     completionDate: string | null;
+    expiresAt: string | null;
+    isActive: boolean;
+    type: 'TRIAL' | 'PAID' | 'FREE';
+};
+
+type PracticeData = {
+    id: number;
+    title: string;
+    description: string;
+    starterCode?: string | null;
+    language: string;
+};
+
+type PracticeResult = {
+    score: number;
+    passed: boolean;
+    aiFeedback: string;
 };
 
 // Helper to get download URL with Cloudinary attachment flag
@@ -162,6 +182,13 @@ export default function CoursePlayer() {
     const [taLoading, setTaLoading] = useState(false);
     const [taQuizLoading, setTaQuizLoading] = useState(false);
 
+    // Practice states
+    const [practiceData, setPracticeData] = useState<PracticeData | null>(null);
+    const [practiceCode, setPracticeCode] = useState('');
+    const [practiceResult, setPracticeResult] = useState<PracticeResult | null>(null);
+    const [practiceLoading, setPracticeLoading] = useState(false);
+    const [practiceSubmitting, setPracticeSubmitting] = useState(false);
+
     // Fetch course data with content (enrolled students only)
     const {
         data: courseData,
@@ -201,6 +228,10 @@ export default function CoursePlayer() {
 
     const course = courseData?.course;
     const enrollment = courseData?.enrollment;
+
+    // Derived from state — declared here so useEffect dependency arrays don't hit the TDZ
+    const currentModule = course?.modules.find(m => m.moduleId === currentModuleId);
+    const currentContent = currentModule?.contents.find(c => c.contentId === currentContentId);
 
     // Fetch completed contents
     const { data: completedData } = useQuery<{ completedContentIds: number[] }>({
@@ -263,23 +294,54 @@ export default function CoursePlayer() {
         }
     }, [course, currentModuleId, currentContentId]);
 
-    // Reset quiz state when content changes
+    // Reset quiz + practice state when content changes
     useEffect(() => {
         setIsQuizStarted(false);
         setQuizData(null);
         setSelectedAnswers({});
         setQuizResult(null);
-        setDocumentReadTime(0); // Reset document timer
-        setQuizAttempts([]); // Reset quiz attempts
+        setDocumentReadTime(0);
+        setQuizAttempts([]);
         setActiveMarker(null);
         setAnsweredMarkerIds([]);
         setMarkerSelectedAnswer(null);
         setMarkerResult(null);
+        setPracticeData(null);
+        setPracticeCode('');
+        setPracticeResult(null);
     }, [currentContentId]);
 
-    // Get current content info
-    const currentModule = course?.modules.find(m => m.moduleId === currentModuleId);
-    const currentContent = currentModule?.contents.find(c => c.contentId === currentContentId);
+    // Load practice data when PRACTICE content is selected
+    useEffect(() => {
+        if (!currentContent || currentContent.contentType !== 'PRACTICE' || !currentContentId) return;
+        let cancelled = false;
+        setPracticeLoading(true);
+        apiClient.get<PracticeData>(`/practice/content/${currentContentId}`)
+            .then(({ data }) => {
+                if (cancelled) return;
+                setPracticeData(data);
+                setPracticeCode(data.starterCode || '');
+            })
+            .catch(() => { if (!cancelled) showErrorAlert('Không thể tải bài thực hành.'); })
+            .finally(() => { if (!cancelled) setPracticeLoading(false); });
+        return () => { cancelled = true; };
+    }, [currentContent, currentContentId]);
+
+    const submitPractice = async () => {
+        if (!practiceData || !practiceCode.trim()) return;
+        setPracticeSubmitting(true);
+        try {
+            const { data } = await apiClient.post<PracticeResult>(`/practice/${practiceData.id}/submit`, { code: practiceCode });
+            setPracticeResult(data);
+            if (data.passed && currentContentId && !completedContentIds.includes(currentContentId)) {
+                markCompleteMutation.mutate(currentContentId);
+            }
+        } catch {
+            showErrorAlert('Không thể nộp bài thực hành. Vui lòng thử lại.');
+        } finally {
+            setPracticeSubmitting(false);
+        }
+    };
 
     const { data: videoMarkers = [] } = useQuery<VideoQuizMarker[]>({
         queryKey: ['content-markers', currentContentId],
@@ -581,6 +643,8 @@ export default function CoursePlayer() {
                 return <FileText className="h-4 w-4" />;
             case 'QUIZ':
                 return <HelpCircle className="h-4 w-4" />;
+            case 'PRACTICE':
+                return <PenLine className="h-4 w-4" />;
         }
     };
 
@@ -613,10 +677,31 @@ export default function CoursePlayer() {
         );
     }
 
+    // Compute expiry info for banner
+    const expiryBanner = (() => {
+        if (!enrollment?.expiresAt) return null;
+        const msLeft = new Date(enrollment.expiresAt).getTime() - Date.now();
+        const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+        if (!enrollment.isActive) return { text: 'Quyền truy cập của bạn đã hết hạn.', color: 'bg-red-700', daysLeft: 0 };
+        if (daysLeft <= 7) return { text: `Còn ${daysLeft} ngày truy cập khóa học.`, color: daysLeft <= 2 ? 'bg-red-600' : 'bg-yellow-600', daysLeft };
+        return null;
+    })();
+
     return (
         <div className="flex h-screen bg-zinc-900">
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col">
+                {/* Expiry Banner (EPIC 2) */}
+                {expiryBanner && (
+                    <div className={`${expiryBanner.color} text-white text-center text-sm py-2 px-4 flex items-center justify-center gap-2`}>
+                        <span>{expiryBanner.text}</span>
+                        {expiryBanner.daysLeft > 0 && (
+                            <a href={`/courses/${courseId}`} className="underline font-semibold hover:opacity-80">
+                                Gia hạn ngay
+                            </a>
+                        )}
+                    </div>
+                )}
                 {/* Top Bar */}
                 <div className="bg-zinc-800 border-b border-zinc-700 px-6 py-4">
                     <div className="flex items-center justify-between">
@@ -638,11 +723,23 @@ export default function CoursePlayer() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                            <Link to={`/learning/${courseId}/progress`}>
+                                <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
+                                    <BarChart2 className="h-4 w-4" />
+                                    Tiến độ
+                                </Button>
+                            </Link>
+                            <Link to={`/learning/${courseId}/projects`}>
+                                <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
+                                    <Github className="h-4 w-4" />
+                                    Dự án
+                                </Button>
+                            </Link>
                             <span className="text-sm text-zinc-400">
-                                Tiến độ: {currentProgress}%
+                                {currentProgress}%
                             </span>
-                            <div className="w-32 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                            <div className="w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-red-500 transition-all"
                                     style={{ width: `${currentProgress}%` }}
@@ -942,7 +1039,7 @@ export default function CoursePlayer() {
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-zinc-600 dark:text-zinc-400">Điểm cao nhất:</span>
                                                             <span className="font-bold text-green-500">
-                                                                {Math.max(...quizAttempts.map(a => a.score))}%
+                                                                {quizAttempts.length > 0 ? Math.max(...quizAttempts.map(a => a.score)) : 0}%
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between text-sm mt-1">
@@ -1075,6 +1172,71 @@ export default function CoursePlayer() {
                                                 </Button>
                                             </div>
                                         </Card>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* EPIC 3: Practice Panel */}
+                            {currentContent.contentType === 'PRACTICE' && (
+                                <div className="w-full h-full flex flex-col bg-zinc-900 p-6 overflow-y-auto">
+                                    {practiceLoading ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+                                        </div>
+                                    ) : practiceData ? (
+                                        <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full">
+                                            <h2 className="text-xl font-bold text-white">{practiceData.title}</h2>
+                                            <p className="text-zinc-400 text-sm whitespace-pre-wrap">{practiceData.description}</p>
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-zinc-300 text-sm font-medium">
+                                                    Code ({practiceData.language})
+                                                </label>
+                                                <textarea
+                                                    className="w-full h-64 bg-zinc-800 text-zinc-100 font-mono text-sm rounded-lg border border-zinc-700 p-4 resize-y focus:outline-none focus:border-red-500"
+                                                    value={practiceCode}
+                                                    onChange={(e) => setPracticeCode(e.target.value)}
+                                                    placeholder="Viết code của bạn tại đây..."
+                                                    spellCheck={false}
+                                                />
+                                            </div>
+                                            {practiceResult && (
+                                                <div className={`p-4 rounded-lg border ${practiceResult.passed ? 'border-green-600 bg-green-900/20' : 'border-yellow-600 bg-yellow-900/20'}`}>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        {practiceResult.passed ? (
+                                                            <CheckCircle className="w-5 h-5 text-green-400" />
+                                                        ) : (
+                                                            <Circle className="w-5 h-5 text-yellow-400" />
+                                                        )}
+                                                        <span className={`font-bold ${practiceResult.passed ? 'text-green-400' : 'text-yellow-400'}`}>
+                                                            {practiceResult.passed ? 'Đạt' : 'Chưa đạt'} — {practiceResult.score}/100 điểm
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-zinc-300 text-sm whitespace-pre-wrap">{practiceResult.aiFeedback}</p>
+                                                </div>
+                                            )}
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    onClick={submitPractice}
+                                                    disabled={practiceSubmitting || !practiceCode.trim()}
+                                                    className="bg-red-600 hover:bg-red-700"
+                                                >
+                                                    {practiceSubmitting ? (
+                                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang chấm bài...</>
+                                                    ) : (
+                                                        <><Send className="w-4 h-4 mr-2" />Nộp bài</>
+                                                    )}
+                                                </Button>
+                                                {practiceResult && (
+                                                    <Button variant="outline" onClick={() => setPracticeResult(null)}>
+                                                        Làm lại
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full text-zinc-500">
+                                            Không tìm thấy bài thực hành
+                                        </div>
                                     )}
                                 </div>
                             )}

@@ -5,6 +5,8 @@ import {
     markContentCompletedController,
     unmarkContentCompletedController,
     getCompletedContentsController,
+    getDetailedProgressController,
+    getProgressSummaryController,
 } from '../controllers/progress.controller';
 
 const router = Router();
@@ -31,6 +33,22 @@ router.get(
     isAuthenticated,
     isAuthorized([Role.STUDENT]),
     getCompletedContentsController
+);
+
+// EPIC 7: detailed progress breakdown
+router.get(
+    '/progress/course/:courseId/detail',
+    isAuthenticated,
+    isAuthorized([Role.STUDENT]),
+    getDetailedProgressController
+);
+
+// EPIC 7: AI-generated progress summary
+router.get(
+    '/progress/course/:courseId/summary',
+    isAuthenticated,
+    isAuthorized([Role.STUDENT]),
+    getProgressSummaryController
 );
 
 export default router;

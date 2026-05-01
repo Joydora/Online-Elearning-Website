@@ -384,3 +384,43 @@ E-Learning Platform
     }
 }
 
+// EPIC 2: Enrollment expiry reminder
+export async function sendEnrollmentExpiryReminder(
+    to: string,
+    name: string,
+    courseTitle: string,
+    daysLeft: number,
+): Promise<boolean> {
+    try {
+        const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:'Segoe UI',sans-serif;background:#f4f4f4;margin:0;padding:0;">
+  <table style="max-width:600px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;">
+    <tr><td style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:32px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:24px;">E-Learning Platform</h1>
+    </td></tr>
+    <tr><td style="padding:32px;">
+      <h2 style="color:#111827;">Khoá học sắp hết hạn!</h2>
+      <p>Xin chào <strong>${name}</strong>,</p>
+      <p>Quyền truy cập khoá học <strong>"${courseTitle}"</strong> của bạn sẽ hết hạn sau <strong>${daysLeft} ngày</strong>.</p>
+      <p>Hãy đăng nhập và học ngay để không bỏ lỡ nội dung!</p>
+      <a href="${FRONTEND_URL}/my-courses" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Học ngay</a>
+      <p style="color:#6b7280;font-size:13px;">Nếu bạn muốn gia hạn, hãy liên hệ với chúng tôi.</p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+        await transporter.sendMail({
+            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+            to,
+            subject: `[E-Learning] Khoá học "${courseTitle}" hết hạn sau ${daysLeft} ngày`,
+            html,
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+

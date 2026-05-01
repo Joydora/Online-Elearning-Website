@@ -41,6 +41,7 @@ export function Header() {
     const navLinks = [
         { path: '/', label: 'Trang chủ' },
         { path: '/courses', label: 'Khóa học' },
+        { path: '/learning-path', label: 'Lộ trình AI' },
         { path: '/about', label: 'Về chúng tôi' },
         { path: '/contact', label: 'Liên hệ' },
     ];

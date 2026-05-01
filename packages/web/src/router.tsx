@@ -40,6 +40,11 @@ import ManageCourses from './pages/admin/ManageCourses';
 import AdminCreateCourse from './pages/admin/CreateCourse';
 import AdminEditCourse from './pages/admin/EditCourse';
 import ManagePromotions from './pages/admin/ManagePromotions';
+import AdminRevenue from './pages/admin/Revenue';
+import LearningPath from './pages/LearningPath';
+import Progress from './pages/learning/Progress';
+import Projects from './pages/learning/Projects';
+import ManageProjects from './pages/teacher/ManageProjects';
 
 function MainLayout() {
     return (
@@ -160,6 +165,10 @@ export const router = createBrowserRouter([
                 element: <PaymentCancel />,
             },
             {
+                path: '/learning-path',
+                element: <LearningPath />,
+            },
+            {
                 path: '/auth/google/callback',
                 element: <GoogleCallback />,
             },
@@ -178,6 +187,14 @@ export const router = createBrowserRouter([
                     {
                         path: '/learning/:courseId',
                         element: <CoursePlayer />,
+                    },
+                    {
+                        path: '/learning/:courseId/progress',
+                        element: <Progress />,
+                    },
+                    {
+                        path: '/learning/:courseId/projects',
+                        element: <Projects />,
                     },
                     {
                         path: '/my-courses',
@@ -220,6 +237,10 @@ export const router = createBrowserRouter([
                         path: '/courses/:id/students/:studentId/performance',
                         element: <StudentPerformance />,
                     },
+                    {
+                        path: '/courses/:id/projects',
+                        element: <ManageProjects />,
+                    },
                 ],
             },
             {
@@ -260,6 +281,10 @@ export const router = createBrowserRouter([
                         {
                             path: '/admin/promotions',
                             element: <ManagePromotions />,
+                        },
+                        {
+                            path: '/admin/revenue',
+                            element: <AdminRevenue />,
                         },
                 ],
             },

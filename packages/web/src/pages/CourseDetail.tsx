@@ -36,6 +36,7 @@ type CourseDetailType = {
     description: string;
     price: number;
     thumbnailUrl?: string;
+    trialDurationDays?: number | null;
     teacher: {
         id?: number;
         userId?: number;
@@ -137,6 +138,21 @@ export default function CourseDetail() {
         setAppliedPromotion(null);
         setPromotionCode('');
     };
+
+    const trialMutation = useMutation({
+        mutationFn: async (courseId: number) => {
+            const { data } = await apiClient.post(`/enroll/trial/${courseId}`);
+            return data;
+        },
+        onSuccess: async () => {
+            await showSuccessAlert('Đăng ký thử thành công!', course?.trialDurationDays != null ? `Bạn có ${course.trialDurationDays} ngày học thử miễn phí.` : 'Chúc bạn học tốt!');
+            navigate(`/learning/${course?.courseId || course?.id}`);
+        },
+        onError: (error: any) => {
+            const msg = error.response?.data?.error || 'Không thể đăng ký học thử.';
+            showErrorAlert('Lỗi', msg);
+        },
+    });
 
     const enrollMutation = useMutation({
         mutationFn: async (courseId: number) => {
@@ -397,7 +413,7 @@ export default function CourseDetail() {
                                 </Card>
 
                                 {/* Enroll Button */}
-                                <div className="mt-6">
+                                <div className="mt-6 space-y-3">
                                     {isEnrolled ? (
                                         <Button
                                             size="lg"
@@ -408,21 +424,42 @@ export default function CourseDetail() {
                                             Bắt đầu học
                                         </Button>
                                     ) : (
-                                        <Button
-                                            size="lg"
-                                            onClick={handleEnroll}
-                                            disabled={enrollMutation.isPending}
-                                            className="w-full bg-white text-blue-600 hover:bg-blue-50 text-lg h-14"
-                                        >
-                                            {enrollMutation.isPending ? (
-                                                <>Đang xử lý...</>
-                                            ) : (
-                                                <>
-                                                    <ShoppingCart className="mr-2 h-5 w-5" />
-                                                    {course.price === 0 ? 'Đăng ký ngay' : 'Mua khóa học'}
-                                                </>
+                                        <>
+                                            <Button
+                                                size="lg"
+                                                onClick={handleEnroll}
+                                                disabled={enrollMutation.isPending}
+                                                className="w-full bg-white text-blue-600 hover:bg-blue-50 text-lg h-14"
+                                            >
+                                                {enrollMutation.isPending ? (
+                                                    <>Đang xử lý...</>
+                                                ) : (
+                                                    <>
+                                                        <ShoppingCart className="mr-2 h-5 w-5" />
+                                                        {course.price === 0 ? 'Đăng ký ngay' : 'Mua khóa học'}
+                                                    </>
+                                                )}
+                                            </Button>
+                                            {course.trialDurationDays && (
+                                                <Button
+                                                    size="lg"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        if (!isAuthenticated) {
+                                                            navigate('/login');
+                                                            return;
+                                                        }
+                                                        const courseId = course.courseId || course.id;
+                                                        if (courseId) trialMutation.mutate(courseId);
+                                                    }}
+                                                    disabled={trialMutation.isPending}
+                                                    className="w-full border-white text-white hover:bg-white/10 text-base h-12"
+                                                >
+                                                    <Play className="mr-2 h-4 w-4" />
+                                                    {trialMutation.isPending ? 'Đang xử lý...' : `Học thử ${course.trialDurationDays} ngày miễn phí`}
+                                                </Button>
                                             )}
-                                        </Button>
+                                        </>
                                     )}
                                 </div>
                             </div>

@@ -16,6 +16,11 @@ import {
     deleteCourseAdminController,
     getAdminStatsController,
 } from '../controllers/admin.controller';
+import {
+    getRevenueLedgerController,
+    markPayoutController,
+    exportRevenueCSVController,
+} from '../controllers/revenue.controller';
 
 const router = Router();
 
@@ -42,6 +47,11 @@ router.post('/admin/courses', ...adminOnly, createCourseAdminController);
 router.get('/admin/courses/:id', ...adminOnly, getCourseAdminController);
 router.put('/admin/courses/:id', ...adminOnly, updateCourseAdminController);
 router.delete('/admin/courses/:id', ...adminOnly, deleteCourseAdminController);
+
+// Revenue Ledger (EPIC 4)
+router.get('/admin/revenue', ...adminOnly, getRevenueLedgerController);
+router.post('/admin/revenue/payout', ...adminOnly, markPayoutController);
+router.get('/admin/revenue/export', ...adminOnly, exportRevenueCSVController);
 
 export default router;
 

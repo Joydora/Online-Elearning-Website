@@ -10,64 +10,59 @@ const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     console.warn('⚠️  Google OAuth credentials not configured. Google login will not work.');
-}
+} else {
+    passport.use(
+        new GoogleStrategy(
+            {
+                clientID: GOOGLE_CLIENT_ID,
+                clientSecret: GOOGLE_CLIENT_SECRET,
+                callbackURL: GOOGLE_CALLBACK_URL,
+                scope: ['profile', 'email'],
+            },
+            async (accessToken, refreshToken, profile, done) => {
+                try {
+                    const email = profile.emails?.[0]?.value;
 
-passport.use(
-    new GoogleStrategy(
-        {
-            clientID: GOOGLE_CLIENT_ID,
-            clientSecret: GOOGLE_CLIENT_SECRET,
-            callbackURL: GOOGLE_CALLBACK_URL,
-            scope: ['profile', 'email'],
-        },
-        async (accessToken, refreshToken, profile, done) => {
-            try {
-                const email = profile.emails?.[0]?.value;
-                
-                if (!email) {
-                    return done(new Error('No email found in Google profile'), undefined);
-                }
-
-                // Check if user exists
-                let user = await prisma.user.findUnique({
-                    where: { email },
-                });
-
-                if (user) {
-                    // User exists - if not verified, mark as verified (Google already verified the email)
-                    if (!user.isVerified) {
-                        user = await prisma.user.update({
-                            where: { id: user.id },
-                            data: { isVerified: true },
-                        });
+                    if (!email) {
+                        return done(new Error('No email found in Google profile'), undefined);
                     }
+
+                    let user = await prisma.user.findUnique({ where: { email } });
+
+                    if (user) {
+                        if (!user.isVerified) {
+                            user = await prisma.user.update({
+                                where: { id: user.id },
+                                data: { isVerified: true },
+                            });
+                        }
+                        return done(null, user);
+                    }
+
+                    const firstName = profile.name?.givenName || '';
+                    const lastName = profile.name?.familyName || '';
+                    const username = email.split('@')[0] + '_' + Date.now().toString(36);
+
+                    user = await prisma.user.create({
+                        data: {
+                            email,
+                            username,
+                            firstName,
+                            lastName,
+                            hashedPassword: '',
+                            role: Role.STUDENT,
+                            isVerified: true,
+                        },
+                    });
+
                     return done(null, user);
+                } catch (error) {
+                    return done(error as Error, undefined);
                 }
-
-                // Create new user - Google already verified the email, so set isVerified = true
-                const firstName = profile.name?.givenName || '';
-                const lastName = profile.name?.familyName || '';
-                const username = email.split('@')[0] + '_' + Date.now().toString(36);
-
-                user = await prisma.user.create({
-                    data: {
-                        email,
-                        username,
-                        firstName,
-                        lastName,
-                        hashedPassword: '', // No password for OAuth users
-                        role: Role.STUDENT, // Default role for new users
-                        isVerified: true, // Google already verified the email
-                    },
-                });
-
-                return done(null, user);
-            } catch (error) {
-                return done(error as Error, undefined);
             }
-        }
-    )
-);
+        )
+    );
+}
 
 passport.serializeUser((user: any, done) => {
     done(null, user.id);

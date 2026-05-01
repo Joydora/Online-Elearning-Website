@@ -54,6 +54,24 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
     }
 }
 
+// Populate req.user if token present but don't block unauthenticated requests
+export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
+    try {
+        let token = req.cookies?.[COOKIE_NAME];
+        const authHeader = req.headers.authorization;
+        if (authHeader?.startsWith('Bearer ')) token = authHeader.substring(7);
+        if (token) {
+            const decoded = jwt.verify(token, getJwtSecret());
+            if (isAuthenticatedUser(decoded)) {
+                (req as AuthenticatedRequest).user = decoded;
+            }
+        }
+    } catch {
+        // ignore invalid token for optional auth
+    }
+    next();
+}
+
 export function isAuthorized(roles: Role[]) {
     return (req: Request, res: Response, next: NextFunction): void => {
         const authReq = req as AuthenticatedRequest;
