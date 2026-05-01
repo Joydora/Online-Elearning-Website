@@ -1,12 +1,22 @@
 // File: packages/api/prisma/seed.ts
-import { PrismaClient, Role, ContentType } from '@prisma/client';
+import { PrismaClient, Role, ContentType, EnrollmentType, PayoutStatus, CourseLevel } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+const now = new Date();
+const daysFromNow = (days: number) => new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+const daysAgo = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
 async function main(): Promise<void> {
     console.log('🗑️  Deleting old data...');
 
+    await prisma.revenueLedger.deleteMany();
+    await prisma.projectSubmission.deleteMany();
+    await prisma.project.deleteMany();
+    await prisma.practiceSubmission.deleteMany();
+    await prisma.practice.deleteMany();
+    await prisma.videoQuizMarker.deleteMany();
     await prisma.contentProgress.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.answerOption.deleteMany();
@@ -169,6 +179,14 @@ async function main(): Promise<void> {
             description: 'Khóa học miễn phí giúp bạn nắm vững React JS từ cơ bản đến nâng cao. Bạn sẽ học về Components, Hooks, State Management và xây dựng ứng dụng thực tế.',
             price: 0, // FREE
             thumbnailUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
+            trialDurationDays: 7,
+            level: CourseLevel.BEGINNER,
+            syllabus: {
+                chapters: [
+                    { title: 'Giới thiệu React', lessons: ['React là gì?', 'Cài đặt môi trường'] },
+                    { title: 'Components & Props', lessons: ['Components', 'Props'] },
+                ],
+            },
             teacherId: teachers[0].id,
             categoryId: categories[0].id, // Lập trình Web
             modules: {
@@ -184,6 +202,7 @@ async function main(): Promise<void> {
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=Tn6-PIqc4UM',
                                     durationInSeconds: 600,
+                                    isFreePreview: true,
                                 },
                                 {
                                     title: 'Cài đặt môi trường phát triển',
@@ -285,6 +304,12 @@ async function main(): Promise<void> {
                                     videoUrl: 'https://www.youtube.com/watch?v=0ZJgIjIuY7U',
                                     durationInSeconds: 780,
                                 },
+                                {
+                                    title: 'Thực hành: useState cơ bản',
+                                    order: 3,
+                                    contentType: ContentType.PRACTICE,
+                                    timeLimitInMinutes: 15,
+                                },
                             ],
                         },
                     },
@@ -302,6 +327,14 @@ async function main(): Promise<void> {
             description: 'Khóa học TypeScript toàn diện. Học cách viết code an toàn hơn với static typing, generics, decorators và các patterns nâng cao.',
             price: 1.99, // Low price for demo
             thumbnailUrl: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800',
+            accessDurationDays: 30,
+            level: CourseLevel.INTERMEDIATE,
+            syllabus: {
+                chapters: [
+                    { title: 'Nền tảng TypeScript', lessons: ['Types', 'Interfaces'] },
+                    { title: 'Generics', lessons: ['Generic functions'] },
+                ],
+            },
             teacherId: teachers[0].id,
             categoryId: categories[0].id,
             modules: {
@@ -416,6 +449,7 @@ async function main(): Promise<void> {
             description: 'Khóa học Python miễn phí dành cho người mới. Học lập trình từ con số 0 với ngôn ngữ dễ học nhất.',
             price: 0,
             thumbnailUrl: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800',
+            level: CourseLevel.BEGINNER,
             teacherId: teachers[1].id,
             categoryId: categories[0].id,
             modules: {
@@ -501,6 +535,14 @@ async function main(): Promise<void> {
             description: 'Học cách xây dựng backend chuyên nghiệp với Node.js, Express, và MongoDB. Bao gồm authentication, authorization, và deployment.',
             price: 2.99,
             thumbnailUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800',
+            accessDurationDays: 60,
+            level: CourseLevel.INTERMEDIATE,
+            syllabus: {
+                chapters: [
+                    { title: 'Node.js Fundamentals', lessons: ['Node.js là gì?', 'NPM'] },
+                    { title: 'Express', lessons: ['Routing', 'Middleware'] },
+                ],
+            },
             teacherId: teachers[1].id,
             categoryId: categories[0].id,
             modules: {
@@ -583,6 +625,8 @@ async function main(): Promise<void> {
             description: 'Học thiết kế giao diện người dùng chuyên nghiệp với Figma. Từ wireframe đến prototype hoàn chỉnh.',
             price: 1.49,
             thumbnailUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
+            accessDurationDays: 45,
+            level: CourseLevel.BEGINNER,
             teacherId: teachers[2].id,
             categoryId: categories[3].id, // UI/UX
             modules: {
@@ -668,6 +712,7 @@ async function main(): Promise<void> {
             description: 'Học cách quản lý source code chuyên nghiệp với Git và GitHub. Bao gồm branching, merging, pull requests.',
             price: 0,
             thumbnailUrl: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=800',
+            level: CourseLevel.BEGINNER,
             teacherId: teachers[2].id,
             categoryId: categories[4].id, // DevOps
             modules: {
@@ -708,6 +753,7 @@ async function main(): Promise<void> {
             description: 'Thành thạo SQL và PostgreSQL. Học cách thiết kế database, viết query tối ưu, và quản lý dữ liệu hiệu quả.',
             price: 2.49,
             thumbnailUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800',
+            level: CourseLevel.INTERMEDIATE,
             teacherId: teachers[1].id,
             categoryId: categories[2].id, // Database
             modules: {
@@ -794,6 +840,7 @@ async function main(): Promise<void> {
             description: 'Nhập môn Machine Learning. Học các thuật toán ML cơ bản và cách áp dụng với Python và scikit-learn.',
             price: 3.99,
             thumbnailUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
+            level: CourseLevel.ADVANCED,
             teacherId: teachers[0].id,
             categoryId: categories[5].id, // AI
             modules: {
@@ -829,35 +876,270 @@ async function main(): Promise<void> {
 
     console.log('\n✅ Created 8 courses total (4 FREE, 4 PAID)');
 
+    await prisma.course.update({
+        where: { id: course2.id },
+        data: {
+            prerequisites: {
+                connect: [{ id: course1.id }],
+            },
+        },
+    });
+
+    await prisma.course.update({
+        where: { id: course4.id },
+        data: {
+            prerequisites: {
+                connect: [{ id: course3.id }],
+            },
+        },
+    });
+
+    await prisma.course.update({
+        where: { id: course8.id },
+        data: {
+            prerequisites: {
+                connect: [{ id: course3.id }],
+            },
+        },
+    });
+
+    const practiceContent = course1.modules
+        .flatMap((module) => module.contents)
+        .find((content) => content.contentType === ContentType.PRACTICE);
+
+    if (!practiceContent) {
+        throw new Error('Practice content not found in course 1.');
+    }
+
+    const practice = await prisma.practice.create({
+        data: {
+            contentId: practiceContent.id,
+            prompt: 'Tạo một component React hiển thị bộ đếm và có nút tăng giá trị.',
+            starterCode: `import React, { useState } from 'react';\n\nexport default function Counter() {\n  // TODO: implement\n  return <div />;\n}\n`,
+            expectedOutput: 'Component hiển thị số và tăng khi bấm nút',
+            rubric: 'Sử dụng useState, hiển thị số, có nút tăng giá trị',
+            language: 'javascript',
+        },
+    });
+
+    await prisma.practiceSubmission.create({
+        data: {
+            studentId: students[0].id,
+            practiceId: practice.id,
+            submittedCode: `import React, { useState } from 'react';\n\nexport default function Counter() {\n  const [count, setCount] = useState(0);\n  return (\n    <div>\n      <p>{count}</p>\n      <button onClick={() => setCount(count + 1)}>Increase</button>\n    </div>\n  );\n}\n`,
+            aiFeedback: 'Bạn đã sử dụng useState đúng cách.',
+            score: 0.9,
+            passed: true,
+        },
+    });
+
+    const project = await prisma.project.create({
+        data: {
+            title: 'Xây dựng REST API cho Todo App',
+            description: 'Thiết kế API CRUD cho Todo App với Express và PostgreSQL.',
+            requirements: 'Có đầy đủ CRUD endpoints, validate dữ liệu, dùng Prisma.',
+            deadline: daysFromNow(14),
+            courseId: course4.id,
+        },
+    });
+
+    await prisma.projectSubmission.create({
+        data: {
+            projectId: project.id,
+            studentId: students[2].id,
+            repoUrl: 'https://github.com/example/todo-api',
+            commitHistory: [
+                { hash: 'a1b2c3', message: 'Init project', date: now.toISOString() },
+                { hash: 'd4e5f6', message: 'Add CRUD endpoints', date: now.toISOString() },
+            ],
+            feedback: 'Cần bổ sung validation và error handling chi tiết hơn.',
+            grade: 7.5,
+        },
+    });
+
     // ============================================
     // 📝 CREATE ENROLLMENTS
     // ============================================
     const enrollments = await Promise.all([
         // Student 1: Enrolled in 4 courses
-        prisma.enrollment.create({ data: { studentId: students[0].id, courseId: course1.id } }),
-        prisma.enrollment.create({ data: { studentId: students[0].id, courseId: course2.id } }),
-        prisma.enrollment.create({ data: { studentId: students[0].id, courseId: course3.id } }),
-        prisma.enrollment.create({ data: { studentId: students[0].id, courseId: course6.id } }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[0].id,
+                courseId: course1.id,
+                type: EnrollmentType.TRIAL,
+                expiresAt: daysFromNow(7),
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[0].id,
+                courseId: course2.id,
+                type: EnrollmentType.PAID,
+                expiresAt: daysFromNow(30),
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[0].id,
+                courseId: course3.id,
+                type: EnrollmentType.FREE,
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[0].id,
+                courseId: course6.id,
+                type: EnrollmentType.FREE,
+                isActive: true,
+            },
+        }),
 
         // Student 2: Enrolled in 3 courses
-        prisma.enrollment.create({ data: { studentId: students[1].id, courseId: course1.id } }),
-        prisma.enrollment.create({ data: { studentId: students[1].id, courseId: course5.id } }),
-        prisma.enrollment.create({ data: { studentId: students[1].id, courseId: course6.id } }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[1].id,
+                courseId: course1.id,
+                type: EnrollmentType.FREE,
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[1].id,
+                courseId: course5.id,
+                type: EnrollmentType.PAID,
+                expiresAt: daysFromNow(45),
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[1].id,
+                courseId: course6.id,
+                type: EnrollmentType.FREE,
+                isActive: true,
+            },
+        }),
 
         // Student 3: Enrolled in 2 courses
-        prisma.enrollment.create({ data: { studentId: students[2].id, courseId: course3.id } }),
-        prisma.enrollment.create({ data: { studentId: students[2].id, courseId: course4.id } }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[2].id,
+                courseId: course3.id,
+                type: EnrollmentType.FREE,
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[2].id,
+                courseId: course4.id,
+                type: EnrollmentType.PAID,
+                expiresAt: daysAgo(2),
+                isActive: false,
+            },
+        }),
 
         // Student 4: Enrolled in 3 courses
-        prisma.enrollment.create({ data: { studentId: students[3].id, courseId: course1.id } }),
-        prisma.enrollment.create({ data: { studentId: students[3].id, courseId: course7.id } }),
-        prisma.enrollment.create({ data: { studentId: students[3].id, courseId: course8.id } }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[3].id,
+                courseId: course1.id,
+                type: EnrollmentType.FREE,
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[3].id,
+                courseId: course7.id,
+                type: EnrollmentType.PAID,
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[3].id,
+                courseId: course8.id,
+                type: EnrollmentType.PAID,
+                isActive: true,
+            },
+        }),
 
         // Student 5: Enrolled in 2 courses
-        prisma.enrollment.create({ data: { studentId: students[4].id, courseId: course2.id } }),
-        prisma.enrollment.create({ data: { studentId: students[4].id, courseId: course5.id } }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[4].id,
+                courseId: course2.id,
+                type: EnrollmentType.PAID,
+                expiresAt: daysFromNow(30),
+                isActive: true,
+            },
+        }),
+        prisma.enrollment.create({
+            data: {
+                studentId: students[4].id,
+                courseId: course5.id,
+                type: EnrollmentType.PAID,
+                expiresAt: daysFromNow(45),
+                isActive: true,
+            },
+        }),
     ]);
     console.log(`📝 Created ${enrollments.length} enrollments`);
+
+    const payments = await Promise.all([
+        prisma.payment.create({
+            data: {
+                amount: course2.price,
+                status: 'SUCCESSFUL',
+                stripeSessionId: 'seed_session_course2_student1',
+                enrollmentId: enrollments[1].id,
+                studentId: students[0].id,
+            },
+        }),
+        prisma.payment.create({
+            data: {
+                amount: course5.price,
+                status: 'SUCCESSFUL',
+                stripeSessionId: 'seed_session_course5_student2',
+                enrollmentId: enrollments[5].id,
+                studentId: students[1].id,
+            },
+        }),
+    ]);
+    console.log(`💳 Created ${payments.length} payments`);
+
+    const ledgers = await Promise.all([
+        prisma.revenueLedger.create({
+            data: {
+                paymentId: payments[0].id,
+                enrollmentId: enrollments[1].id,
+                courseId: course2.id,
+                teacherId: teachers[0].id,
+                grossAmount: course2.price,
+                platformFee: Number((course2.price * 0.2).toFixed(2)),
+                teacherShare: Number((course2.price * 0.8).toFixed(2)),
+                payoutStatus: PayoutStatus.HELD,
+            },
+        }),
+        prisma.revenueLedger.create({
+            data: {
+                paymentId: payments[1].id,
+                enrollmentId: enrollments[5].id,
+                courseId: course5.id,
+                teacherId: teachers[2].id,
+                grossAmount: course5.price,
+                platformFee: Number((course5.price * 0.2).toFixed(2)),
+                teacherShare: Number((course5.price * 0.8).toFixed(2)),
+                payoutStatus: PayoutStatus.HELD,
+            },
+        }),
+    ]);
+    console.log(`💰 Created ${ledgers.length} revenue ledger entries`);
 
     // ============================================
     // ⭐ CREATE REVIEWS (linked to enrollments)
@@ -1001,6 +1283,10 @@ async function main(): Promise<void> {
     console.log(`📁 Categories: ${categories.length}`);
     console.log(`📚 Courses: 8 (4 FREE, 4 PAID)`);
     console.log(`📝 Enrollments: ${enrollments.length}`);
+    console.log(`💳 Payments: ${payments.length}`);
+    console.log(`💰 Revenue Ledgers: ${ledgers.length}`);
+    console.log('🧪 Practice: 1 content, 1 submission');
+    console.log('📦 Projects: 1 project, 1 submission');
     console.log(`⭐ Reviews: ${reviews.length}`);
     console.log(`💬 Comments: ${comments.length}`);
     console.log('------------------------------------------\n');

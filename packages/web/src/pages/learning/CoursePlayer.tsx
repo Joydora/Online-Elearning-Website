@@ -152,6 +152,23 @@ type QuizAttemptHistory = {
     endTime: string;
 };
 
+const getYouTubeEmbedUrl = (url: string): string | null => {
+    try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes('youtube.com')) {
+            const id = parsed.searchParams.get('v');
+            return id ? `https://www.youtube.com/embed/${id}` : null;
+        }
+        if (parsed.hostname === 'youtu.be') {
+            const id = parsed.pathname.replace('/', '').trim();
+            return id ? `https://www.youtube.com/embed/${id}` : null;
+        }
+    } catch {
+        return null;
+    }
+    return null;
+};
+
 export default function CoursePlayer() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
@@ -756,17 +773,28 @@ export default function CoursePlayer() {
                             {currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex-1 flex items-center justify-center relative">
-                                        <video
-                                            key={currentContent.videoUrl}
-                                            ref={videoRef}
-                                            controls
-                                            className="w-full h-full"
-                                            src={currentContent.videoUrl}
-                                            onTimeUpdate={handleVideoTimeUpdate}
-                                            onEnded={markCurrentContentComplete}
-                                        >
-                                            Trình duyệt của bạn không hỗ trợ video.
-                                        </video>
+                                        {getYouTubeEmbedUrl(currentContent.videoUrl) ? (
+                                            <iframe
+                                                key={currentContent.videoUrl}
+                                                className="w-full h-full"
+                                                src={getYouTubeEmbedUrl(currentContent.videoUrl) || undefined}
+                                                title={currentContent.title}
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            />
+                                        ) : (
+                                            <video
+                                                key={currentContent.videoUrl}
+                                                ref={videoRef}
+                                                controls
+                                                className="w-full h-full"
+                                                src={currentContent.videoUrl}
+                                                onTimeUpdate={handleVideoTimeUpdate}
+                                                onEnded={markCurrentContentComplete}
+                                            >
+                                                Trình duyệt của bạn không hỗ trợ video.
+                                            </video>
+                                        )}
                                         {activeMarker && (
                                             <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-6 z-10">
                                                 <Card className="w-full max-w-2xl p-6 bg-white dark:bg-zinc-800">
@@ -784,8 +812,8 @@ export default function CoursePlayer() {
                                                             <label
                                                                 key={option.id}
                                                                 className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${markerSelectedAnswer === option.id
-                                                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                                                        : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                                                    ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                                                    : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
                                                                     }`}
                                                             >
                                                                 <input
@@ -805,8 +833,8 @@ export default function CoursePlayer() {
 
                                                     {markerResult && (
                                                         <div className={`mt-4 p-3 rounded-lg ${markerResult.score === 100
-                                                                ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                                : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                                            ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                                                             }`}>
                                                             {markerResult.score === 100
                                                                 ? 'Chính xác! Kết quả đã được lưu.'
@@ -1028,7 +1056,7 @@ export default function CoursePlayer() {
                                                                     })}
                                                                 </span>
                                                                 <span className={`text-sm font-bold ${attempt.score >= 80 ? 'text-green-500' :
-                                                                        attempt.score >= 60 ? 'text-yellow-500' : 'text-red-500'
+                                                                    attempt.score >= 60 ? 'text-yellow-500' : 'text-red-500'
                                                                     }`}>
                                                                     {attempt.score}%
                                                                 </span>
@@ -1088,8 +1116,8 @@ export default function CoursePlayer() {
                                                                 <label
                                                                     key={option.id}
                                                                     className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${selectedAnswers[question.id] === option.id
-                                                                            ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                                                            : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
+                                                                        : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
                                                                         }`}
                                                                 >
                                                                     <input
@@ -1132,16 +1160,16 @@ export default function CoursePlayer() {
                                     {quizResult && (
                                         <Card className="w-full max-w-2xl p-8 bg-white dark:bg-zinc-800 text-center">
                                             <div className={`w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center ${quizResult.score >= 80
-                                                    ? 'bg-green-100 dark:bg-green-900/30'
-                                                    : quizResult.score >= 50
-                                                        ? 'bg-yellow-100 dark:bg-yellow-900/30'
-                                                        : 'bg-red-100 dark:bg-red-900/30'
+                                                ? 'bg-green-100 dark:bg-green-900/30'
+                                                : quizResult.score >= 50
+                                                    ? 'bg-yellow-100 dark:bg-yellow-900/30'
+                                                    : 'bg-red-100 dark:bg-red-900/30'
                                                 }`}>
                                                 <span className={`text-3xl font-bold ${quizResult.score >= 80
-                                                        ? 'text-green-600'
-                                                        : quizResult.score >= 50
-                                                            ? 'text-yellow-600'
-                                                            : 'text-red-600'
+                                                    ? 'text-green-600'
+                                                    : quizResult.score >= 50
+                                                        ? 'text-yellow-600'
+                                                        : 'text-red-600'
                                                     }`}>
                                                     {quizResult.score}%
                                                 </span>
@@ -1296,10 +1324,10 @@ export default function CoursePlayer() {
                                                     key={content.contentId}
                                                     onClick={() => handleContentSelect(module.moduleId, content.contentId)}
                                                     className={`w-full text-left px-4 py-2 rounded-lg flex items-center gap-3 transition-colors ${currentContentId === content.contentId
-                                                            ? 'bg-red-600 text-white'
-                                                            : isCompleted
-                                                                ? 'text-green-400 hover:bg-zinc-700'
-                                                                : 'text-zinc-300 hover:bg-zinc-700'
+                                                        ? 'bg-red-600 text-white'
+                                                        : isCompleted
+                                                            ? 'text-green-400 hover:bg-zinc-700'
+                                                            : 'text-zinc-300 hover:bg-zinc-700'
                                                         }`}
                                                 >
                                                     <div className={isCompleted ? 'text-green-400' : 'text-zinc-400'}>
@@ -1340,8 +1368,8 @@ export default function CoursePlayer() {
                                         <div
                                             key={`${message.role}-${index}`}
                                             className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${message.role === 'user'
-                                                    ? 'bg-red-600 text-white'
-                                                    : 'bg-zinc-900 text-zinc-200 border border-zinc-700'
+                                                ? 'bg-red-600 text-white'
+                                                : 'bg-zinc-900 text-zinc-200 border border-zinc-700'
                                                 }`}
                                         >
                                             {message.content}
