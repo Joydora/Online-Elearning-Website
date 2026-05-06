@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { EnrollmentType, PrismaClient } from '@prisma/client';
 import { Ollama } from 'ollama';
 
 const prisma = new PrismaClient();
@@ -58,6 +58,11 @@ export async function submitPractice(options: {
         where: { studentId, courseId: practice.content.module.courseId, isActive: true },
     });
     if (!enrollment) throw new Error('NOT_ENROLLED');
+    const isExpired = enrollment.expiresAt !== null && enrollment.expiresAt.getTime() <= Date.now();
+    if (isExpired) throw new Error('ENROLLMENT_EXPIRED');
+    if (enrollment.type === EnrollmentType.TRIAL && !practice.content.isFreePreview) {
+        throw new Error('CONTENT_LOCKED');
+    }
 
     // AI grading via Ollama
     let aiFeedback = '';

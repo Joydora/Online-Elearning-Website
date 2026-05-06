@@ -1,4 +1,4 @@
-import { PrismaClient, ContentType, Role, VideoQuizBlockingMode } from '@prisma/client';
+import { PrismaClient, ContentType, EnrollmentType, Role, VideoQuizBlockingMode } from '@prisma/client';
 import { markContentCompleted } from './progress.service';
 
 const prisma = new PrismaClient();
@@ -30,7 +30,7 @@ function fromPrismaBlockingMode(value: VideoQuizBlockingMode): MarkerBlockingMod
     return value === VideoQuizBlockingMode.NON_BLOCKING ? 'non-blocking' : 'pause';
 }
 
-async function assertStudentEnrollment(courseId: number, studentId: number): Promise<void> {
+async function assertStudentEnrollment(courseId: number, studentId: number, isFreePreview = false): Promise<void> {
     const enrollment = await prisma.enrollment.findUnique({
         where: {
             studentId_courseId: {
@@ -43,6 +43,15 @@ async function assertStudentEnrollment(courseId: number, studentId: number): Pro
     if (!enrollment) {
         throw new Error('NOT_ENROLLED');
     }
+
+    const isExpired = enrollment.expiresAt !== null && enrollment.expiresAt.getTime() <= Date.now();
+    if (!enrollment.isActive || isExpired) {
+        throw new Error('ENROLLMENT_EXPIRED');
+    }
+
+    if (enrollment.type === EnrollmentType.TRIAL && !isFreePreview) {
+        throw new Error('CONTENT_LOCKED');
+    }
 }
 
 type QuizContentWithQuestions = Awaited<ReturnType<typeof loadQuizContentWithQuestions>>;
@@ -51,6 +60,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
     contentId: number;
     title: string;
     timeLimitInMinutes: number | null;
+    isFreePreview: boolean;
     courseId: number;
     questions: Array<{
         id: number;
@@ -68,6 +78,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
             id: true,
             title: true,
             timeLimitInMinutes: true,
+            isFreePreview: true,
             contentType: true,
             module: {
                 select: {
@@ -104,6 +115,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
         contentId: content.id,
         title: content.title,
         timeLimitInMinutes: content.timeLimitInMinutes ?? null,
+        isFreePreview: content.isFreePreview,
         courseId: content.module.courseId,
         questions: content.questions.map((question) => ({
             id: question.id,
@@ -119,7 +131,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
 
 export async function getQuizForStudent(contentId: number, studentId: number) {
     const quiz = await loadQuizContentWithQuestions(contentId);
-    await assertStudentEnrollment(quiz.courseId, studentId);
+    await assertStudentEnrollment(quiz.courseId, studentId, quiz.isFreePreview);
 
     return {
         contentId: quiz.contentId,
@@ -183,6 +195,7 @@ export async function getVideoQuizMarkersForContent(
         select: {
             id: true,
             contentType: true,
+            isFreePreview: true,
             module: {
                 select: {
                     courseId: true,
@@ -205,7 +218,7 @@ export async function getVideoQuizMarkersForContent(
     }
 
     if (userRole === Role.STUDENT) {
-        await assertStudentEnrollment(content.module.courseId, userId);
+        await assertStudentEnrollment(content.module.courseId, userId, content.isFreePreview);
     } else if (!canManageCourse(userRole, content.module.course.teacherId, userId)) {
         throw new Error('COURSE_FORBIDDEN');
     }
@@ -418,6 +431,7 @@ export async function submitVideoQuizMarkerAnswer(
                     },
                     content: {
                         select: {
+                            isFreePreview: true,
                             module: {
                                 select: {
                                     courseId: true,
@@ -434,7 +448,11 @@ export async function submitVideoQuizMarkerAnswer(
         throw new Error('MARKER_NOT_FOUND');
     }
 
-    await assertStudentEnrollment(marker.question.content.module.courseId, studentId);
+    await assertStudentEnrollment(
+        marker.question.content.module.courseId,
+        studentId,
+        marker.question.content.isFreePreview,
+    );
 
     const selectedOption = marker.question.options.find((option) => option.id === answerOptionId);
 
@@ -474,7 +492,7 @@ type SubmittedAnswer = {
 
 export async function submitQuizAnswers(contentId: number, studentId: number, rawAnswers: unknown) {
     const quiz = await loadQuizContentWithQuestions(contentId);
-    await assertStudentEnrollment(quiz.courseId, studentId);
+    await assertStudentEnrollment(quiz.courseId, studentId, quiz.isFreePreview);
 
     if (!Array.isArray(rawAnswers)) {
         throw new Error('INVALID_ANSWERS');
@@ -612,6 +630,7 @@ export async function getQuizAttempts(contentId: number, studentId: number) {
     const content = await prisma.content.findUnique({
         where: { id: contentId },
         select: {
+            isFreePreview: true,
             module: {
                 select: { courseId: true },
             },
@@ -622,7 +641,7 @@ export async function getQuizAttempts(contentId: number, studentId: number) {
         throw new Error('QUIZ_NOT_FOUND');
     }
 
-    await assertStudentEnrollment(content.module.courseId, studentId);
+    await assertStudentEnrollment(content.module.courseId, studentId, content.isFreePreview);
 
     const attempts = await prisma.quizAttempt.findMany({
         where: {

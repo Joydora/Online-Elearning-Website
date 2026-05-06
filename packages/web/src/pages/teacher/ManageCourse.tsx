@@ -17,7 +17,9 @@ import {
     UserCheck,
     Github,
     Send,
-    Sparkles
+    Sparkles,
+    Eye,
+    Clock
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -32,12 +34,13 @@ type Content = {
     id: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string;
     durationInSeconds?: number;
     documentUrl?: string;
     fileType?: string;
     timeLimitInMinutes?: number;
+    isFreePreview?: boolean;
 };
 
 type Module = {
@@ -56,6 +59,8 @@ type CourseDetail = {
     price: number;
     status?: CourseStatus;
     rejectionReason?: string | null;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
     modules: Module[];
 };
 
@@ -149,6 +154,19 @@ export default function ManageCourse() {
         },
         onError: (error: any) => {
             showErrorAlert('Lỗi xóa nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
+    });
+
+    const togglePreviewMutation = useMutation({
+        mutationFn: async ({ contentId, isFreePreview }: { contentId: number; isFreePreview: boolean }) => {
+            await apiClient.patch(`/content/${contentId}/preview`, { isFreePreview });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
+            showSuccessAlert('Đã cập nhật!', 'Thiết lập bài học xem thử đã được lưu.');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi cập nhật preview', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
 
@@ -249,6 +267,9 @@ export default function ManageCourse() {
                 return <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />;
             case 'QUIZ':
                 return <ClipboardList className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
+            case 'PRACTICE':
+            case 'ASSIGNMENT':
+                return <ClipboardList className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
             default:
                 return null;
         }
@@ -262,6 +283,10 @@ export default function ManageCourse() {
                 return 'Tài liệu';
             case 'QUIZ':
                 return 'Bài kiểm tra';
+            case 'PRACTICE':
+                return 'Bài thực hành';
+            case 'ASSIGNMENT':
+                return 'Bài tập';
             default:
                 return type;
         }
@@ -337,16 +362,14 @@ export default function ManageCourse() {
                                         Gửi duyệt
                                     </Button>
                                 )}
-                            {!isAdmin && (
-                                <Button
-                                    onClick={() => navigate(`/courses/${id}/syllabus`)}
-                                    variant="outline"
-                                    className="gap-2"
-                                >
-                                    <Sparkles className="h-4 w-4" />
-                                    Cấu trúc AI
-                                </Button>
-                            )}
+                            <Button
+                                onClick={() => navigate(isAdmin ? `/admin/courses/${id}/syllabus` : `/teacher/courses/${id}/syllabus`)}
+                                variant="outline"
+                                className="gap-2"
+                            >
+                                <Sparkles className="h-4 w-4" />
+                                Cấu trúc AI
+                            </Button>
                             <Button
                                 onClick={() => navigate(studentsPath)}
                                 variant="outline"
@@ -375,6 +398,32 @@ export default function ManageCourse() {
                             </Button>
                         </div>
                     </div>
+
+                    <Card className="mt-4 border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-start gap-3">
+                                <Clock className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-300" />
+                                <div>
+                                    <p className="font-semibold">Thiết lập thời hạn truy cập</p>
+                                    <p className="mt-1">
+                                        {course.accessDurationDays
+                                            ? `Sau khi mua, học viên được truy cập khóa học trong ${course.accessDurationDays} ngày.`
+                                            : 'Khóa học hiện đang để trống thời hạn, học viên được truy cập không giới hạn sau khi mua.'}
+                                    </p>
+                                    <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+                                        Người set phần này là teacher/admin tại mục "Sửa thông tin" của khóa học.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={() => navigate(editPath)}
+                                variant="outline"
+                                className="shrink-0 border-blue-300 bg-white/70 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200"
+                            >
+                                Cài thời hạn
+                            </Button>
+                        </div>
+                    </Card>
 
                     {course.status === 'REJECTED' && course.rejectionReason && (
                         <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
@@ -530,8 +579,24 @@ export default function ManageCourse() {
                                                                 {content.durationInSeconds && (
                                                                     <> • {Math.floor(content.durationInSeconds / 60)} phút</>
                                                                 )}
+                                                                {content.isFreePreview && (
+                                                                    <> • Xem thử miễn phí</>
+                                                                )}
                                                             </p>
                                                         </div>
+                                                        <Button
+                                                            variant={content.isFreePreview ? 'default' : 'outline'}
+                                                            size="sm"
+                                                            className="gap-1"
+                                                            disabled={togglePreviewMutation.isPending}
+                                                            onClick={() => togglePreviewMutation.mutate({
+                                                                contentId: content.id,
+                                                                isFreePreview: !content.isFreePreview,
+                                                            })}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            {content.isFreePreview ? 'Đang preview' : 'Mở preview'}
+                                                        </Button>
                                                         {content.contentType === 'QUIZ' && (
                                                             <Button
                                                                 variant="outline"

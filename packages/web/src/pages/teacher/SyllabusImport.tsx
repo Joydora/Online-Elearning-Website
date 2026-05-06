@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import {
     ArrowLeft,
@@ -19,7 +19,7 @@ import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { showSuccessAlert, showErrorAlert } from '../../lib/sweetalert';
 
-type LessonType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+type LessonType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
 
 type ParsedLesson = {
     title: string;
@@ -37,9 +37,10 @@ const LESSON_TYPE_LABELS: Record<LessonType, string> = {
     DOCUMENT: 'Tài liệu',
     QUIZ: 'Bài kiểm tra',
     PRACTICE: 'Bài thực hành',
+    ASSIGNMENT: 'Bài tập',
 };
 
-const LESSON_TYPES: LessonType[] = ['VIDEO', 'DOCUMENT', 'QUIZ', 'PRACTICE'];
+const LESSON_TYPES: LessonType[] = ['VIDEO', 'DOCUMENT', 'QUIZ', 'PRACTICE', 'ASSIGNMENT'];
 
 function normalizeType(t: string | undefined): LessonType {
     const upper = (t || 'VIDEO').toString().toUpperCase();
@@ -49,12 +50,17 @@ function normalizeType(t: string | undefined): LessonType {
 export default function SyllabusImport() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isAdmin = location.pathname.startsWith('/admin');
+    const managePath = isAdmin ? `/admin/courses/${courseId}/manage` : `/courses/${courseId}/manage`;
 
     const [mode, setMode] = useState<'paste' | 'upload'>('paste');
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [chapters, setChapters] = useState<ParsedChapter[]>([]);
+    const [draggedChapterIndex, setDraggedChapterIndex] = useState<number | null>(null);
+    const [draggedLesson, setDraggedLesson] = useState<{ chapterIndex: number; lessonIndex: number } | null>(null);
 
     const parseMutation = useMutation({
         mutationFn: async () => {
@@ -109,7 +115,7 @@ export default function SyllabusImport() {
                 'Đã lưu',
                 `Đã tạo ${data.created} chương vào khoá học.`,
             );
-            navigate(`/courses/${courseId}/manage`);
+            navigate(managePath);
         },
         onError: (error: any) => {
             showErrorAlert(
@@ -125,7 +131,7 @@ export default function SyllabusImport() {
             return;
         }
         if (mode === 'upload' && !file) {
-            showErrorAlert('Chưa chọn tệp', 'Vui lòng chọn tệp .txt hoặc .md.');
+            showErrorAlert('Chưa chọn tệp', 'Vui lòng chọn tệp PDF, DOCX, MD hoặc TXT.');
             return;
         }
         parseMutation.mutate();
@@ -164,6 +170,16 @@ export default function SyllabusImport() {
             ...prev,
             { title: 'Chương mới', lessons: [] },
         ]);
+    };
+
+    const reorderChapters = (fromIndex: number, toIndex: number) => {
+        if (fromIndex === toIndex) return;
+        setChapters((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIndex, 1);
+            next.splice(toIndex, 0, moved);
+            return next;
+        });
     };
 
     const updateLesson = (
@@ -228,12 +244,25 @@ export default function SyllabusImport() {
         );
     };
 
+    const reorderLessons = (chapterIndex: number, fromIndex: number, toIndex: number) => {
+        if (fromIndex === toIndex) return;
+        setChapters((prev) =>
+            prev.map((chapter, index) => {
+                if (index !== chapterIndex) return chapter;
+                const lessons = [...chapter.lessons];
+                const [moved] = lessons.splice(fromIndex, 1);
+                lessons.splice(toIndex, 0, moved);
+                return { ...chapter, lessons };
+            }),
+        );
+    };
+
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-8">
             <div className="container mx-auto max-w-5xl">
                 <Button
                     variant="ghost"
-                    onClick={() => navigate(`/courses/${courseId}/manage`)}
+                    onClick={() => navigate(managePath)}
                     className="mb-4"
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -247,7 +276,7 @@ export default function SyllabusImport() {
                     </h1>
                 </div>
                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                    Dán đề cương hoặc tải tệp .txt/.md. AI sẽ trích xuất các chương và bài học.
+                    Dán đề cương hoặc tải tệp PDF/DOCX/MD/TXT. AI sẽ trích xuất các chương và bài học.
                     Bạn có thể chỉnh sửa, sắp xếp lại trước khi lưu.
                 </p>
 
@@ -291,7 +320,7 @@ export default function SyllabusImport() {
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".txt,.md,text/plain,text/markdown"
+                                accept=".pdf,.docx,.txt,.md,.markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
                                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                                 className="hidden"
                             />
@@ -308,7 +337,7 @@ export default function SyllabusImport() {
                                             {file.name} ({Math.round(file.size / 1024)} KB)
                                         </span>
                                     ) : (
-                                        'Nhấn để chọn tệp .txt hoặc .md (tối đa 5MB)'
+                                        'Nhấn để chọn tệp PDF, DOCX, MD hoặc TXT (tối đa 5MB)'
                                     )}
                                 </p>
                             </button>
@@ -351,11 +380,25 @@ export default function SyllabusImport() {
                                 Lưu vào khoá học
                             </Button>
                         </div>
+                        <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+                            Có thể kéo thả chương/bài học để sắp xếp, hoặc dùng nút lên/xuống để chỉnh thứ tự.
+                        </p>
 
                         <div className="space-y-4">
                             {chapters.map((chapter, ci) => (
                                 <div
                                     key={ci}
+                                    draggable
+                                    onDragStart={() => setDraggedChapterIndex(ci)}
+                                    onDragOver={(event) => event.preventDefault()}
+                                    onDrop={(event) => {
+                                        event.preventDefault();
+                                        if (draggedChapterIndex !== null) {
+                                            reorderChapters(draggedChapterIndex, ci);
+                                            setDraggedChapterIndex(null);
+                                        }
+                                    }}
+                                    onDragEnd={() => setDraggedChapterIndex(null)}
                                     className="rounded-md border border-zinc-200 dark:border-zinc-700 p-4 bg-white dark:bg-zinc-800"
                                 >
                                     <div className="flex items-center gap-2 mb-3">
@@ -400,6 +443,21 @@ export default function SyllabusImport() {
                                         {chapter.lessons.map((lesson, li) => (
                                             <div
                                                 key={li}
+                                                draggable
+                                                onDragStart={(event) => {
+                                                    event.stopPropagation();
+                                                    setDraggedLesson({ chapterIndex: ci, lessonIndex: li });
+                                                }}
+                                                onDragOver={(event) => event.preventDefault()}
+                                                onDrop={(event) => {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    if (draggedLesson?.chapterIndex === ci) {
+                                                        reorderLessons(ci, draggedLesson.lessonIndex, li);
+                                                        setDraggedLesson(null);
+                                                    }
+                                                }}
+                                                onDragEnd={() => setDraggedLesson(null)}
                                                 className="flex items-center gap-2 rounded-md border border-zinc-200 dark:border-zinc-700 p-2 bg-zinc-50 dark:bg-zinc-900"
                                             >
                                                 <span className="text-xs font-mono text-zinc-500 w-12">

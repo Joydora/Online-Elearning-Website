@@ -39,6 +39,7 @@ const TYPE_LABEL: Record<string, string> = {
     DOCUMENT: 'Tài liệu',
     QUIZ: 'Kiểm tra',
     PRACTICE: 'Thực hành',
+    ASSIGNMENT: 'Bài tập',
 };
 
 function fmtSeconds(s: number): string {

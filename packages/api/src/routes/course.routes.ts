@@ -13,6 +13,7 @@ import {
     getFreePreviewContentController,
     getMyCoursesController,
     submitForReviewController,
+    updateContentPreviewController,
     updateCourseController,
 } from '../controllers/course.controller';
 import { isAuthenticated, isAuthorized, optionalAuth } from '../middleware/auth.middleware';
@@ -36,6 +37,7 @@ router.post('/modules', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]
 router.delete('/modules/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), deleteModuleController);
 
 router.post('/content', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), createContentController);
+router.patch('/content/:id/preview', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), updateContentPreviewController);
 router.delete('/content/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), deleteContentController);
 
 export default router;

@@ -39,6 +39,14 @@ export async function getQuizController(req: Request, res: Response): Promise<Re
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
             }
 
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Enrollment has expired' });
+            }
+
+            if (message === 'CONTENT_LOCKED') {
+                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
+            }
+
             throw error;
         }
     } catch (error) {
@@ -75,6 +83,14 @@ export async function submitQuizController(req: Request, res: Response): Promise
 
             if (message === 'NOT_ENROLLED') {
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
+            }
+
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Enrollment has expired' });
+            }
+
+            if (message === 'CONTENT_LOCKED') {
+                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
             }
 
             if (message === 'INVALID_ANSWERS') {
@@ -145,6 +161,14 @@ export async function getQuizAttemptsController(req: Request, res: Response): Pr
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
             }
 
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Enrollment has expired' });
+            }
+
+            if (message === 'CONTENT_LOCKED') {
+                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
+            }
+
             throw error;
         }
     } catch (error) {
@@ -185,6 +209,14 @@ export async function getContentMarkersController(req: Request, res: Response): 
 
             if (message === 'NOT_ENROLLED') {
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
+            }
+
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Enrollment has expired' });
+            }
+
+            if (message === 'CONTENT_LOCKED') {
+                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
             }
 
             if (message === 'COURSE_FORBIDDEN') {
@@ -330,6 +362,14 @@ export async function submitMarkerController(req: Request, res: Response): Promi
 
             if (message === 'NOT_ENROLLED') {
                 return res.status(403).json({ error: 'You are not enrolled in this course' });
+            }
+
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Enrollment has expired' });
+            }
+
+            if (message === 'CONTENT_LOCKED') {
+                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
             }
 
             if (message === 'INVALID_ANSWER' || message === 'ANSWER_OPTION_NOT_FOUND') {

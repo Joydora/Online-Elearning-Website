@@ -13,6 +13,10 @@ const STUDENT_CANCEL_URL = process.env.FRONTEND_URL
     : 'http://localhost:5173/payment-cancel';
 const PLATFORM_FEE_PCT = parseFloat(process.env.PLATFORM_FEE_PCT || '0.3');
 
+function hasActiveAccess(enrollment: { isActive: boolean; expiresAt: Date | null }): boolean {
+    return enrollment.isActive && (enrollment.expiresAt === null || enrollment.expiresAt.getTime() > Date.now());
+}
+
 export async function checkoutCourseController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as Request & { user?: AuthenticatedUser };
@@ -148,43 +152,73 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
         const existing = await prisma.enrollment.findUnique({
             where: { studentId_courseId: { studentId: authReq.user.userId, courseId } },
         });
-        if (existing) return res.status(200).json({ message: 'Already enrolled', enrollment: existing });
+        if (existing && hasActiveAccess(existing)) {
+            return res.status(200).json({ message: 'Already enrolled', enrollment: existing });
+        }
 
         const enrollment = await prisma.$transaction(async (tx) => {
-            const createdEnrollment = await tx.enrollment.create({
-                data: {
-                    studentId: authReq.user!.userId,
-                    courseId,
-                    type: course.price > 0 ? EnrollmentType.PAID : EnrollmentType.FREE,
-                    expiresAt: course.accessDurationDays
-                        ? new Date(Date.now() + course.accessDurationDays * 24 * 60 * 60 * 1000)
-                        : null,
-                    isActive: true,
-                },
-            });
+            const enrollmentData = {
+                type: course.price > 0 ? EnrollmentType.PAID : EnrollmentType.FREE,
+                enrollmentDate: new Date(),
+                expiresAt: course.accessDurationDays
+                    ? new Date(Date.now() + course.accessDurationDays * 24 * 60 * 60 * 1000)
+                    : null,
+                isActive: true,
+            };
+
+            const createdEnrollment = existing
+                ? await tx.enrollment.update({
+                    where: { id: existing.id },
+                    data: enrollmentData,
+                })
+                : await tx.enrollment.create({
+                    data: {
+                        studentId: authReq.user!.userId,
+                        courseId,
+                        ...enrollmentData,
+                    },
+                });
 
             if (course.price > 0) {
                 const grossAmount = course.price;
                 const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
                 const teacherShare = Number((grossAmount - platformFee).toFixed(2));
-                const payment = await tx.payment.create({
-                    data: {
+                const payment = await tx.payment.upsert({
+                    where: { enrollmentId: createdEnrollment.id },
+                    create: {
                         amount: grossAmount,
                         status: 'SUCCESSFUL',
                         stripeSessionId: `dev-confirm-${createdEnrollment.id}-${Date.now()}`,
                         enrollmentId: createdEnrollment.id,
                         studentId: authReq.user!.userId,
                     },
+                    update: {
+                        amount: grossAmount,
+                        status: 'SUCCESSFUL',
+                        stripeSessionId: `dev-confirm-${createdEnrollment.id}-${Date.now()}`,
+                        studentId: authReq.user!.userId,
+                    },
                 });
 
-                await tx.revenueLedger.create({
-                    data: {
+                await tx.revenueLedger.upsert({
+                    where: { enrollmentId: createdEnrollment.id },
+                    create: {
                         grossAmount,
                         platformFee,
                         teacherShare,
                         payoutStatus: PayoutStatus.HELD,
                         paymentId: payment.id,
                         enrollmentId: createdEnrollment.id,
+                        courseId,
+                        teacherId: course.teacherId,
+                    },
+                    update: {
+                        grossAmount,
+                        platformFee,
+                        teacherShare,
+                        payoutStatus: PayoutStatus.HELD,
+                        paidAt: null,
+                        paymentId: payment.id,
                         courseId,
                         teacherId: course.teacherId,
                     },

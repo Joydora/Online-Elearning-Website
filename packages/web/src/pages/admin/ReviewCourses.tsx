@@ -33,7 +33,7 @@ type AdminCourse = {
             id: number;
             title: string;
             order: number;
-            contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+            contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
             durationInSeconds?: number | null;
             timeLimitInMinutes?: number | null;
         }>;
@@ -80,6 +80,7 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
     DOCUMENT: 'Tài liệu',
     QUIZ: 'Bài kiểm tra',
     PRACTICE: 'Thực hành',
+    ASSIGNMENT: 'Bài tập',
 };
 
 export default function ReviewCourses() {

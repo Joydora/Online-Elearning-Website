@@ -19,6 +19,10 @@ function calcExpiresAt(accessDurationDays: number | null): Date | null {
     return d;
 }
 
+function hasActiveAccess(enrollment: { isActive: boolean; expiresAt: Date | null }): boolean {
+    return enrollment.isActive && (enrollment.expiresAt === null || enrollment.expiresAt.getTime() > Date.now());
+}
+
 export async function checkoutCourse(options: {
     courseId: number;
     studentId: number;
@@ -42,7 +46,12 @@ export async function checkoutCourse(options: {
     });
 
     if (options.trial && existingEnrollment) throw new Error('ALREADY_ENROLLED');
-    if (!options.trial && existingEnrollment && existingEnrollment.type !== EnrollmentType.TRIAL) {
+    if (
+        !options.trial &&
+        existingEnrollment &&
+        existingEnrollment.type !== EnrollmentType.TRIAL &&
+        hasActiveAccess(existingEnrollment)
+    ) {
         throw new Error('ALREADY_ENROLLED');
     }
 
@@ -81,11 +90,12 @@ export async function checkoutCourse(options: {
 
     // ── Free course ───────────────────────────────────────────────────
     if (finalPrice === 0) {
-        if (existingEnrollment?.type === EnrollmentType.TRIAL) {
+        if (existingEnrollment) {
             await prisma.enrollment.update({
                 where: { id: existingEnrollment.id },
                 data: {
                     type: EnrollmentType.FREE,
+                    enrollmentDate: new Date(),
                     expiresAt: calcExpiresAt(course.accessDurationDays),
                     isActive: true,
                 },
@@ -194,8 +204,24 @@ export async function getCourseForEnrolledStudent(courseId: number, studentId: n
     if (!course) throw new Error('COURSE_NOT_FOUND');
     if (course.status !== 'PUBLISHED') throw new Error('COURSE_NOT_PUBLISHED');
 
+    const hasFullAccess = enrollment.type !== EnrollmentType.TRIAL;
+    const modules = course.modules.map((module) => ({
+        ...module,
+        contents: module.contents.map((content) => {
+            const canAccessContent = hasFullAccess || content.isFreePreview;
+
+            return {
+                ...content,
+                videoUrl: canAccessContent ? content.videoUrl : null,
+                documentUrl: canAccessContent ? content.documentUrl : null,
+                isLocked: !canAccessContent,
+            };
+        }),
+    }));
+
     return {
         ...course,
+        modules,
         enrollment: {
             enrollmentId: enrollment.id,
             progress: enrollment.progress,
@@ -237,7 +263,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
         where: { studentId_courseId: { studentId: studentIdNum, courseId: courseIdNum } },
     });
 
-    if (existing && existing.type !== EnrollmentType.TRIAL) {
+    if (existing && existing.type !== EnrollmentType.TRIAL && hasActiveAccess(existing)) {
         console.log('User already enrolled, skipping...');
         return;
     }
@@ -253,6 +279,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
                 where: { id: existing.id },
                 data: {
                     type: EnrollmentType.PAID,
+                    enrollmentDate: new Date(),
                     expiresAt: calcExpiresAt(course.accessDurationDays),
                     isActive: true,
                 },
@@ -267,25 +294,43 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
                 },
             });
 
-        const payment = await tx.payment.create({
-            data: {
+        const payment = await tx.payment.upsert({
+            where: { enrollmentId: enrollment.id },
+            create: {
                 amount: grossAmount,
                 status: 'SUCCESSFUL',
                 stripeSessionId: session.id,
                 enrollmentId: enrollment.id,
                 studentId: studentIdNum,
             },
+            update: {
+                amount: grossAmount,
+                status: 'SUCCESSFUL',
+                stripeSessionId: session.id,
+                studentId: studentIdNum,
+            },
         });
 
         // EPIC 4: Revenue Ledger entry
-        await tx.revenueLedger.create({
-            data: {
+        await tx.revenueLedger.upsert({
+            where: { enrollmentId: enrollment.id },
+            create: {
                 grossAmount,
                 platformFee,
                 teacherShare,
                 payoutStatus: 'HELD',
                 paymentId: payment.id,
                 enrollmentId: enrollment.id,
+                courseId: courseIdNum,
+                teacherId: course.teacherId,
+            },
+            update: {
+                grossAmount,
+                platformFee,
+                teacherShare,
+                payoutStatus: 'HELD',
+                paidAt: null,
+                paymentId: payment.id,
                 courseId: courseIdNum,
                 teacherId: course.teacherId,
             },

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import type { SyntheticEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine } from 'lucide-react';
+import Editor from '@monaco-editor/react';
+import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine, Lock } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -12,10 +13,12 @@ type ContentRaw = {
     id: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
+    isFreePreview?: boolean;
+    isLocked?: boolean;
 };
 
 type ModuleRaw = {
@@ -45,10 +48,12 @@ type Content = {
     contentId: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
+    isFreePreview?: boolean;
+    isLocked?: boolean;
 };
 
 type Module = {
@@ -232,6 +237,8 @@ export default function CoursePlayer() {
                         videoUrl: c.videoUrl,
                         documentUrl: c.documentUrl,
                         durationInSeconds: c.durationInSeconds,
+                        isFreePreview: c.isFreePreview,
+                        isLocked: c.isLocked,
                     })),
                 })),
             };
@@ -245,6 +252,11 @@ export default function CoursePlayer() {
 
     const course = courseData?.course;
     const enrollment = courseData?.enrollment;
+    const canAccessContent = (content?: Content | null) => {
+        if (!content) return false;
+        if (content.isLocked) return false;
+        return enrollment?.type !== 'TRIAL' || !!content.isFreePreview;
+    };
 
     // Derived from state — declared here so useEffect dependency arrays don't hit the TDZ
     const currentModule = course?.modules.find(m => m.moduleId === currentModuleId);
@@ -289,14 +301,19 @@ export default function CoursePlayer() {
                 showSuccessAlert('Chúc mừng!', 'Bạn đã hoàn thành khóa học này! 🎉');
             }
         },
-        onError: () => {
-            showErrorAlert('Không thể đánh dấu hoàn thành. Vui lòng thử lại.');
+        onError: (error: any) => {
+            const backendError = error?.response?.data?.error;
+            const backendDetails = error?.response?.data?.details;
+            showErrorAlert(
+                backendError || 'Không thể đánh dấu hoàn thành. Vui lòng thử lại.',
+                backendDetails
+            );
         },
     });
 
     // Function to mark current content as complete
     const markCurrentContentComplete = () => {
-        if (currentContentId && !completedContentIds.includes(currentContentId)) {
+        if (currentContentId && canAccessContent(currentContent) && !completedContentIds.includes(currentContentId)) {
             markCompleteMutation.mutate(currentContentId);
         }
     };
@@ -304,15 +321,16 @@ export default function CoursePlayer() {
     // Set initial content when course data is loaded
     useEffect(() => {
         if (course && course.modules.length > 0 && !currentModuleId && !currentContentId) {
-            const firstModule = course.modules[0];
-            if (firstModule) {
-                setCurrentModuleId(firstModule.moduleId);
-                if (firstModule.contents && firstModule.contents.length > 0) {
-                    setCurrentContentId(firstModule.contents[0].contentId);
+            for (const module of course.modules) {
+                const firstAccessibleContent = module.contents.find((content) => canAccessContent(content));
+                if (firstAccessibleContent) {
+                    setCurrentModuleId(module.moduleId);
+                    setCurrentContentId(firstAccessibleContent.contentId);
+                    break;
                 }
             }
         }
-    }, [course, currentModuleId, currentContentId]);
+    }, [course, currentModuleId, currentContentId, enrollment?.type]);
 
     // Reset quiz + practice state when content changes
     useEffect(() => {
@@ -333,7 +351,7 @@ export default function CoursePlayer() {
 
     // Load practice data when PRACTICE content is selected
     useEffect(() => {
-        if (!currentContent || currentContent.contentType !== 'PRACTICE' || !currentContentId) return;
+        if (!currentContent || !canAccessContent(currentContent) || currentContent.contentType !== 'PRACTICE' || !currentContentId) return;
         let cancelled = false;
         setPracticeLoading(true);
         apiClient.get<PracticeData>(`/practice/content/${currentContentId}`)
@@ -345,7 +363,7 @@ export default function CoursePlayer() {
             .catch(() => { if (!cancelled) showErrorAlert('Không thể tải bài thực hành.'); })
             .finally(() => { if (!cancelled) setPracticeLoading(false); });
         return () => { cancelled = true; };
-    }, [currentContent, currentContentId]);
+    }, [currentContent, currentContentId, enrollment?.type]);
 
     const submitPractice = async () => {
         if (!practiceData || !practiceCode.trim()) return;
@@ -369,12 +387,12 @@ export default function CoursePlayer() {
             const { data } = await apiClient.get<VideoQuizMarker[]>(`/contents/${currentContentId}/markers`);
             return data;
         },
-        enabled: !!currentContentId && currentContent?.contentType === 'VIDEO',
+        enabled: !!currentContentId && currentContent?.contentType === 'VIDEO' && canAccessContent(currentContent),
     });
 
     // Fetch quiz attempts when viewing a quiz
     useEffect(() => {
-        if (!currentContent || currentContent.contentType !== 'QUIZ' || !currentContentId) return;
+        if (!currentContent || !canAccessContent(currentContent) || currentContent.contentType !== 'QUIZ' || !currentContentId) return;
 
         const fetchAttempts = async () => {
             try {
@@ -386,11 +404,11 @@ export default function CoursePlayer() {
         };
 
         fetchAttempts();
-    }, [currentContent, currentContentId]);
+    }, [currentContent, currentContentId, enrollment?.type]);
 
     // Auto mark document as complete after 20 seconds of viewing
     useEffect(() => {
-        if (!currentContent || currentContent.contentType !== 'DOCUMENT') return;
+        if (!currentContent || !canAccessContent(currentContent) || currentContent.contentType !== 'DOCUMENT') return;
         if (!currentContentId || completedContentIds.includes(currentContentId)) return;
 
         const timer = setInterval(() => {
@@ -405,7 +423,7 @@ export default function CoursePlayer() {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [currentContent, currentContentId, completedContentIds]);
+    }, [currentContent, currentContentId, completedContentIds, enrollment?.type]);
 
     // Quiz functions
     const startQuiz = async () => {
@@ -590,22 +608,23 @@ export default function CoursePlayer() {
 
         const currentIndex = currentModule.contents.findIndex(c => c.contentId === currentContentId);
 
-        // Next content in same module
-        if (currentIndex < currentModule.contents.length - 1) {
+        // Next accessible content in same module
+        const nextInModule = currentModule.contents.slice(currentIndex + 1).find((content) => canAccessContent(content));
+        if (nextInModule) {
             return {
                 moduleId: currentModule.moduleId,
-                content: currentModule.contents[currentIndex + 1]
+                content: nextInModule
             };
         }
 
-        // First content of next module
+        // First accessible content of next module
         const moduleIndex = course.modules.findIndex(m => m.moduleId === currentModuleId);
-        if (moduleIndex < course.modules.length - 1) {
-            const nextModule = course.modules[moduleIndex + 1];
-            if (nextModule.contents.length > 0) {
+        for (const nextModule of course.modules.slice(moduleIndex + 1)) {
+            const nextContent = nextModule.contents.find((content) => canAccessContent(content));
+            if (nextContent) {
                 return {
                     moduleId: nextModule.moduleId,
-                    content: nextModule.contents[0]
+                    content: nextContent
                 };
             }
         }
@@ -618,22 +637,23 @@ export default function CoursePlayer() {
 
         const currentIndex = currentModule.contents.findIndex(c => c.contentId === currentContentId);
 
-        // Previous content in same module
-        if (currentIndex > 0) {
+        // Previous accessible content in same module
+        const previousInModule = currentModule.contents.slice(0, currentIndex).reverse().find((content) => canAccessContent(content));
+        if (previousInModule) {
             return {
                 moduleId: currentModule.moduleId,
-                content: currentModule.contents[currentIndex - 1]
+                content: previousInModule
             };
         }
 
-        // Last content of previous module
+        // Last accessible content of previous module
         const moduleIndex = course.modules.findIndex(m => m.moduleId === currentModuleId);
-        if (moduleIndex > 0) {
-            const prevModule = course.modules[moduleIndex - 1];
-            if (prevModule.contents.length > 0) {
+        for (const prevModule of course.modules.slice(0, moduleIndex).reverse()) {
+            const previousContent = [...prevModule.contents].reverse().find((content) => canAccessContent(content));
+            if (previousContent) {
                 return {
                     moduleId: prevModule.moduleId,
-                    content: prevModule.contents[prevModule.contents.length - 1]
+                    content: previousContent
                 };
             }
         }
@@ -664,6 +684,7 @@ export default function CoursePlayer() {
             case 'QUIZ':
                 return <HelpCircle className="h-4 w-4" />;
             case 'PRACTICE':
+            case 'ASSIGNMENT':
                 return <PenLine className="h-4 w-4" />;
         }
     };
@@ -681,16 +702,19 @@ export default function CoursePlayer() {
 
     if (courseError || !course || !enrollment) {
         const isNotEnrolled = (courseError as any)?.response?.status === 403;
+        const isExpired = (courseError as any)?.response?.data?.code === 'ENROLLMENT_EXPIRED';
         return (
             <div className="flex items-center justify-center min-h-screen bg-zinc-900">
                 <div className="text-center">
                     <p className="text-red-400 mb-4">
-                        {isNotEnrolled
+                        {isExpired
+                            ? 'Quyền truy cập khóa học của bạn đã hết hạn'
+                            : isNotEnrolled
                             ? 'Bạn chưa đăng ký khóa học này'
                             : 'Không tìm thấy khóa học hoặc có lỗi xảy ra'}
                     </p>
                     <Button onClick={() => navigate(`/courses/${courseId}`)}>
-                        Quay lại trang khóa học
+                        {isExpired ? 'Gia hạn hoặc mua lại khóa học' : 'Quay lại trang khóa học'}
                     </Button>
                 </div>
             </div>
@@ -771,9 +795,40 @@ export default function CoursePlayer() {
 
                 {/* Video/Content Player */}
                 <div className="flex-1 flex items-center justify-center bg-black">
+                    {!currentContent && (
+                        <Card className="max-w-md p-8 bg-white dark:bg-zinc-800 text-center">
+                            <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
+                            <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
+                                Chưa có bài preview
+                            </h2>
+                            <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                                Khóa học thử này chưa có bài nào được mở preview. Vui lòng mua khóa học để xem toàn bộ nội dung.
+                            </p>
+                            <Button onClick={() => navigate(`/courses/${courseId}`)} className="bg-red-600 hover:bg-red-700">
+                                Quay lại trang khóa học
+                            </Button>
+                        </Card>
+                    )}
                     {currentContent && (
                         <div className="w-full h-full">
-                            {currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
+                            {!canAccessContent(currentContent) && (
+                                <div className="w-full h-full flex items-center justify-center p-8">
+                                    <Card className="max-w-md p-8 bg-white dark:bg-zinc-800 text-center">
+                                        <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
+                                        <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
+                                            Bài học đang khóa
+                                        </h2>
+                                        <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                                            Tài khoản học thử chỉ xem được các bài được giảng viên hoặc quản trị viên mở preview.
+                                        </p>
+                                        <Button onClick={() => navigate(`/courses/${courseId}`)} className="bg-red-600 hover:bg-red-700">
+                                            Mua khóa học để xem tiếp
+                                        </Button>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {canAccessContent(currentContent) && currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
                                 <div className="w-full h-full flex flex-col">
                                     <div className="flex-1 flex items-center justify-center relative">
                                         {getYouTubeEmbedUrl(currentContent.videoUrl) ? (
@@ -902,7 +957,7 @@ export default function CoursePlayer() {
                                 </div>
                             )}
 
-                            {currentContent.contentType === 'DOCUMENT' && currentContent.documentUrl && (() => {
+                            {canAccessContent(currentContent) && currentContent.contentType === 'DOCUMENT' && currentContent.documentUrl && (() => {
                                 const docUrl = currentContent.documentUrl;
                                 const isPdf = docUrl.toLowerCase().endsWith('.pdf');
 
@@ -1023,7 +1078,7 @@ export default function CoursePlayer() {
                                 );
                             })()}
 
-                            {currentContent.contentType === 'QUIZ' && (
+                            {canAccessContent(currentContent) && currentContent.contentType === 'QUIZ' && (
                                 <div className="w-full h-full flex items-center justify-center p-8 overflow-y-auto">
                                     {/* Quiz Start Screen */}
                                     {!isQuizStarted && !quizResult && (
@@ -1207,61 +1262,80 @@ export default function CoursePlayer() {
                                 </div>
                             )}
 
-                            {/* EPIC 3: Practice Panel */}
-                            {currentContent.contentType === 'PRACTICE' && (
-                                <div className="w-full h-full flex flex-col bg-zinc-900 p-6 overflow-y-auto">
+                            {/* EPIC 7: Practice / Assignment split view */}
+                            {canAccessContent(currentContent) && (currentContent.contentType === 'PRACTICE' || currentContent.contentType === 'ASSIGNMENT') && (
+                                <div className="w-full h-full bg-zinc-900 p-4 overflow-y-auto">
                                     {practiceLoading ? (
                                         <div className="flex items-center justify-center h-full">
                                             <Loader2 className="w-8 h-8 animate-spin text-red-500" />
                                         </div>
                                     ) : practiceData ? (
-                                        <div className="flex flex-col gap-4 max-w-4xl mx-auto w-full">
-                                            <h2 className="text-xl font-bold text-white">{practiceData.title}</h2>
-                                            <p className="text-zinc-400 text-sm whitespace-pre-wrap">{practiceData.description}</p>
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-zinc-300 text-sm font-medium">
-                                                    Code ({practiceData.language})
-                                                </label>
-                                                <textarea
-                                                    className="w-full h-64 bg-zinc-800 text-zinc-100 font-mono text-sm rounded-lg border border-zinc-700 p-4 resize-y focus:outline-none focus:border-red-500"
-                                                    value={practiceCode}
-                                                    onChange={(e) => setPracticeCode(e.target.value)}
-                                                    placeholder="Viết code của bạn tại đây..."
-                                                    spellCheck={false}
-                                                />
-                                            </div>
-                                            {practiceResult && (
-                                                <div className={`p-4 rounded-lg border ${practiceResult.passed ? 'border-green-600 bg-green-900/20' : 'border-yellow-600 bg-yellow-900/20'}`}>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        {practiceResult.passed ? (
-                                                            <CheckCircle className="w-5 h-5 text-green-400" />
-                                                        ) : (
-                                                            <Circle className="w-5 h-5 text-yellow-400" />
-                                                        )}
-                                                        <span className={`font-bold ${practiceResult.passed ? 'text-green-400' : 'text-yellow-400'}`}>
-                                                            {practiceResult.passed ? 'Đạt' : 'Chưa đạt'} — {practiceResult.score}/100 điểm
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-zinc-300 text-sm whitespace-pre-wrap">{practiceResult.aiFeedback}</p>
-                                                </div>
-                                            )}
-                                            <div className="flex gap-3">
-                                                <Button
-                                                    onClick={submitPractice}
-                                                    disabled={practiceSubmitting || !practiceCode.trim()}
-                                                    className="bg-red-600 hover:bg-red-700"
-                                                >
-                                                    {practiceSubmitting ? (
-                                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang chấm bài...</>
-                                                    ) : (
-                                                        <><Send className="w-4 h-4 mr-2" />Nộp bài</>
-                                                    )}
-                                                </Button>
+                                        <div className="grid h-full min-h-[640px] gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                                            <div className="flex flex-col rounded-lg border border-zinc-700 bg-zinc-950 p-5">
+                                                <p className="mb-2 text-xs font-semibold uppercase text-red-400">
+                                                    {currentContent.contentType === 'ASSIGNMENT' ? 'Bài tập' : 'Bài thực hành'}
+                                                </p>
+                                                <h2 className="text-xl font-bold text-white">{practiceData.title}</h2>
+                                                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
+                                                    {practiceData.description}
+                                                </p>
                                                 {practiceResult && (
-                                                    <Button variant="outline" onClick={() => setPracticeResult(null)}>
-                                                        Làm lại
-                                                    </Button>
+                                                    <div className={`mt-5 rounded-lg border p-4 ${practiceResult.passed ? 'border-green-600 bg-green-900/20' : 'border-yellow-600 bg-yellow-900/20'}`}>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            {practiceResult.passed ? (
+                                                                <CheckCircle className="w-5 h-5 text-green-400" />
+                                                            ) : (
+                                                                <Circle className="w-5 h-5 text-yellow-400" />
+                                                            )}
+                                                            <span className={`font-bold ${practiceResult.passed ? 'text-green-400' : 'text-yellow-400'}`}>
+                                                                {practiceResult.passed ? 'Đạt' : 'Chưa đạt'} — {practiceResult.score}/100 điểm
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-zinc-300 text-sm whitespace-pre-wrap">{practiceResult.aiFeedback}</p>
+                                                    </div>
                                                 )}
+                                            </div>
+
+                                            <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950">
+                                                <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+                                                    <span className="text-sm font-medium text-zinc-200">
+                                                        Monaco Editor ({practiceData.language})
+                                                    </span>
+                                                    <span className="text-xs text-zinc-500">Feedback xuất hiện ngay sau khi nộp</span>
+                                                </div>
+                                                <div className="min-h-[420px] flex-1">
+                                                    <Editor
+                                                        height="100%"
+                                                        theme="vs-dark"
+                                                        language={practiceData.language}
+                                                        value={practiceCode}
+                                                        onChange={(value) => setPracticeCode(value ?? '')}
+                                                        options={{
+                                                            minimap: { enabled: false },
+                                                            fontSize: 14,
+                                                            wordWrap: 'on',
+                                                            automaticLayout: true,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex gap-3 border-t border-zinc-800 p-4">
+                                                    <Button
+                                                        onClick={submitPractice}
+                                                        disabled={practiceSubmitting || !practiceCode.trim()}
+                                                        className="bg-red-600 hover:bg-red-700"
+                                                    >
+                                                        {practiceSubmitting ? (
+                                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang chấm bài...</>
+                                                        ) : (
+                                                            <><Send className="w-4 h-4 mr-2" />Nộp bài</>
+                                                        )}
+                                                    </Button>
+                                                    {practiceResult && (
+                                                        <Button variant="outline" onClick={() => setPracticeResult(null)}>
+                                                            Làm lại
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ) : (
@@ -1322,25 +1396,40 @@ export default function CoursePlayer() {
                                     <div className="space-y-1">
                                         {module.contents.map((content) => {
                                             const isCompleted = completedContentIds.includes(content.contentId);
+                                            const isLocked = !canAccessContent(content);
                                             return (
                                                 <button
                                                     key={content.contentId}
-                                                    onClick={() => handleContentSelect(module.moduleId, content.contentId)}
+                                                    onClick={() => {
+                                                        if (!isLocked) {
+                                                            handleContentSelect(module.moduleId, content.contentId);
+                                                        }
+                                                    }}
+                                                    disabled={isLocked}
                                                     className={`w-full text-left px-4 py-2 rounded-lg flex items-center gap-3 transition-colors ${currentContentId === content.contentId
                                                         ? 'bg-red-600 text-white'
+                                                        : isLocked
+                                                            ? 'text-zinc-500 cursor-not-allowed opacity-70'
                                                         : isCompleted
                                                             ? 'text-green-400 hover:bg-zinc-700'
                                                             : 'text-zinc-300 hover:bg-zinc-700'
                                                         }`}
                                                 >
                                                     <div className={isCompleted ? 'text-green-400' : 'text-zinc-400'}>
-                                                        {isCompleted ? (
+                                                        {isLocked ? (
+                                                            <Lock className="h-4 w-4" />
+                                                        ) : isCompleted ? (
                                                             <CheckCircle className="h-4 w-4" />
                                                         ) : (
                                                             getContentIcon(content.contentType)
                                                         )}
                                                     </div>
                                                     <span className="flex-1 text-sm">{content.title}</span>
+                                                    {content.isFreePreview && (
+                                                        <span className="rounded-full bg-green-600/20 px-2 py-0.5 text-[10px] text-green-300">
+                                                            Preview
+                                                        </span>
+                                                    )}
                                                     {currentContentId === content.contentId && (
                                                         <PlayCircle className="h-4 w-4" />
                                                     )}

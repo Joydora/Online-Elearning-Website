@@ -13,14 +13,14 @@ const router = Router();
 router.post(
     '/courses/:id/syllabus/parse',
     isAuthenticated,
-    isAuthorized([Role.TEACHER]),
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
     upload.single('file'),
     parseSyllabusController,
 );
 router.post(
     '/courses/:id/syllabus/commit',
     isAuthenticated,
-    isAuthorized([Role.TEACHER]),
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
     commitSyllabusController,
 );
 

@@ -7,7 +7,7 @@ type Content = {
     contentId?: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;

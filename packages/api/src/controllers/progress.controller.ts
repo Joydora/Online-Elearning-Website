@@ -20,15 +20,29 @@ export async function markContentCompletedController(req: Request, res: Response
         const contentId = Number.parseInt(req.params.contentId, 10);
         if (Number.isNaN(contentId)) return res.status(400).json({ error: 'contentId must be a number' });
 
-        const { watchedSeconds } = req.body;
-        const result = await markContentCompleted(contentId, user.userId, watchedSeconds);
+        const { watchedSeconds } = (req.body ?? {}) as { watchedSeconds?: unknown };
+        const parsedWatchedSeconds =
+            watchedSeconds === undefined || watchedSeconds === null || watchedSeconds === ''
+                ? undefined
+                : Number(watchedSeconds);
+
+        if (parsedWatchedSeconds !== undefined && Number.isNaN(parsedWatchedSeconds)) {
+            return res.status(400).json({ error: 'watchedSeconds must be a number when provided' });
+        }
+
+        const result = await markContentCompleted(contentId, user.userId, parsedWatchedSeconds);
         return res.status(200).json(result);
     } catch (error) {
         const message = (error as Error).message;
         if (message === 'CONTENT_NOT_FOUND') return res.status(404).json({ error: 'Content not found' });
         if (message === 'NOT_ENROLLED') return res.status(403).json({ error: 'Not enrolled in this course' });
         if (message === 'ENROLLMENT_EXPIRED') return res.status(403).json({ error: 'Enrollment has expired' });
-        return res.status(500).json({ error: 'Unable to mark content as completed' });
+        if (message === 'CONTENT_LOCKED') return res.status(403).json({ error: 'Content is locked for trial enrollment' });
+        console.error('[progress] markContentCompleted failed:', error);
+        return res.status(500).json({
+            error: 'Unable to mark content as completed',
+            details: process.env.NODE_ENV !== 'production' ? message : undefined,
+        });
     }
 }
 

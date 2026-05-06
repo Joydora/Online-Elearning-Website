@@ -17,7 +17,7 @@ type Content = {
     contentId?: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
@@ -35,7 +35,7 @@ type Module = {
 type PreviewContent = {
     id: number;
     title: string;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string | null;
     documentUrl?: string | null;
 };
@@ -64,6 +64,10 @@ type CourseDetailType = {
     averageRating?: number;
     totalEnrollments?: number;
     createdAt: string;
+};
+
+type EnrollmentSummary = {
+    type: 'TRIAL' | 'PAID' | 'FREE';
 };
 
 export default function CourseDetail() {
@@ -95,7 +99,7 @@ export default function CourseDetail() {
     });
 
     // Check if user is enrolled
-    const { data: enrollment } = useQuery({
+    const { data: enrollment } = useQuery<EnrollmentSummary | null>({
         queryKey: ['enrollment', id],
         queryFn: async () => {
             try {
@@ -241,7 +245,7 @@ export default function CourseDetail() {
         const courseId = course?.courseId || course?.id;
         if (!courseId) return;
 
-        if (isEnrolled) {
+        if (hasFullEnrollment) {
             navigate(`/learning/${courseId}`);
             return;
         }
@@ -299,6 +303,8 @@ export default function CourseDetail() {
         acc + module.contents.reduce((sum, content) => sum + (content.durationInSeconds || 0), 0), 0
     );
 
+    const isTrialEnrollment = enrollment?.type === 'TRIAL';
+    const hasFullEnrollment = !!enrollment && !isTrialEnrollment;
     const isEnrolled = !!enrollment;
 
     return (
@@ -457,7 +463,7 @@ export default function CourseDetail() {
                                             className="w-full bg-white text-blue-600 hover:bg-blue-50 text-lg h-14"
                                         >
                                             <Play className="mr-2 h-5 w-5" />
-                                            Bắt đầu học
+                                            {isTrialEnrollment ? 'Tiếp tục học thử' : 'Bắt đầu học'}
                                         </Button>
                                     ) : (
                                         <>
@@ -543,7 +549,7 @@ export default function CourseDetail() {
 
                                     <ModuleAccordion
                                         modules={course.modules}
-                                        isEnrolled={isEnrolled}
+                                        isEnrolled={hasFullEnrollment}
                                         onContentClick={handleContentClick}
                                     />
                                     {previewLoadingId && (

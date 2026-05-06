@@ -245,6 +245,10 @@ export const router = createBrowserRouter([
                         element: <ManageProjects />,
                     },
                     {
+                        path: '/teacher/courses/:courseId/syllabus',
+                        element: <SyllabusImport />,
+                    },
+                    {
                         path: '/courses/:courseId/syllabus',
                         element: <SyllabusImport />,
                     },
@@ -284,6 +288,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/admin/courses/:id/manage',
                         element: <ManageCourse />,
+                    },
+                    {
+                        path: '/admin/courses/:courseId/syllabus',
+                        element: <SyllabusImport />,
                     },
                         {
                             path: '/admin/quiz/:contentId/manage',

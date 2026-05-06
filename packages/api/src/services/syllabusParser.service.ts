@@ -1,5 +1,6 @@
-import { ContentType, PrismaClient } from '@prisma/client';
+import { ContentType, PrismaClient, Role } from '@prisma/client';
 import { Ollama } from 'ollama';
+import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
 const ollama = new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' });
@@ -17,7 +18,7 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
     }
   ]
 }
-Valid lesson types are: VIDEO, DOCUMENT, QUIZ, PRACTICE.
+Valid lesson types are: VIDEO, DOCUMENT, QUIZ, PRACTICE, ASSIGNMENT.
 Extract all chapters/modules/units and their lessons/topics from the text.`;
 
 export type ParsedLesson = {
@@ -34,6 +35,21 @@ export type ParsedChapter = {
 export type ParsedSyllabus = {
     chapters: ParsedChapter[];
 };
+
+export async function assertCanManageSyllabusCourse(
+    courseId: number,
+    userId: number,
+    userRole?: Role | string,
+): Promise<void> {
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { teacherId: true },
+    });
+
+    if (!course || (userRole !== Role.ADMIN && course.teacherId !== userId)) {
+        throw new Error('FORBIDDEN');
+    }
+}
 
 export async function parseSyllabus(text: string): Promise<ParsedSyllabus> {
     const response = await ollama.chat({
@@ -57,11 +73,11 @@ export async function parseSyllabus(text: string): Promise<ParsedSyllabus> {
 
 export async function commitSyllabus(
     courseId: number,
-    teacherId: number,
+    userId: number,
     chapters: ParsedChapter[],
+    userRole?: Role | string,
 ) {
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
-    if (!course || course.teacherId !== teacherId) throw new Error('FORBIDDEN');
+    await assertCanManageSyllabusCourse(courseId, userId, userRole);
 
     // Create modules and contents in order
     const results = [];
@@ -75,7 +91,7 @@ export async function commitSyllabus(
         const lessons = Array.isArray(chapter.lessons) ? chapter.lessons : [];
         for (let j = 0; j < lessons.length; j++) {
             const lesson = lessons[j];
-            const validTypes: ContentType[] = ['VIDEO', 'DOCUMENT', 'QUIZ', 'PRACTICE'];
+            const validTypes: ContentType[] = ['VIDEO', 'DOCUMENT', 'QUIZ', 'PRACTICE', 'ASSIGNMENT'];
             const candidateType = (lesson.type || 'VIDEO').toString().toUpperCase() as ContentType;
             const contentType: ContentType = validTypes.includes(candidateType) ? candidateType : 'VIDEO';
             const content = await prisma.content.create({
@@ -90,5 +106,13 @@ export async function commitSyllabus(
         }
         results.push({ module: createdModule, contents });
     }
+
+    await prisma.course.update({
+        where: { id: courseId },
+        data: { syllabus: { chapters } },
+    });
+
+    await ragService.reingestCourseSyllabus(courseId);
+
     return results;
 }

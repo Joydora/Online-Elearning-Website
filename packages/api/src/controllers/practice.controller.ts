@@ -17,8 +17,42 @@ function auth(req: Request) {
 
 export async function getPracticeController(req: Request, res: Response): Promise<Response> {
     try {
+        const user = auth(req);
+        if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
         const contentId = Number(req.params.contentId);
         if (isNaN(contentId)) return res.status(400).json({ error: 'Invalid contentId' });
+
+        const content = await prisma.content.findUnique({
+            where: { id: contentId },
+            select: {
+                isFreePreview: true,
+                module: {
+                    select: {
+                        courseId: true,
+                        course: { select: { teacherId: true } },
+                    },
+                },
+            },
+        });
+
+        if (!content?.module) return res.status(404).json({ error: 'Practice not found' });
+
+        const canManage = user.role === 'ADMIN' || content.module.course.teacherId === user.userId;
+        if (!canManage) {
+            const enrollment = await prisma.enrollment.findUnique({
+                where: { studentId_courseId: { studentId: user.userId, courseId: content.module.courseId } },
+            });
+            const isExpired = enrollment?.expiresAt !== null && enrollment?.expiresAt !== undefined && enrollment.expiresAt.getTime() <= Date.now();
+
+            if (!enrollment || !enrollment.isActive || isExpired) {
+                return res.status(403).json({ error: 'Not enrolled in this course' });
+            }
+
+            if (enrollment.type === 'TRIAL' && !content.isFreePreview) {
+                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
+            }
+        }
 
         const practice = await getPracticeByContent(contentId);
         if (!practice) return res.status(404).json({ error: 'Practice not found' });
@@ -87,6 +121,8 @@ export async function submitPracticeController(req: Request, res: Response): Pro
         const msg = (error as Error).message;
         if (msg === 'PRACTICE_NOT_FOUND') return res.status(404).json({ error: 'Practice not found' });
         if (msg === 'NOT_ENROLLED') return res.status(403).json({ error: 'Not enrolled in this course' });
+        if (msg === 'ENROLLMENT_EXPIRED') return res.status(403).json({ error: 'Enrollment has expired' });
+        if (msg === 'CONTENT_LOCKED') return res.status(403).json({ error: 'Content is locked for trial enrollment' });
         return res.status(500).json({ error: 'Unable to submit practice' });
     }
 }

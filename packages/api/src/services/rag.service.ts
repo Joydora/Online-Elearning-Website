@@ -1,6 +1,6 @@
 import { Ollama } from 'ollama';
 import { vectorStoreService } from './vectorStore.service';
-import { PrismaClient, Role } from '@prisma/client';
+import { CourseStatus, PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -41,7 +41,7 @@ class RAGService {
     async assertCourseAccess(courseId: number, userId: number, role?: Role | string): Promise<void> {
         const course = await prisma.course.findUnique({
             where: { id: courseId },
-            select: { teacherId: true },
+            select: { teacherId: true, status: true },
         });
 
         if (!course) {
@@ -53,6 +53,10 @@ class RAGService {
         }
 
         if (role === Role.STUDENT) {
+            if (course.status !== CourseStatus.PUBLISHED) {
+                throw new Error('COURSE_FORBIDDEN');
+            }
+
             const enrollment = await prisma.enrollment.findUnique({
                 where: {
                     studentId_courseId: {
@@ -62,7 +66,11 @@ class RAGService {
                 },
             });
 
-            if (enrollment) {
+            const hasActiveAccess =
+                enrollment?.isActive === true &&
+                (enrollment.expiresAt === null || enrollment.expiresAt.getTime() > Date.now());
+
+            if (hasActiveAccess) {
                 return;
             }
         }
