@@ -88,31 +88,31 @@ export default function ManageCategories() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
                 <Button
                     variant="ghost"
                     onClick={() => navigate('/admin')}
-                    className="mb-4"
+                    className="mb-3 sm:mb-4"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Quay lại Dashboard
                 </Button>
 
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-5 sm:mb-8">
                     Quản lý Danh mục
                 </h1>
 
                 {/* Add Form */}
                 {!isAdding ? (
-                    <Card className="p-4 border-dashed border-2 mb-6">
+                    <Card className="p-3 sm:p-4 border-dashed border-2 mb-5 sm:mb-6">
                         <Button onClick={() => setIsAdding(true)} variant="ghost" className="w-full">
                             <Plus className="h-5 w-5 mr-2" />
                             Thêm danh mục mới
                         </Button>
                     </Card>
                 ) : (
-                    <Card className="p-4 mb-6">
-                        <div className="flex gap-2">
+                    <Card className="p-3 sm:p-4 mb-5 sm:mb-6">
+                        <div className="flex flex-col sm:flex-row gap-2">
                             <Input
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
@@ -126,16 +126,18 @@ export default function ManageCategories() {
                                 }}
                                 autoFocus
                             />
-                            <Button
-                                onClick={() => createMutation.mutate(newName)}
-                                disabled={!newName.trim() || createMutation.isPending}
-                                className="bg-red-600"
-                            >
-                                {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            </Button>
-                            <Button onClick={() => { setIsAdding(false); setNewName(''); }} variant="outline">
-                                <X className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => createMutation.mutate(newName)}
+                                    disabled={!newName.trim() || createMutation.isPending}
+                                    className="bg-red-600 flex-1 sm:flex-none"
+                                >
+                                    {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                </Button>
+                                <Button onClick={() => { setIsAdding(false); setNewName(''); }} variant="outline" className="flex-1 sm:flex-none">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </Card>
                 )}
@@ -152,9 +154,9 @@ export default function ManageCategories() {
                         </Card>
                     ) : (
                         categories.map((cat) => (
-                            <Card key={cat.id} className="p-4">
+                            <Card key={cat.id} className="p-3 sm:p-4">
                                 {editingId === cat.id ? (
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <Input
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
@@ -164,21 +166,23 @@ export default function ManageCategories() {
                                             }}
                                             autoFocus
                                         />
-                                        <Button
-                                            onClick={() => updateMutation.mutate({ id: cat.id, name: editName })}
-                                            disabled={!editName.trim() || updateMutation.isPending}
-                                            className="bg-blue-600"
-                                        >
-                                            {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                        </Button>
-                                        <Button onClick={() => setEditingId(null)} variant="outline">
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => updateMutation.mutate({ id: cat.id, name: editName })}
+                                                disabled={!editName.trim() || updateMutation.isPending}
+                                                className="bg-blue-600 flex-1 sm:flex-none"
+                                            >
+                                                {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                            </Button>
+                                            <Button onClick={() => setEditingId(null)} variant="outline" className="flex-1 sm:flex-none">
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-medium text-zinc-900 dark:text-white">{cat.name}</span>
-                                        <div className="flex gap-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="font-medium text-sm sm:text-base text-zinc-900 dark:text-white break-words min-w-0">{cat.name}</span>
+                                        <div className="flex gap-2 shrink-0">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"

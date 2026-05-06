@@ -78,6 +78,7 @@ model User {
   revenueLedgers     RevenueLedger[]    @relation("TeacherLedger")
   reviewedCourses    Course[]           @relation("CourseReviewer")
   certificates        Certificate[]
+  discussionPosts     DiscussionPost[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -118,6 +119,7 @@ model Course {
   revenueLedgers RevenueLedger[]
   projects       Project[]
   certificates   Certificate[]
+  discussionPosts DiscussionPost[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -438,4 +440,24 @@ model ProjectSubmission {
   @@unique([projectId, studentId])
   @@index([projectId])
   @@index([studentId])
+}
+
+model DiscussionPost {
+  id   Int    @id @default(autoincrement())
+  text String
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  parentId Int?
+  parent   DiscussionPost?  @relation("DiscussionReplies", fields: [parentId], references: [id])
+  replies  DiscussionPost[] @relation("DiscussionReplies")
+
+  createdAt DateTime @default(now())
+
+  @@index([courseId, createdAt])
+  @@index([parentId])
 }

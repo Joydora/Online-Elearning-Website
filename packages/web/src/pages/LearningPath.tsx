@@ -46,18 +46,18 @@ export default function LearningPath() {
     const fmt = (n: number) => n === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
     return (
-        <div className="container mx-auto px-4 py-12 max-w-4xl">
-            <div className="text-center mb-10">
+        <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 max-w-4xl">
+            <div className="text-center mb-8 sm:mb-10">
                 <div className="flex items-center justify-center gap-2 mb-3">
-                    <Sparkles className="w-7 h-7 text-red-600" />
-                    <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Lộ trình học tập AI</h1>
+                    <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
+                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Lộ trình học tập AI</h1>
                 </div>
-                <p className="text-zinc-500 dark:text-zinc-400">
+                <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400">
                     Mô tả mục tiêu của bạn và để AI đề xuất lộ trình phù hợp nhất
                 </p>
             </div>
 
-            <Card className="p-6 mb-8">
+            <Card className="p-4 sm:p-6 mb-6 sm:mb-8">
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -117,18 +117,18 @@ export default function LearningPath() {
                         {recommendMutation.data.map((course, index) => {
                         const teacherName = [course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || course.teacher.username;
                         return (
-                            <Card key={course.id} className="p-5 hover:shadow-md transition-shadow relative ml-0 md:ml-3">
-                                <div className="flex gap-4 items-start">
+                            <Card key={course.id} className="p-4 sm:p-5 hover:shadow-md transition-shadow relative ml-0 md:ml-3">
+                                <div className="flex gap-3 sm:gap-4 items-start">
                                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-sm relative z-10">
                                         {index + 1}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                                            <div>
-                                                <h3 className="font-semibold text-zinc-900 dark:text-white">{course.title}</h3>
+                                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <h3 className="font-semibold text-zinc-900 dark:text-white break-words">{course.title}</h3>
                                                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{teacherName}</p>
                                             </div>
-                                            <div className="text-right flex-shrink-0">
+                                            <div className="sm:text-right flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
                                                 <p className="font-bold text-red-600">{fmt(course.price)}</p>
                                                 {course.level && (
                                                     <span className="text-xs px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-600 dark:text-zinc-400">
@@ -143,7 +143,7 @@ export default function LearningPath() {
                                                 Yêu cầu trước: {course.prerequisites.length} khóa học
                                             </p>
                                         )}
-                                        <div className="flex items-center gap-4 mt-3">
+                                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3">
                                             {course.averageRating !== undefined && course.averageRating > 0 && (
                                                 <div className="flex items-center gap-1 text-sm text-zinc-500">
                                                     <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />

@@ -133,25 +133,25 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-lg shadow-xl max-w-2xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
+                    <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                         Thêm nội dung mới
                     </h2>
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={onClose}
-                        className="p-2"
+                        className="p-2 shrink-0"
                     >
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                     {/* Content Type */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -431,7 +431,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                                     className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 font-mono text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
                                 />
                             </div>
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                         Ngôn ngữ
@@ -476,7 +476,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-4">
                         <Button
                             type="button"
                             variant="outline"

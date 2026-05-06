@@ -66,16 +66,16 @@ export default function Home() {
                     <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-red-900/40 blur-3xl"></div>
                 </div>
 
-                <div className="relative container mx-auto px-4 py-20 md:py-28">
-                    <div className="max-w-4xl mx-auto text-center space-y-8">
+                <div className="relative container mx-auto px-4 sm:px-6 py-14 sm:py-20 md:py-28">
+                    <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8">
                         {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm text-white text-sm font-medium border border-white/20">
-                            <Sparkles className="h-4 w-4" />
+                        <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm text-white text-xs sm:text-sm font-medium border border-white/20">
+                            <Sparkles className="h-4 w-4 shrink-0" />
                             <span>Nền tảng học trực tuyến hàng đầu Việt Nam</span>
                         </div>
 
                         {/* Heading */}
-                        <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight">
+                        <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white leading-tight">
                             Khám phá tri thức
                             <span className="block text-red-100">
                                 không giới hạn
@@ -83,7 +83,7 @@ export default function Home() {
                         </h1>
 
                         {/* Description */}
-                        <p className="text-lg md:text-xl text-red-100 max-w-2xl mx-auto">
+                        <p className="text-base sm:text-lg md:text-xl text-red-100 max-w-2xl mx-auto px-2">
                             Hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu.
                             Học bất cứ lúc nào, bất cứ nơi đâu với E-Learning Platform.
                         </p>
@@ -91,18 +91,19 @@ export default function Home() {
                         {/* Search Bar */}
                         <div className="max-w-2xl mx-auto">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
+                                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                                 <Input
                                     type="text"
                                     placeholder="Tìm kiếm khóa học..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleKeyPress}
-                                    className="pl-12 pr-28 h-14 text-base bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-red-100/70 shadow-lg"
+                                    className="pl-10 sm:pl-12 pr-24 sm:pr-28 h-12 sm:h-14 text-sm sm:text-base bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-red-100/70 shadow-lg"
                                 />
                                 <Button
                                     onClick={handleSearch}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-red-700 hover:bg-red-50"
+                                    size="sm"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-red-700 hover:bg-red-50 sm:h-10"
                                 >
                                     Tìm kiếm
                                 </Button>
@@ -142,30 +143,30 @@ export default function Home() {
 
             {/* Categories Section */}
             {categories.length > 0 && (
-                <section className="py-16 bg-white dark:bg-zinc-950">
-                    <div className="container mx-auto px-4">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+                <section className="py-10 sm:py-16 bg-white dark:bg-zinc-950">
+                    <div className="container mx-auto px-4 sm:px-6">
+                        <div className="text-center mb-8 sm:mb-12">
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
                                 Danh mục phổ biến
                             </h2>
-                            <p className="text-zinc-600 dark:text-zinc-400">
+                            <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                                 Khám phá các chủ đề bạn quan tâm
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                             {categories.map((category) => (
                                 <Link
                                     key={category.id || category.categoryId}
                                     to={`/courses?category=${category.id || category.categoryId}`}
                                 >
                                     <Card
-                                        className="p-6 text-center hover:shadow-lg transition-all duration-200 cursor-pointer group border-zinc-200 dark:border-zinc-800 h-full"
+                                        className="p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-200 cursor-pointer group border-zinc-200 dark:border-zinc-800 h-full"
                                     >
-                                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
-                                            <BookOpen className="h-6 w-6 text-white" />
+                                        <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
+                                            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                                         </div>
-                                        <h3 className="font-semibold text-zinc-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors break-words">
                                             {category.name}
                                         </h3>
                                     </Card>
@@ -177,19 +178,19 @@ export default function Home() {
             )}
 
             {/* Featured Courses */}
-            <section className="py-16 bg-zinc-50 dark:bg-zinc-900">
-                <div className="container mx-auto px-4">
-                    <div className="flex items-center justify-between mb-12">
+            <section className="py-10 sm:py-16 bg-zinc-50 dark:bg-zinc-900">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-12">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                                 Khóa học nổi bật
                             </h2>
-                            <p className="text-zinc-600 dark:text-zinc-400">
+                            <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                                 Các khóa học được yêu thích nhất
                             </p>
                         </div>
-                        <Link to="/courses">
-                            <Button variant="outline" className="gap-2 hidden md:flex border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
+                        <Link to="/courses" className="self-start sm:self-auto">
+                            <Button variant="outline" className="gap-2 border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
                                 Xem tất cả
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
@@ -226,19 +227,19 @@ export default function Home() {
             </section>
 
             {/* Features Section */}
-            <section className="py-16 bg-white dark:bg-zinc-950">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+            <section className="py-10 sm:py-16 bg-white dark:bg-zinc-950">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <div className="text-center mb-8 sm:mb-12">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
                             Tại sao chọn chúng tôi?
                         </h2>
-                        <p className="text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                             Nền tảng học tập hiện đại với nhiều tính năng ưu việt
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <Card className="p-8 text-center hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-800 group">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                        <Card className="p-6 sm:p-8 text-center hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-800 group">
                             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
                                 <Target className="h-7 w-7 text-white" />
                             </div>
@@ -250,7 +251,7 @@ export default function Home() {
                             </p>
                         </Card>
 
-                        <Card className="p-8 text-center hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-800 group">
+                        <Card className="p-6 sm:p-8 text-center hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-800 group">
                             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
                                 <Zap className="h-7 w-7 text-white" />
                             </div>
@@ -262,7 +263,7 @@ export default function Home() {
                             </p>
                         </Card>
 
-                        <Card className="p-8 text-center hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-800 group">
+                        <Card className="p-6 sm:p-8 text-center hover:shadow-lg transition-all duration-200 border-zinc-200 dark:border-zinc-800 group">
                             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
                                 <Award className="h-7 w-7 text-white" />
                             </div>
@@ -278,15 +279,15 @@ export default function Home() {
             </section>
 
             {/* CTA Section */}
-            <section className="py-20 bg-gradient-to-br from-[#2b0000] via-[#6d0202] to-[#060606]">
-                <div className="container mx-auto px-4 text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <section className="py-12 sm:py-20 bg-gradient-to-br from-[#2b0000] via-[#6d0202] to-[#060606]">
+                <div className="container mx-auto px-4 sm:px-6 text-center">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">
                         Bắt đầu hành trình học tập ngay hôm nay
                     </h2>
-                    <p className="text-red-100 text-lg mb-8 max-w-2xl mx-auto">
+                    <p className="text-red-100 text-sm sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto">
                         Tham gia cùng hàng ngàn học viên đang học tập và phát triển kỹ năng mỗi ngày
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                         <Link to="/register">
                             <Button
                                 size="lg"

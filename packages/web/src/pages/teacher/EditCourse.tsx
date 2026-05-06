@@ -187,28 +187,28 @@ export default function EditCourse() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => navigate('/dashboard')}
-                        className="mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
+                        className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Quay lại Dashboard
                     </Button>
 
-                    <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                         Chỉnh sửa khóa học
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">
                         Cập nhật thông tin cho khóa học: <span className="font-semibold">{course.title}</span>
                     </p>
                 </div>
 
                 {/* Form Card */}
-                <Card className="p-6 md:p-8 border-zinc-200 dark:border-zinc-800">
+                <Card className="p-4 sm:p-6 md:p-8 border-zinc-200 dark:border-zinc-800">
                     <Form {...form}>
                         <form onSubmit={onSubmit} className="space-y-6">
                             {/* Title */}
@@ -358,7 +358,7 @@ export default function EditCourse() {
                                 )}
                             />
 
-                            <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <FormField
                                     control={form.control}
                                     name="trialDurationDays"
@@ -466,20 +466,20 @@ export default function EditCourse() {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-4 pt-4">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => navigate('/dashboard')}
                                     disabled={updateMutation.isPending}
-                                    className="flex-1 h-12 border-zinc-300 dark:border-zinc-700"
+                                    className="w-full sm:flex-1 h-12 border-zinc-300 dark:border-zinc-700"
                                 >
                                     Hủy
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={updateMutation.isPending}
-                                    className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white"
+                                    className="w-full sm:flex-1 h-12 bg-red-600 hover:bg-red-700 text-white"
                                 >
                                     {updateMutation.isPending ? (
                                         <>

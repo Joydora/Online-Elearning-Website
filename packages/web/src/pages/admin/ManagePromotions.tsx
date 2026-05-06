@@ -109,15 +109,15 @@ export default function ManagePromotions() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 py-8">
-            <div className="container mx-auto px-4 max-w-7xl">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 py-6 sm:py-8">
+            <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
                 {/* Header */}
-                <div className="mb-8 flex items-center justify-between">
+                <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-2">
                             Quản lý Mã khuyến mãi
                         </h1>
-                        <p className="text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                             Tạo và quản lý các mã khuyến mãi cho khóa học
                         </p>
                     </div>
@@ -126,7 +126,7 @@ export default function ManagePromotions() {
                             setEditingPromotion(null);
                             setIsAddModalOpen(true);
                         }}
-                        className="gap-2 bg-red-600 hover:bg-red-700"
+                        className="gap-2 bg-red-600 hover:bg-red-700 w-full sm:w-auto"
                     >
                         <Plus className="w-4 h-4" />
                         Tạo mã khuyến mãi
@@ -135,12 +135,12 @@ export default function ManagePromotions() {
 
                 {/* Promotions List */}
                 {promotions.length === 0 ? (
-                    <Card className="p-12 text-center">
-                        <Tag className="w-16 h-16 mx-auto mb-4 text-zinc-400" />
+                    <Card className="p-8 sm:p-12 text-center">
+                        <Tag className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 text-zinc-400" />
                         <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                             Chưa có mã khuyến mãi
                         </h3>
-                        <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+                        <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-4">
                             Tạo mã khuyến mãi đầu tiên để bắt đầu.
                         </p>
                         <Button
@@ -155,30 +155,30 @@ export default function ManagePromotions() {
                         </Button>
                     </Card>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {promotions.map((promotion) => (
                             <Card
                                 key={promotion.id}
-                                className={`p-6 border-2 ${isActive(promotion)
+                                className={`p-4 sm:p-6 border-2 ${isActive(promotion)
                                         ? 'border-green-500 dark:border-green-400 bg-green-50/50 dark:bg-green-950/20'
                                         : 'border-zinc-200 dark:border-zinc-800'
                                     }`}
                             >
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Tag className="w-5 h-5 text-red-600 dark:text-red-400" />
-                                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                            <Tag className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+                                            <h3 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white break-all">
                                                 {promotion.code}
                                             </h3>
                                             {isActive(promotion) ? (
-                                                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
                                             ) : (
-                                                <XCircle className="w-5 h-5 text-zinc-400" />
+                                                <XCircle className="w-5 h-5 text-zinc-400 shrink-0" />
                                             )}
                                         </div>
                                         {promotion.description && (
-                                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-2 break-words">
                                                 {promotion.description}
                                             </p>
                                         )}

@@ -45,6 +45,7 @@ import LearningPath from './pages/LearningPath';
 import Progress from './pages/learning/Progress';
 import Certificate from './pages/learning/Certificate';
 import Projects from './pages/learning/Projects';
+import Discussion from './pages/learning/Discussion';
 import ManageProjects from './pages/teacher/ManageProjects';
 import SyllabusImport from './pages/teacher/SyllabusImport';
 import TeacherEarnings from './pages/teacher/Earnings';
@@ -183,6 +184,10 @@ export const router = createBrowserRouter([
                         path: '/profile',
                         element: <Profile />,
                     },
+                    {
+                        path: '/courses/:courseId/discussions',
+                        element: <Discussion />,
+                    },
                 ],
             },
             {
@@ -203,6 +208,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/learning/:courseId/projects',
                         element: <Projects />,
+                    },
+                    {
+                        path: '/learning/:courseId/discussions',
+                        element: <Discussion />,
                     },
                     {
                         path: '/my-courses',

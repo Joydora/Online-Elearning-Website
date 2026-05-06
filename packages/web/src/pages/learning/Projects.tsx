@@ -68,21 +68,23 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
     const isPastDeadline = project.deadline && new Date(project.deadline) < new Date();
 
     return (
-        <Card className="p-6">
-            <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{project.title}</h3>
+        <Card className="p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                <div className="min-w-0">
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white break-words">{project.title}</h3>
                     {project.deadline && (
-                        <div className={`flex items-center gap-1 text-sm mt-1 ${isPastDeadline ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
-                            <Clock className="w-3.5 h-3.5" />
-                            Hạn nộp: {new Date(project.deadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            {isPastDeadline && ' (Đã hết hạn)'}
+                        <div className={`flex items-start gap-1 text-xs sm:text-sm mt-1 ${isPastDeadline ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                            <Clock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                            <span>
+                                Hạn nộp: {new Date(project.deadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {isPastDeadline && ' (Đã hết hạn)'}
+                            </span>
                         </div>
                     )}
                 </div>
                 {project.submission?.grade !== null && project.submission?.grade !== undefined && (
                     <div className="text-right flex-shrink-0">
-                        <p className={`text-2xl font-bold ${project.submission.grade >= 8 ? 'text-green-600' : project.submission.grade >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        <p className={`text-xl sm:text-2xl font-bold ${project.submission.grade >= 8 ? 'text-green-600' : project.submission.grade >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {project.submission.grade}/10
                         </p>
                         <p className="text-xs text-zinc-500">Điểm số</p>
@@ -116,7 +118,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
 
             {/* Submit form */}
             <div className="space-y-3">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                         <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                         <Input
@@ -129,7 +131,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                     <Button
                         onClick={() => submitMutation.mutate()}
                         disabled={submitMutation.isPending || !repoUrl.trim()}
-                        className="bg-red-600 hover:bg-red-700 gap-1"
+                        className="bg-red-600 hover:bg-red-700 gap-1 sm:shrink-0"
                     >
                         {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                         {project.submission ? 'Cập nhật' : 'Nộp bài'}
@@ -137,17 +139,19 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                 </div>
 
                 {project.submission && (
-                    <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        <span className="text-sm text-green-600 dark:text-green-400">
-                            Đã nộp lúc {new Date(project.submission.submittedAt).toLocaleString('vi-VN')}
-                        </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm text-green-600 dark:text-green-400 break-words">
+                                Đã nộp lúc {new Date(project.submission.submittedAt).toLocaleString('vi-VN')}
+                            </span>
+                        </div>
                         <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => refreshMutation.mutate()}
                             disabled={refreshMutation.isPending}
-                            className="ml-auto gap-1 text-xs"
+                            className="sm:ml-auto gap-1 text-xs"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
                             Làm mới commits
@@ -214,18 +218,18 @@ export default function Projects() {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6 flex items-center gap-2">
-                <Github className="w-6 h-6 text-red-600" />
+        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl">
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-5 sm:mb-6 flex items-center gap-2">
+                <Github className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 Dự án thực tế
             </h1>
 
             {!projects || projects.length === 0 ? (
-                <Card className="p-12 text-center text-zinc-500 dark:text-zinc-400">
+                <Card className="p-8 sm:p-12 text-center text-zinc-500 dark:text-zinc-400">
                     Chưa có dự án nào được giao cho khóa học này.
                 </Card>
             ) : (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                     {projects.map(p => <ProjectCard key={p.id} project={p} courseId={courseId!} />)}
                 </div>
             )}

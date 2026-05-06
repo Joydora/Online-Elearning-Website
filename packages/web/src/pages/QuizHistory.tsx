@@ -89,21 +89,21 @@ export default function QuizHistory() {
     }, {} as Record<number, { course: QuizAttempt['course']; attempts: QuizAttempt[] }>);
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-8 px-4">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-6 sm:py-8 px-4 sm:px-6">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-8">
-                    <Link to="/my-courses">
+                <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+                    <Link to="/my-courses" className="shrink-0">
                         <Button variant="ghost" size="icon">
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                     </Link>
-                    <div>
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white flex items-center gap-3">
-                            <Trophy className="h-8 w-8 text-yellow-500" />
-                            Lịch sử Quiz
+                    <div className="min-w-0">
+                        <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 sm:gap-3">
+                            <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 shrink-0" />
+                            <span className="truncate">Lịch sử Quiz</span>
                         </h1>
-                        <p className="text-zinc-600 dark:text-zinc-400 mt-1">
+                        <p className="text-xs sm:text-base text-zinc-600 dark:text-zinc-400 mt-1">
                             Xem lại kết quả các bài quiz đã làm
                         </p>
                     </div>
@@ -111,7 +111,7 @@ export default function QuizHistory() {
 
                 {/* Stats Summary */}
                 {attempts && attempts.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                         <Card className="p-4 bg-blue-500/10 border-blue-500/30">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-blue-500/20">
@@ -170,7 +170,7 @@ export default function QuizHistory() {
 
                 {/* Empty State */}
                 {(!attempts || attempts.length === 0) && (
-                    <Card className="p-12 text-center">
+                    <Card className="p-8 sm:p-12 text-center">
                         <BookOpen className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
                             Chưa có lịch sử quiz
@@ -188,54 +188,54 @@ export default function QuizHistory() {
 
                 {/* Quiz History by Course */}
                 {groupedByCourse && Object.values(groupedByCourse).map(({ course, attempts: courseAttempts }) => (
-                    <div key={course.id} className="mb-8">
-                        <div className="flex items-center gap-4 mb-4">
+                    <div key={course.id} className="mb-6 sm:mb-8">
+                        <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
                             {course.thumbnailUrl ? (
                                 <img
                                     src={course.thumbnailUrl}
                                     alt={course.title}
-                                    className="w-16 h-16 rounded-lg object-cover"
+                                    className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover shrink-0"
                                 />
                             ) : (
-                                <div className="w-16 h-16 rounded-lg bg-red-500/20 flex items-center justify-center">
-                                    <BookOpen className="h-8 w-8 text-red-500" />
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-red-500/20 flex items-center justify-center shrink-0">
+                                    <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
                                 </div>
                             )}
-                            <div>
+                            <div className="min-w-0">
                                 <Link to={`/learning/${course.id}`}>
-                                    <h2 className="text-xl font-semibold text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                                    <h2 className="text-base sm:text-xl font-semibold text-zinc-900 dark:text-white hover:text-red-600 dark:hover:text-red-400 transition-colors break-words">
                                         {course.title}
                                     </h2>
                                 </Link>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
                                     {courseAttempts.length} lần làm quiz
                                 </p>
                             </div>
                         </div>
 
-                        <div className="grid gap-4">
+                        <div className="grid gap-3 sm:gap-4">
                             {courseAttempts.map((attempt) => (
                                 <Card
                                     key={attempt.attemptId}
                                     className={`p-4 border ${getScoreBg(attempt.score)} hover:shadow-lg transition-shadow`}
                                 >
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-zinc-900 dark:text-white">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-zinc-900 dark:text-white break-words">
                                                 {attempt.quiz.title}
                                             </h3>
-                                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                            <p className="text-sm text-zinc-600 dark:text-zinc-400 break-words">
                                                 {attempt.quiz.moduleName}
                                             </p>
-                                            <div className="flex items-center gap-2 mt-2 text-sm text-zinc-500">
-                                                <Calendar className="h-4 w-4" />
+                                            <div className="flex items-center gap-2 mt-2 text-xs sm:text-sm text-zinc-500">
+                                                <Calendar className="h-4 w-4 shrink-0" />
                                                 <span>{formatDate(attempt.endTime)}</span>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-6">
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
                                             <div className="text-center">
-                                                <div className={`text-3xl font-bold ${getScoreColor(attempt.score)}`}>
+                                                <div className={`text-2xl sm:text-3xl font-bold ${getScoreColor(attempt.score)}`}>
                                                     {attempt.score}%
                                                 </div>
                                                 <p className="text-xs text-zinc-500">Điểm số</p>

@@ -258,30 +258,30 @@ export default function SyllabusImport() {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-8">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-4 sm:p-6 lg:p-8">
             <div className="container mx-auto max-w-5xl">
                 <Button
                     variant="ghost"
                     onClick={() => navigate(managePath)}
-                    className="mb-4"
+                    className="mb-3 sm:mb-4"
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Quay lại quản lý khoá học
                 </Button>
 
-                <div className="flex items-center gap-3 mb-2">
-                    <Sparkles className="h-7 w-7 text-red-600" />
-                    <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-red-600 shrink-0" />
+                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                         Tạo cấu trúc khoá học bằng AI
                     </h1>
                 </div>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-5 sm:mb-6">
                     Dán đề cương hoặc tải tệp PDF/DOCX/MD/TXT. AI sẽ trích xuất các chương và bài học.
                     Bạn có thể chỉnh sửa, sắp xếp lại trước khi lưu.
                 </p>
 
                 {/* Input mode tabs */}
-                <Card className="p-6 mb-6">
+                <Card className="p-4 sm:p-6 mb-5 sm:mb-6">
                     <div className="flex gap-2 mb-4 border-b border-zinc-200 dark:border-zinc-800">
                         <button
                             type="button"
@@ -348,7 +348,7 @@ export default function SyllabusImport() {
                         <Button
                             onClick={handleParse}
                             disabled={parseMutation.isPending}
-                            className="gap-2 bg-red-600 hover:bg-red-700 text-white"
+                            className="gap-2 bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                         >
                             {parseMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -362,15 +362,15 @@ export default function SyllabusImport() {
 
                 {/* Parsed structure */}
                 {chapters.length > 0 && (
-                    <Card className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+                    <Card className="p-4 sm:p-6">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                            <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white">
                                 Cấu trúc đã trích xuất ({chapters.length} chương)
                             </h2>
                             <Button
                                 onClick={handleCommit}
                                 disabled={commitMutation.isPending}
-                                className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                                className="gap-2 bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                             >
                                 {commitMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -399,10 +399,10 @@ export default function SyllabusImport() {
                                         }
                                     }}
                                     onDragEnd={() => setDraggedChapterIndex(null)}
-                                    className="rounded-md border border-zinc-200 dark:border-zinc-700 p-4 bg-white dark:bg-zinc-800"
+                                    className="rounded-md border border-zinc-200 dark:border-zinc-700 p-3 sm:p-4 bg-white dark:bg-zinc-800"
                                 >
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 w-12">
+                                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                                        <span className="text-xs sm:text-sm font-semibold text-zinc-500 dark:text-zinc-400 shrink-0">
                                             Ch. {ci + 1}
                                         </span>
                                         <Input
@@ -411,35 +411,37 @@ export default function SyllabusImport() {
                                                 updateChapterTitle(ci, e.target.value)
                                             }
                                             placeholder="Tên chương"
-                                            className="flex-1"
+                                            className="flex-1 min-w-[160px]"
                                         />
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => moveChapter(ci, -1)}
-                                            disabled={ci === 0}
-                                        >
-                                            <ChevronUp className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => moveChapter(ci, 1)}
-                                            disabled={ci === chapters.length - 1}
-                                        >
-                                            <ChevronDown className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeChapter(ci)}
-                                            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-1 ml-auto">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => moveChapter(ci, -1)}
+                                                disabled={ci === 0}
+                                            >
+                                                <ChevronUp className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => moveChapter(ci, 1)}
+                                                disabled={ci === chapters.length - 1}
+                                            >
+                                                <ChevronDown className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeChapter(ci)}
+                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
 
-                                    <div className="ml-12 space-y-2">
+                                    <div className="sm:ml-12 space-y-2">
                                         {chapter.lessons.map((lesson, li) => (
                                             <div
                                                 key={li}
@@ -458,9 +460,9 @@ export default function SyllabusImport() {
                                                     }
                                                 }}
                                                 onDragEnd={() => setDraggedLesson(null)}
-                                                className="flex items-center gap-2 rounded-md border border-zinc-200 dark:border-zinc-700 p-2 bg-zinc-50 dark:bg-zinc-900"
+                                                className="flex flex-wrap items-center gap-2 rounded-md border border-zinc-200 dark:border-zinc-700 p-2 bg-zinc-50 dark:bg-zinc-900"
                                             >
-                                                <span className="text-xs font-mono text-zinc-500 w-12">
+                                                <span className="text-xs font-mono text-zinc-500 shrink-0">
                                                     {ci + 1}.{li + 1}
                                                 </span>
                                                 <Input
@@ -471,7 +473,7 @@ export default function SyllabusImport() {
                                                         })
                                                     }
                                                     placeholder="Tên bài học"
-                                                    className="flex-1"
+                                                    className="flex-1 min-w-[140px]"
                                                 />
                                                 <select
                                                     value={lesson.type}
@@ -480,7 +482,7 @@ export default function SyllabusImport() {
                                                             type: e.target.value as LessonType,
                                                         })
                                                     }
-                                                    className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                                                    className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-xs sm:text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                                                 >
                                                     {LESSON_TYPES.map((t) => (
                                                         <option key={t} value={t}>
@@ -488,30 +490,32 @@ export default function SyllabusImport() {
                                                         </option>
                                                     ))}
                                                 </select>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => moveLesson(ci, li, -1)}
-                                                    disabled={li === 0}
-                                                >
-                                                    <ChevronUp className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => moveLesson(ci, li, 1)}
-                                                    disabled={li === chapter.lessons.length - 1}
-                                                >
-                                                    <ChevronDown className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => removeLesson(ci, li)}
-                                                    className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex items-center gap-1 ml-auto">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => moveLesson(ci, li, -1)}
+                                                        disabled={li === 0}
+                                                    >
+                                                        <ChevronUp className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => moveLesson(ci, li, 1)}
+                                                        disabled={li === chapter.lessons.length - 1}
+                                                    >
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => removeLesson(ci, li)}
+                                                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))}
                                         <Button

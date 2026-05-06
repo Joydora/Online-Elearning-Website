@@ -128,14 +128,14 @@ export default function AdminEditCourse() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-8">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-4 sm:p-6 lg:p-8">
             <div className="container mx-auto max-w-3xl">
-                <Button variant="ghost" onClick={() => navigate('/admin/courses')} className="mb-4">
+                <Button variant="ghost" onClick={() => navigate('/admin/courses')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Quay lại
                 </Button>
-                <Card className="p-6">
-                    <h1 className="text-2xl font-bold mb-6">Chỉnh sửa khóa học</h1>
+                <Card className="p-4 sm:p-6">
+                    <h1 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6">Chỉnh sửa khóa học</h1>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium mb-2">Tên khóa học</label>
@@ -175,7 +175,7 @@ export default function AdminEditCourse() {
                             />
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label className="block text-sm font-medium mb-2">Số ngày học thử</label>
                                 <input
@@ -278,11 +278,11 @@ export default function AdminEditCourse() {
                             )}
                         </div>
 
-                        <div className="flex gap-3 pt-4">
+                        <div className="flex flex-col sm:flex-row gap-3 pt-4">
                             <Button
                                 type="submit"
                                 disabled={updateMutation.isPending}
-                                className="bg-red-600 hover:bg-red-700 text-white"
+                                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                             >
                                 {updateMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
                             </Button>
@@ -290,6 +290,7 @@ export default function AdminEditCourse() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => navigate('/admin/courses')}
+                                className="w-full sm:w-auto"
                             >
                                 Hủy
                             </Button>

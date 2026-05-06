@@ -139,20 +139,20 @@ export default function AdminRevenue() {
     const fmt = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <DollarSign className="w-6 h-6 text-red-600" />
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" />
                     Quản lý doanh thu
                 </h1>
-                <Button onClick={handleExport} variant="outline" className="gap-2">
+                <Button onClick={handleExport} variant="outline" className="gap-2 w-full sm:w-auto">
                     <Download className="w-4 h-4" />
                     Xuất CSV
                 </Button>
             </div>
 
-            <Card className="p-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <Card className="p-3 sm:p-4 mb-5 sm:mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                     <select
                         value={teacherId}
                         onChange={(e) => { setTeacherId(e.target.value); setSelectedIds([]); }}
@@ -201,47 +201,51 @@ export default function AdminRevenue() {
 
             {/* Summary cards */}
             {data?.summary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
                     {[
                         { label: 'Doanh thu nền tảng', value: data.summary.platformFee, color: 'text-blue-600' },
                         { label: 'Phần GV', value: data.summary.teacherShare, color: 'text-green-600' },
                         { label: 'Tổng doanh thu', value: data.summary.grossAmount, color: 'text-yellow-600' },
                     ].map(({ label, value, color }) => (
-                        <Card key={label} className="p-5">
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
-                            <p className={`text-2xl font-bold ${color} mt-1`}>{fmt(value)}</p>
+                        <Card key={label} className="p-4 sm:p-5">
+                            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
+                            <p className={`text-lg sm:text-2xl font-bold ${color} mt-1 break-all`}>{fmt(value)}</p>
                         </Card>
                     ))}
                 </div>
             )}
 
             {/* Filters + bulk action */}
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
-                {(['ALL', 'HELD', 'PAID'] as const).map(s => (
-                    <button
-                        key={s}
-                        onClick={() => { setStatusFilter(s); setSelectedIds([]); }}
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${statusFilter === s ? 'bg-red-600 text-white border-red-600' : 'border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-                    >
-                        {s === 'ALL' ? 'Tất cả' : s === 'HELD' ? 'Đang giữ' : 'Đã TT'}
-                    </button>
-                ))}
-                {selectedIds.length > 0 && (
-                    <Button
-                        size="sm"
-                        onClick={() => payoutMutation.mutate(selectedIds)}
-                        disabled={payoutMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700 ml-auto gap-2"
-                    >
-                        <CheckSquare className="w-4 h-4" />
-                        Đánh dấu TT ({selectedIds.length})
-                    </Button>
-                )}
-                {(data?.rows ?? []).some(e => e.payoutStatus === 'HELD') && (
-                    <button onClick={selectAllHeld} className="text-sm text-red-600 hover:underline ml-auto">
-                        {selectedIds.length > 0 ? 'Bỏ chọn tất cả' : 'Chọn tất cả HELD'}
-                    </button>
-                )}
+            <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
+                    {(['ALL', 'HELD', 'PAID'] as const).map(s => (
+                        <button
+                            key={s}
+                            onClick={() => { setStatusFilter(s); setSelectedIds([]); }}
+                            className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-colors ${statusFilter === s ? 'bg-red-600 text-white border-red-600' : 'border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                        >
+                            {s === 'ALL' ? 'Tất cả' : s === 'HELD' ? 'Đang giữ' : 'Đã TT'}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
+                    {selectedIds.length > 0 && (
+                        <Button
+                            size="sm"
+                            onClick={() => payoutMutation.mutate(selectedIds)}
+                            disabled={payoutMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700 gap-2"
+                        >
+                            <CheckSquare className="w-4 h-4" />
+                            Đánh dấu TT ({selectedIds.length})
+                        </Button>
+                    )}
+                    {(data?.rows ?? []).some(e => e.payoutStatus === 'HELD') && (
+                        <button onClick={selectAllHeld} className="text-xs sm:text-sm text-red-600 hover:underline">
+                            {selectedIds.length > 0 ? 'Bỏ chọn tất cả' : 'Chọn tất cả HELD'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Table */}

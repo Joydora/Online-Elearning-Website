@@ -66,19 +66,19 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-lg p-6">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <Card className="w-full max-w-lg p-4 sm:p-6 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+                <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4 break-words">
                     Đánh giá: {submission.student.firstName || submission.student.username}
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                             Repo URL
                         </label>
                         <a href={submission.repoUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-sm text-red-600 hover:underline flex items-center gap-1">
-                            {submission.repoUrl} <ExternalLink className="w-3 h-3" />
+                            className="text-xs sm:text-sm text-red-600 hover:underline flex items-center gap-1 break-all">
+                            {submission.repoUrl} <ExternalLink className="w-3 h-3 shrink-0" />
                         </a>
                     </div>
                     {submission.commitHistory.length > 0 && (
@@ -122,9 +122,9 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
                             placeholder="Nhận xét cho sinh viên..."
                         />
                     </div>
-                    <div className="flex gap-3 justify-end">
-                        <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-                        <Button onClick={save} disabled={saving} className="bg-red-600 hover:bg-red-700 gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                        <Button variant="outline" onClick={onClose} disabled={saving} className="w-full sm:w-auto">Hủy</Button>
+                        <Button onClick={save} disabled={saving} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             Lưu đánh giá
                         </Button>
@@ -219,13 +219,13 @@ export default function ManageProjects() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-5xl">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Github className="w-6 h-6 text-red-600" />
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <Github className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" />
                     Quản lý dự án
                 </h1>
-                <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-red-600 hover:bg-red-700 gap-2">
+                <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
                     <Plus className="w-4 h-4" />
                     Thêm dự án
                 </Button>
@@ -233,7 +233,7 @@ export default function ManageProjects() {
 
             {/* Form */}
             {showForm && (
-                <Card className="p-6 mb-6">
+                <Card className="p-4 sm:p-6 mb-5 sm:mb-6">
                     <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
                         {editingProject ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
                     </h2>
@@ -264,12 +264,12 @@ export default function ManageProjects() {
                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Hạn nộp (tùy chọn)</label>
                             <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
                         </div>
-                        <div className="flex gap-3 justify-end">
-                            <Button variant="outline" onClick={resetForm} disabled={saveMutation.isPending}>Hủy</Button>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                            <Button variant="outline" onClick={resetForm} disabled={saveMutation.isPending} className="w-full sm:w-auto">Hủy</Button>
                             <Button
                                 onClick={() => saveMutation.mutate()}
                                 disabled={saveMutation.isPending || !form.title || !form.description || !form.requirements}
-                                className="bg-red-600 hover:bg-red-700 gap-2"
+                                className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto"
                             >
                                 {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {editingProject ? 'Cập nhật' : 'Tạo dự án'}
@@ -285,22 +285,22 @@ export default function ManageProjects() {
             ) : (projects ?? []).length === 0 ? (
                 <Card className="p-12 text-center text-zinc-500">Chưa có dự án nào. Hãy tạo dự án đầu tiên!</Card>
             ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                     {(projects ?? []).map(project => (
                         <Card key={project.id} className="overflow-hidden">
-                            <div className="p-5">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-zinc-900 dark:text-white">{project.title}</h3>
-                                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{project.description}</p>
-                                        <div className="flex items-center gap-4 mt-2 text-xs text-zinc-400">
+                            <div className="p-4 sm:p-5">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white break-words">{project.title}</h3>
+                                        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 break-words">{project.description}</p>
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-400">
                                             <span>{project._count?.submissions ?? 0} bài nộp</span>
                                             {project.deadline && (
                                                 <span>Hạn: {new Date(project.deadline).toLocaleDateString('vi-VN')}</span>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                                         <Button size="sm" variant="ghost" onClick={() => openEdit(project)} className="gap-1">
                                             <Pencil className="w-3.5 h-3.5" />
                                         </Button>
@@ -321,7 +321,7 @@ export default function ManageProjects() {
                             </div>
 
                             {expandedProject === project.id && (
-                                <div className="border-t border-zinc-100 dark:border-zinc-800 p-5">
+                                <div className="border-t border-zinc-100 dark:border-zinc-800 p-4 sm:p-5">
                                     {!submissions ? (
                                         <div className="text-center py-4 text-zinc-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
                                     ) : submissions.length === 0 ? (
@@ -331,32 +331,34 @@ export default function ManageProjects() {
                                             {submissions.map(sub => {
                                                 const name = [sub.student.firstName, sub.student.lastName].filter(Boolean).join(' ') || sub.student.username;
                                                 return (
-                                                    <div key={sub.id} className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+                                                    <div key={sub.id} className="flex flex-col gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg sm:flex-row sm:items-center">
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-zinc-900 dark:text-white">{name}</p>
-                                                            <p className="text-xs text-zinc-500">{sub.student.email}</p>
-                                                            <a href={sub.repoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-red-600 hover:underline flex items-center gap-1 mt-1">
-                                                                <Github className="w-3 h-3" />
+                                                            <p className="text-sm font-medium text-zinc-900 dark:text-white break-words">{name}</p>
+                                                            <p className="text-xs text-zinc-500 break-all">{sub.student.email}</p>
+                                                            <a href={sub.repoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-red-600 hover:underline flex items-center gap-1 mt-1 break-all">
+                                                                <Github className="w-3 h-3 shrink-0" />
                                                                 {sub.repoUrl}
                                                             </a>
                                                         </div>
-                                                        <div className="text-right flex-shrink-0">
-                                                            {sub.grade !== null ? (
-                                                                <p className={`font-bold text-lg ${sub.grade >= 8 ? 'text-green-600' : sub.grade >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                                    {sub.grade}/10
-                                                                </p>
-                                                            ) : (
-                                                                <p className="text-xs text-zinc-400">Chưa chấm</p>
-                                                            )}
+                                                        <div className="flex items-center justify-between gap-3 sm:flex-shrink-0">
+                                                            <div className="sm:text-right">
+                                                                {sub.grade !== null ? (
+                                                                    <p className={`font-bold text-base sm:text-lg ${sub.grade >= 8 ? 'text-green-600' : sub.grade >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                                        {sub.grade}/10
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-xs text-zinc-400">Chưa chấm</p>
+                                                                )}
+                                                            </div>
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => setGradingSubmission(sub)}
+                                                                className="bg-red-600 hover:bg-red-700 gap-1 flex-shrink-0"
+                                                            >
+                                                                <Star className="w-3.5 h-3.5" />
+                                                                Chấm điểm
+                                                            </Button>
                                                         </div>
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => setGradingSubmission(sub)}
-                                                            className="bg-red-600 hover:bg-red-700 gap-1 flex-shrink-0"
-                                                        >
-                                                            <Star className="w-3.5 h-3.5" />
-                                                            Chấm điểm
-                                                        </Button>
                                                     </div>
                                                 );
                                             })}

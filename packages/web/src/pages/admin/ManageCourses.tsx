@@ -65,82 +65,82 @@ export default function ManageCourses() {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-8">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-4 sm:p-6 lg:p-8">
             <div className="container mx-auto max-w-6xl">
-                <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-4">
+                <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Quay lại
                 </Button>
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Quản lý Khóa học</h1>
-                    <div className="flex gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-5 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Quản lý Khóa học</h1>
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                             onClick={() => navigate('/admin/courses/review')}
                             variant="outline"
-                            className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                            className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30 w-full sm:w-auto"
                         >
                             <ClipboardCheck className="mr-2 h-4 w-4" />
                             Duyệt khóa học
                         </Button>
                         <Button
                             onClick={() => navigate('/admin/courses/create')}
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                         >
                             <Plus className="mr-2 h-4 w-4" />
                             Tạo khóa học mới
                         </Button>
                     </div>
                 </div>
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                     {courses.map((course: any) => (
-                        <Card key={course.id} className="p-6">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-bold text-lg">{course.title}</h3>
+                        <Card key={course.id} className="p-4 sm:p-6">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-start gap-2 mb-1 flex-wrap">
+                                        <h3 className="font-bold text-base sm:text-lg break-words min-w-0">{course.title}</h3>
                                         {course.status && (
                                             <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[course.status as CourseStatus]}`}>
                                                 {STATUS_LABELS[course.status as CourseStatus] ?? course.status}
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                        Giảng viên: {course.teacher?.firstName} {course.teacher?.lastName} |
-                                        Danh mục: {course.category?.name} |
+                                    <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 break-words">
+                                        Giảng viên: {course.teacher?.firstName} {course.teacher?.lastName} •{' '}
+                                        Danh mục: {course.category?.name} •{' '}
                                         Enrollments: {course._count?.enrollments}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="text-right mr-4">
-                                        <p className="font-bold text-red-600">
-                                            {course.price === 0 ? 'Miễn phí' : `${course.price.toLocaleString()} VND`}
-                                        </p>
+                                <div className="flex items-center justify-between gap-2 sm:gap-3 lg:justify-end">
+                                    <p className="font-bold text-red-600 text-sm sm:text-base">
+                                        {course.price === 0 ? 'Miễn phí' : `${course.price.toLocaleString()} VND`}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => navigate(`/admin/courses/${course.id}/manage`)}
+                                            title="Quản lý nội dung"
+                                        >
+                                            <FolderOpen className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => navigate(`/admin/courses/${course.id}/edit`)}
+                                            title="Sửa"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => handleDelete(course.id, course.title)}
+                                            disabled={deleteMutation.isPending}
+                                            title="Xóa"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => navigate(`/admin/courses/${course.id}/manage`)}
-                                        title="Quản lý nội dung"
-                                    >
-                                        <FolderOpen className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => navigate(`/admin/courses/${course.id}/edit`)}
-                                        title="Sửa"
-                                    >
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => handleDelete(course.id, course.title)}
-                                        disabled={deleteMutation.isPending}
-                                        title="Xóa"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </div>
                         </Card>

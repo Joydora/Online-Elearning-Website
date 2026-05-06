@@ -64,28 +64,28 @@ export default function Contact() {
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
             {/* Hero */}
-            <section className="py-16 bg-red-600">
-                <div className="container mx-auto px-4 text-center text-white">
-                    <MessageSquare className="h-16 w-16 mx-auto mb-6 opacity-80" />
-                    <h1 className="text-4xl md:text-5xl font-bold mb-4">Liên hệ với chúng tôi</h1>
-                    <p className="text-xl text-red-100 max-w-2xl mx-auto">
+            <section className="py-12 sm:py-16 bg-red-600">
+                <div className="container mx-auto px-4 sm:px-6 text-center text-white">
+                    <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 sm:mb-6 opacity-80" />
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Liên hệ với chúng tôi</h1>
+                    <p className="text-base sm:text-xl text-red-100 max-w-2xl mx-auto">
                         Bạn có câu hỏi hoặc cần hỗ trợ? Đội ngũ của chúng tôi luôn sẵn sàng giúp đỡ bạn.
                     </p>
                 </div>
             </section>
 
             {/* Contact Info Cards */}
-            <section className="py-12 -mt-8 relative z-10">
-                <div className="container mx-auto px-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+            <section className="py-8 sm:py-12 -mt-6 sm:-mt-8 relative z-10">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
                         {contactInfo.map((info) => (
-                            <Card key={info.title} className="p-6 text-center bg-white dark:bg-zinc-900 shadow-lg hover:shadow-xl transition-shadow">
-                                <div className="w-12 h-12 mx-auto mb-4 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                    <info.icon className="h-6 w-6 text-red-600 dark:text-red-400" />
+                            <Card key={info.title} className="p-4 sm:p-6 text-center bg-white dark:bg-zinc-900 shadow-lg hover:shadow-xl transition-shadow">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                    <info.icon className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                                 </div>
-                                <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">{info.title}</h3>
-                                <p className="text-red-600 dark:text-red-400 font-medium">{info.content}</p>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{info.description}</p>
+                                <h3 className="font-semibold text-zinc-900 dark:text-white mb-1 text-sm sm:text-base">{info.title}</h3>
+                                <p className="text-red-600 dark:text-red-400 font-medium text-sm sm:text-base break-words">{info.content}</p>
+                                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">{info.description}</p>
                             </Card>
                         ))}
                     </div>
@@ -93,16 +93,16 @@ export default function Contact() {
             </section>
 
             {/* Contact Form & Map */}
-            <section className="py-16">
-                <div className="container mx-auto px-4">
-                    <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+            <section className="py-10 sm:py-16">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
                         {/* Form */}
-                        <Card className="p-8">
-                            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">
+                        <Card className="p-5 sm:p-8">
+                            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
                                 Gửi tin nhắn cho chúng tôi
                             </h2>
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid md:grid-cols-2 gap-4">
+                            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+                                <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                             Họ và tên
@@ -187,11 +187,11 @@ export default function Contact() {
                                     title="Vị trí văn phòng"
                                 />
                             </Card>
-                            <Card className="p-6 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800">
+                            <Card className="p-5 sm:p-6 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800">
                                 <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                                     Cần hỗ trợ gấp?
                                 </h3>
-                                <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+                                <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-3 sm:mb-4">
                                     Gọi ngay hotline để được hỗ trợ nhanh nhất
                                 </p>
                                 <a href="tel:19001234">

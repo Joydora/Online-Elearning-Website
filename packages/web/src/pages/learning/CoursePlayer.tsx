@@ -3,7 +3,7 @@ import type { SyntheticEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine, Lock } from 'lucide-react';
+import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine, Lock, MessageCircle } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -182,7 +182,12 @@ export default function CoursePlayer() {
 
     const [currentModuleId, setCurrentModuleId] = useState<number | null>(null);
     const [currentContentId, setCurrentContentId] = useState<number | null>(null);
-    const [showSidebar, setShowSidebar] = useState(true);
+    const [showSidebar, setShowSidebar] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return window.matchMedia('(min-width: 1024px)').matches;
+        }
+        return true;
+    });
     const [completedContentIds, setCompletedContentIds] = useState<number[]>([]);
     const [currentProgress, setCurrentProgress] = useState(0);
     const [documentReadTime, setDocumentReadTime] = useState(0);
@@ -732,12 +737,12 @@ export default function CoursePlayer() {
     })();
 
     return (
-        <div className="flex h-screen bg-zinc-900">
+        <div className="flex flex-col lg:flex-row min-h-screen lg:h-screen bg-zinc-900">
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 {/* Expiry Banner (EPIC 2) */}
                 {expiryBanner && (
-                    <div className={`${expiryBanner.color} text-white text-center text-sm py-2 px-4 flex items-center justify-center gap-2`}>
+                    <div className={`${expiryBanner.color} text-white text-center text-xs sm:text-sm py-2 px-3 sm:px-4 flex flex-wrap items-center justify-center gap-2`}>
                         <span>{expiryBanner.text}</span>
                         {expiryBanner.daysLeft > 0 && (
                             <a href={`/courses/${courseId}`} className="underline font-semibold hover:opacity-80">
@@ -747,27 +752,27 @@ export default function CoursePlayer() {
                     </div>
                 )}
                 {/* Top Bar */}
-                <div className="bg-zinc-800 border-b border-zinc-700 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                <div className="bg-zinc-800 border-b border-zinc-700 px-3 sm:px-6 py-3 sm:py-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowSidebar(!showSidebar)}
-                                className="text-zinc-300 hover:text-white"
+                                className="text-zinc-300 hover:text-white shrink-0"
                             >
                                 <Menu className="h-5 w-5" />
                             </Button>
-                            <div>
-                                <h1 className="text-lg font-semibold text-white">
+                            <div className="min-w-0">
+                                <h1 className="text-base sm:text-lg font-semibold text-white truncate">
                                     {course.title}
                                 </h1>
-                                <p className="text-sm text-zinc-400">
+                                <p className="text-xs sm:text-sm text-zinc-400 truncate">
                                     {currentModule?.title}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <Link to={`/learning/${courseId}/progress`}>
                                 <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
                                     <BarChart2 className="h-4 w-4" />
@@ -780,10 +785,16 @@ export default function CoursePlayer() {
                                     Dự án
                                 </Button>
                             </Link>
-                            <span className="text-sm text-zinc-400">
+                            <Link to={`/learning/${courseId}/discussions`}>
+                                <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
+                                    <MessageCircle className="h-4 w-4" />
+                                    Thảo luận
+                                </Button>
+                            </Link>
+                            <span className="text-xs sm:text-sm text-zinc-400">
                                 {currentProgress}%
                             </span>
-                            <div className="w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
+                            <div className="w-20 sm:w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-red-500 transition-all"
                                     style={{ width: `${currentProgress}%` }}
@@ -794,9 +805,9 @@ export default function CoursePlayer() {
                 </div>
 
                 {/* Video/Content Player */}
-                <div className="flex-1 flex items-center justify-center bg-black">
+                <div className="flex-1 flex items-center justify-center bg-black min-h-[40vh] lg:min-h-0">
                     {!currentContent && (
-                        <Card className="max-w-md p-8 bg-white dark:bg-zinc-800 text-center">
+                        <Card className="max-w-md p-6 sm:p-8 mx-3 bg-white dark:bg-zinc-800 text-center">
                             <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
                             <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
                                 Chưa có bài preview
@@ -812,8 +823,8 @@ export default function CoursePlayer() {
                     {currentContent && (
                         <div className="w-full h-full">
                             {!canAccessContent(currentContent) && (
-                                <div className="w-full h-full flex items-center justify-center p-8">
-                                    <Card className="max-w-md p-8 bg-white dark:bg-zinc-800 text-center">
+                                <div className="w-full h-full flex items-center justify-center p-4 sm:p-8">
+                                    <Card className="max-w-md p-6 sm:p-8 bg-white dark:bg-zinc-800 text-center">
                                         <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
                                         <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
                                             Bài học đang khóa
@@ -830,7 +841,7 @@ export default function CoursePlayer() {
 
                             {canAccessContent(currentContent) && currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
                                 <div className="w-full h-full flex flex-col">
-                                    <div className="flex-1 flex items-center justify-center relative">
+                                    <div className="flex-1 flex items-center justify-center relative aspect-video lg:aspect-auto bg-black">
                                         {getYouTubeEmbedUrl(currentContent.videoUrl) ? (
                                             <iframe
                                                 key={currentContent.videoUrl}
@@ -854,8 +865,8 @@ export default function CoursePlayer() {
                                             </video>
                                         )}
                                         {activeMarker && (
-                                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-6 z-10">
-                                                <Card className="w-full max-w-2xl p-6 bg-white dark:bg-zinc-800">
+                                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-3 sm:p-6 z-10 overflow-y-auto">
+                                                <Card className="w-full max-w-2xl p-4 sm:p-6 bg-white dark:bg-zinc-800 my-auto">
                                                     <div className="mb-4">
                                                         <p className="text-sm text-red-500 font-medium mb-1">
                                                             Quiz trong video - {activeMarker.quizTitle}
@@ -931,15 +942,15 @@ export default function CoursePlayer() {
                                         )}
                                     </div>
                                     {/* Video action bar */}
-                                    <div className="bg-zinc-800 px-4 py-3 flex items-center justify-between">
-                                        <span className="text-zinc-300 text-sm">{currentContent.title}</span>
+                                    <div className="bg-zinc-800 px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                        <span className="text-zinc-300 text-sm break-words">{currentContent.title}</span>
                                         <Button
                                             size="sm"
                                             onClick={markCurrentContentComplete}
                                             disabled={completedContentIds.includes(currentContent.contentId) || markCompleteMutation.isPending}
-                                            className={completedContentIds.includes(currentContent.contentId)
+                                            className={`sm:shrink-0 ${completedContentIds.includes(currentContent.contentId)
                                                 ? 'bg-green-600 hover:bg-green-600 cursor-default'
-                                                : 'bg-blue-600 hover:bg-blue-700'}
+                                                : 'bg-blue-600 hover:bg-blue-700'}`}
                                         >
                                             {completedContentIds.includes(currentContent.contentId) ? (
                                                 <>
@@ -964,14 +975,14 @@ export default function CoursePlayer() {
                                 return (
                                     <div className="w-full h-full flex flex-col bg-zinc-100 dark:bg-zinc-900">
                                         {/* Document Header */}
-                                        <div className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 px-6 py-3 flex items-center justify-between">
-                                            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                                        <div className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 px-3 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                            <h2 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-white break-words">
                                                 {currentContent.title}
                                             </h2>
-                                            <div className="flex gap-2 items-center">
+                                            <div className="flex flex-wrap gap-2 items-center">
                                                 {/* Auto-complete countdown */}
                                                 {!completedContentIds.includes(currentContent.contentId) && documentReadTime < 20 && (
-                                                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                                                         Tự động hoàn thành sau {20 - documentReadTime}s
                                                     </span>
                                                 )}
@@ -999,21 +1010,21 @@ export default function CoursePlayer() {
                                                     href={docUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                                                    className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm"
                                                 >
                                                     Mở trong tab mới
                                                 </a>
                                                 <a
                                                     href={getDownloadUrl(docUrl)}
                                                     download
-                                                    className="px-4 py-2 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 transition-colors text-sm"
+                                                    className="px-3 sm:px-4 py-2 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
                                                 >
                                                     Tải xuống
                                                 </a>
                                             </div>
                                         </div>
                                         {/* Document Viewer - embed PDF directly */}
-                                        <div className="flex-1 p-4">
+                                        <div className="flex-1 p-3 sm:p-4 min-h-[60vh] lg:min-h-0">
                                             {isPdf ? (
                                                 <object
                                                     data={docUrl}
@@ -1079,11 +1090,11 @@ export default function CoursePlayer() {
                             })()}
 
                             {canAccessContent(currentContent) && currentContent.contentType === 'QUIZ' && (
-                                <div className="w-full h-full flex items-center justify-center p-8 overflow-y-auto">
+                                <div className="w-full h-full flex items-start justify-center p-3 sm:p-8 overflow-y-auto">
                                     {/* Quiz Start Screen */}
                                     {!isQuizStarted && !quizResult && (
-                                        <Card className="w-full max-w-2xl p-8 bg-white dark:bg-zinc-800">
-                                            <h2 className="text-2xl font-bold mb-4 text-zinc-900 dark:text-white">
+                                        <Card className="w-full max-w-2xl p-5 sm:p-8 bg-white dark:bg-zinc-800">
+                                            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-zinc-900 dark:text-white break-words">
                                                 Bài kiểm tra: {currentContent.title}
                                             </h2>
                                             <p className="text-zinc-600 dark:text-zinc-400 mb-6">
@@ -1150,8 +1161,8 @@ export default function CoursePlayer() {
 
                                     {/* Quiz Questions */}
                                     {isQuizStarted && quizData && !quizResult && (
-                                        <Card className="w-full max-w-3xl p-8 bg-white dark:bg-zinc-800 max-h-full overflow-y-auto">
-                                            <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">
+                                        <Card className="w-full max-w-3xl p-5 sm:p-8 bg-white dark:bg-zinc-800 max-h-full overflow-y-auto">
+                                            <h2 className="text-xl sm:text-2xl font-bold mb-2 text-zinc-900 dark:text-white break-words">
                                                 {quizData.title}
                                             </h2>
                                             {quizData.timeLimitInMinutes && (
@@ -1196,17 +1207,18 @@ export default function CoursePlayer() {
                                                 ))}
                                             </div>
 
-                                            <div className="flex gap-4 mt-8">
+                                            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
                                                 <Button
                                                     variant="outline"
                                                     onClick={() => setIsQuizStarted(false)}
+                                                    className="flex-1 sm:flex-initial"
                                                 >
                                                     Hủy
                                                 </Button>
                                                 <Button
                                                     onClick={submitQuiz}
                                                     disabled={quizLoading || Object.keys(selectedAnswers).length === 0}
-                                                    className="bg-green-600 hover:bg-green-700"
+                                                    className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700"
                                                 >
                                                     {quizLoading ? 'Đang nộp...' : 'Nộp bài'}
                                                 </Button>
@@ -1216,7 +1228,7 @@ export default function CoursePlayer() {
 
                                     {/* Quiz Result */}
                                     {quizResult && (
-                                        <Card className="w-full max-w-2xl p-8 bg-white dark:bg-zinc-800 text-center">
+                                        <Card className="w-full max-w-2xl p-5 sm:p-8 bg-white dark:bg-zinc-800 text-center">
                                             <div className={`w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center ${quizResult.score >= 80
                                                 ? 'bg-green-100 dark:bg-green-900/30'
                                                 : quizResult.score >= 50
@@ -1242,7 +1254,7 @@ export default function CoursePlayer() {
                                             <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                                                 Bạn đã trả lời đúng {quizResult.correctCount}/{quizResult.totalQuestions} câu hỏi
                                             </p>
-                                            <div className="flex gap-4 justify-center">
+                                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                                                 <Button
                                                     variant="outline"
                                                     onClick={retryQuiz}
@@ -1264,18 +1276,18 @@ export default function CoursePlayer() {
 
                             {/* EPIC 7: Practice / Assignment split view */}
                             {canAccessContent(currentContent) && (currentContent.contentType === 'PRACTICE' || currentContent.contentType === 'ASSIGNMENT') && (
-                                <div className="w-full h-full bg-zinc-900 p-4 overflow-y-auto">
+                                <div className="w-full h-full bg-zinc-900 p-3 sm:p-4 overflow-y-auto">
                                     {practiceLoading ? (
                                         <div className="flex items-center justify-center h-full">
                                             <Loader2 className="w-8 h-8 animate-spin text-red-500" />
                                         </div>
                                     ) : practiceData ? (
                                         <div className="grid h-full min-h-[640px] gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                                            <div className="flex flex-col rounded-lg border border-zinc-700 bg-zinc-950 p-5">
+                                            <div className="flex flex-col rounded-lg border border-zinc-700 bg-zinc-950 p-4 sm:p-5">
                                                 <p className="mb-2 text-xs font-semibold uppercase text-red-400">
                                                     {currentContent.contentType === 'ASSIGNMENT' ? 'Bài tập' : 'Bài thực hành'}
                                                 </p>
-                                                <h2 className="text-xl font-bold text-white">{practiceData.title}</h2>
+                                                <h2 className="text-lg sm:text-xl font-bold text-white break-words">{practiceData.title}</h2>
                                                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
                                                     {practiceData.description}
                                                 </p>
@@ -1297,13 +1309,13 @@ export default function CoursePlayer() {
                                             </div>
 
                                             <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950">
-                                                <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-                                                    <span className="text-sm font-medium text-zinc-200">
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 border-b border-zinc-800 px-3 sm:px-4 py-3">
+                                                    <span className="text-xs sm:text-sm font-medium text-zinc-200 break-words">
                                                         Monaco Editor ({practiceData.language})
                                                     </span>
                                                     <span className="text-xs text-zinc-500">Feedback xuất hiện ngay sau khi nộp</span>
                                                 </div>
-                                                <div className="min-h-[420px] flex-1">
+                                                <div className="min-h-[320px] sm:min-h-[420px] flex-1">
                                                     <Editor
                                                         height="100%"
                                                         theme="vs-dark"
@@ -1318,7 +1330,7 @@ export default function CoursePlayer() {
                                                         }}
                                                     />
                                                 </div>
-                                                <div className="flex gap-3 border-t border-zinc-800 p-4">
+                                                <div className="flex flex-col sm:flex-row gap-3 border-t border-zinc-800 p-3 sm:p-4">
                                                     <Button
                                                         onClick={submitPractice}
                                                         disabled={practiceSubmitting || !practiceCode.trim()}
@@ -1350,39 +1362,49 @@ export default function CoursePlayer() {
                 </div>
 
                 {/* Navigation Bar */}
-                <div className="bg-zinc-800 border-t border-zinc-700 px-6 py-4">
-                    <div className="flex items-center justify-between">
+                <div className="bg-zinc-800 border-t border-zinc-700 px-3 sm:px-6 py-3 sm:py-4">
+                    <div className="flex items-center justify-between gap-2 sm:gap-4">
                         <Button
                             variant="outline"
                             onClick={handlePrevious}
                             disabled={!getPreviousContent()}
-                            className="gap-2"
+                            className="gap-1 sm:gap-2 shrink-0"
+                            size="sm"
                         >
                             <ChevronLeft className="h-4 w-4" />
-                            Bài trước
+                            <span className="hidden sm:inline">Bài trước</span>
                         </Button>
 
-                        <div className="text-center">
-                            <h3 className="text-white font-medium">{currentContent?.title}</h3>
-                            <p className="text-sm text-zinc-400">{currentContent?.contentType}</p>
+                        <div className="text-center min-w-0 flex-1">
+                            <h3 className="text-white font-medium text-sm sm:text-base truncate">{currentContent?.title}</h3>
+                            <p className="text-xs sm:text-sm text-zinc-400">{currentContent?.contentType}</p>
                         </div>
 
                         <Button
                             onClick={handleNext}
                             disabled={!getNextContent()}
-                            className="gap-2 bg-red-600 hover:bg-red-700"
+                            className="gap-1 sm:gap-2 bg-red-600 hover:bg-red-700 shrink-0"
+                            size="sm"
                         >
-                            Bài tiếp
+                            <span className="hidden sm:inline">Bài tiếp</span>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
             </div>
 
+            {/* Sidebar overlay backdrop on mobile */}
+            {showSidebar && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+                    onClick={() => setShowSidebar(false)}
+                />
+            )}
+
             {/* Sidebar - Course Content */}
             {showSidebar && (
-                <div className="w-96 bg-zinc-800 border-l border-zinc-700 overflow-y-auto">
-                    <div className="p-6">
+                <div className="fixed inset-y-0 right-0 w-[88vw] max-w-sm bg-zinc-800 border-l border-zinc-700 overflow-y-auto z-50 lg:static lg:w-96 lg:max-w-none lg:flex-shrink-0">
+                    <div className="p-4 sm:p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">
                             Nội dung khóa học
                         </h2>

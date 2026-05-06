@@ -172,9 +172,9 @@ export default function Profile() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-8">
-            <div className="container mx-auto px-4 max-w-4xl">
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-8">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-6 sm:py-8">
+            <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-6 sm:mb-8">
                     Hồ sơ của tôi
                 </h1>
 
@@ -182,7 +182,7 @@ export default function Profile() {
                     {/* Sidebar - Stats */}
                     <div className="space-y-6">
                         {/* Avatar Card */}
-                        <Card className="p-6 text-center">
+                        <Card className="p-4 sm:p-6 text-center">
                             <div className="w-24 h-24 rounded-full bg-red-600 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
                                 {profile.fullName.charAt(0).toUpperCase()}
                             </div>
@@ -202,7 +202,7 @@ export default function Profile() {
                         </Card>
 
                         {/* Stats */}
-                        <Card className="p-6">
+                        <Card className="p-4 sm:p-6">
                             <h3 className="font-semibold text-zinc-900 dark:text-white mb-4">Thống kê</h3>
                             <div className="space-y-4">
                                 {profile.role === 'STUDENT' && (
@@ -264,8 +264,8 @@ export default function Profile() {
 
                     {/* Main Form */}
                     <div className="lg:col-span-2">
-                        <Card className="p-6">
-                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-6">
+                        <Card className="p-4 sm:p-6">
+                            <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
                                 Thông tin cá nhân
                             </h2>
 
@@ -277,7 +277,7 @@ export default function Profile() {
                                 className="space-y-6"
                             >
                                 {/* Name Fields */}
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                             Họ

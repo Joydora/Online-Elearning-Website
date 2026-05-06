@@ -124,19 +124,19 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
-                <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Tag className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-lg shadow-xl w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex items-center justify-between gap-3">
+                    <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Tag className="w-5 h-5 sm:w-6 sm:h-6" />
                         {isEditing ? 'Sửa mã khuyến mãi' : 'Tạo mã khuyến mãi'}
                     </h2>
-                    <Button variant="ghost" size="sm" onClick={onClose}>
+                    <Button variant="ghost" size="sm" onClick={onClose} className="shrink-0">
                         <X className="w-5 h-5" />
                     </Button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                     {/* Code */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -167,7 +167,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     </div>
 
                     {/* Discount Type & Value */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Loại giảm giá *
@@ -200,7 +200,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     </div>
 
                     {/* Min Purchase & Max Discount */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Đơn tối thiểu (VND)
@@ -245,7 +245,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     </div>
 
                     {/* Dates */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Ngày bắt đầu *
@@ -285,7 +285,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
                         <Button
                             type="button"
                             variant="outline"
