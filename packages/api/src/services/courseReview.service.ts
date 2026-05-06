@@ -48,6 +48,25 @@ export async function getPendingCourses() {
         include: {
             teacher: { select: { id: true, username: true, firstName: true, lastName: true, email: true } },
             category: { select: { name: true } },
+            modules: {
+                orderBy: { order: 'asc' },
+                select: {
+                    id: true,
+                    title: true,
+                    order: true,
+                    contents: {
+                        orderBy: { order: 'asc' },
+                        select: {
+                            id: true,
+                            title: true,
+                            order: true,
+                            contentType: true,
+                            durationInSeconds: true,
+                            timeLimitInMinutes: true,
+                        },
+                    },
+                },
+            },
             _count: { select: { modules: true, enrollments: true } },
         },
         orderBy: { submittedAt: 'asc' },
@@ -59,6 +78,25 @@ export async function getAllCoursesForAdmin() {
         include: {
             teacher: { select: { id: true, username: true, firstName: true, lastName: true } },
             category: { select: { name: true } },
+            modules: {
+                orderBy: { order: 'asc' },
+                select: {
+                    id: true,
+                    title: true,
+                    order: true,
+                    contents: {
+                        orderBy: { order: 'asc' },
+                        select: {
+                            id: true,
+                            title: true,
+                            order: true,
+                            contentType: true,
+                            durationInSeconds: true,
+                            timeLimitInMinutes: true,
+                        },
+                    },
+                },
+            },
             _count: { select: { modules: true, enrollments: true } },
         },
         orderBy: { createdAt: 'desc' },

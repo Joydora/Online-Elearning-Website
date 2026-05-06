@@ -16,6 +16,8 @@ export default function AdminCreateCourse() {
         categoryId: 0,
         teacherId: 0,
         thumbnailUrl: '',
+        trialDurationDays: '',
+        accessDurationDays: '',
     });
     const [uploading, setUploading] = useState(false);
 
@@ -140,6 +142,33 @@ export default function AdminCreateCourse() {
                                 step="1"
                                 required
                             />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Số ngày học thử</label>
+                                <input
+                                    type="number"
+                                    value={formData.trialDurationDays}
+                                    onChange={(e) => setFormData({ ...formData, trialDurationDays: e.target.value })}
+                                    className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
+                                    placeholder="VD: 7"
+                                    min="1"
+                                />
+                                <p className="mt-1 text-xs text-zinc-500">Để trống nếu không cho học thử.</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Thời hạn truy cập sau khi mua</label>
+                                <input
+                                    type="number"
+                                    value={formData.accessDurationDays}
+                                    onChange={(e) => setFormData({ ...formData, accessDurationDays: e.target.value })}
+                                    className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
+                                    placeholder="Để trống = không giới hạn"
+                                    min="1"
+                                />
+                                <p className="mt-1 text-xs text-zinc-500">Ví dụ 30 nghĩa là học viên có 30 ngày truy cập.</p>
+                            </div>
                         </div>
 
                         <div>

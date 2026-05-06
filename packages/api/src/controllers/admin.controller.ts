@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, Role } from '@prisma/client';
+import { CourseStatus, PrismaClient, Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import bcrypt from 'bcrypt';
 import {
@@ -317,7 +317,7 @@ export async function createUserController(req: Request, res: Response): Promise
 
 export async function createCourseAdminController(req: Request, res: Response): Promise<Response> {
     try {
-        const { title, description, price, categoryId, teacherId, thumbnailUrl } = req.body;
+        const { title, description, price, categoryId, teacherId, thumbnailUrl, trialDurationDays, accessDurationDays } = req.body;
 
         if (!title || !description || price === undefined || !categoryId || !teacherId) {
             return res.status(400).json({
@@ -351,6 +351,8 @@ export async function createCourseAdminController(req: Request, res: Response): 
                 categoryId,
                 teacherId,
                 thumbnailUrl: thumbnailUrl || null,
+                trialDurationDays: trialDurationDays ? Number(trialDurationDays) : null,
+                accessDurationDays: accessDurationDays ? Number(accessDurationDays) : null,
             },
             include: {
                 category: true,
@@ -377,7 +379,7 @@ export async function createCourseAdminController(req: Request, res: Response): 
 export async function updateCourseAdminController(req: Request, res: Response): Promise<Response> {
     try {
         const courseId = Number.parseInt(req.params.id, 10);
-        const { title, description, price, categoryId, teacherId, thumbnailUrl } = req.body;
+        const { title, description, price, categoryId, teacherId, thumbnailUrl, trialDurationDays, accessDurationDays } = req.body;
 
         if (Number.isNaN(courseId)) {
             return res.status(400).json({ error: 'Invalid course ID' });
@@ -398,6 +400,8 @@ export async function updateCourseAdminController(req: Request, res: Response): 
         if (description !== undefined) updateData.description = description;
         if (price !== undefined) updateData.price = Number(price);
         if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl || null;
+        if (trialDurationDays !== undefined) updateData.trialDurationDays = trialDurationDays ? Number(trialDurationDays) : null;
+        if (accessDurationDays !== undefined) updateData.accessDurationDays = accessDurationDays ? Number(accessDurationDays) : null;
 
         if (categoryId !== undefined) {
             const category = await prisma.category.findUnique({
@@ -669,10 +673,11 @@ export async function rejectCourseController(req: Request, res: Response): Promi
 
 export async function getAdminStatsController(req: Request, res: Response): Promise<Response> {
     try {
-        const [totalUsers, totalCourses, totalEnrollments, totalCategories, usersByRole, recentUsers] =
+        const [totalUsers, totalCourses, pendingCourses, totalEnrollments, totalCategories, usersByRole, recentUsers] =
             await Promise.all([
                 prisma.user.count(),
                 prisma.course.count(),
+                prisma.course.count({ where: { status: CourseStatus.PENDING_REVIEW } }),
                 prisma.enrollment.count(),
                 prisma.category.count(),
                 prisma.user.groupBy({
@@ -695,6 +700,7 @@ export async function getAdminStatsController(req: Request, res: Response): Prom
         const stats = {
             totalUsers,
             totalCourses,
+            pendingCourses,
             totalEnrollments,
             totalCategories,
             usersByRole: usersByRole.reduce(

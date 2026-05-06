@@ -23,6 +23,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     const [documentUrl, setDocumentUrl] = useState('');
     const [fileType, setFileType] = useState('application/pdf');
     const [timeLimitInMinutes, setTimeLimitInMinutes] = useState('');
+    const [isFreePreview, setIsFreePreview] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 
@@ -53,6 +54,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
             moduleId,
             title: title.trim(),
             contentType,
+            isFreePreview,
         };
 
         let data: any = { ...baseData };
@@ -163,6 +165,24 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             className="h-12"
                         />
                     </div>
+
+                    {/* Conditional Fields */}
+                    <label className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-sm dark:border-green-900/50 dark:bg-green-950/30">
+                        <input
+                            type="checkbox"
+                            checked={isFreePreview}
+                            onChange={(e) => setIsFreePreview(e.target.checked)}
+                            className="mt-1"
+                        />
+                        <span>
+                            <span className="block font-medium text-green-800 dark:text-green-300">
+                                Cho phép xem miễn phí
+                            </span>
+                            <span className="text-green-700 dark:text-green-400">
+                                Học viên chưa mua/chưa học thử vẫn có thể mở bài này trên trang chi tiết khóa học.
+                            </span>
+                        </span>
+                    </label>
 
                     {/* Conditional Fields */}
                     {contentType === 'VIDEO' && (

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign, ClipboardCheck } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/card';
 type AdminStats = {
     totalUsers: number;
     totalCourses: number;
+    pendingCourses: number;
     totalEnrollments: number;
     totalCategories: number;
     usersByRole: {
@@ -171,6 +172,14 @@ export default function AdminDashboard() {
                         <Button className="w-full h-20 bg-green-600 hover:bg-green-700 text-white">
                             <BookOpen className="mr-2 h-5 w-5" />
                             Quản lý khóa học
+                        </Button>
+                    </Link>
+
+                    <Link to="/admin/courses/review">
+                        <Button className="w-full h-20 bg-amber-600 hover:bg-amber-700 text-white">
+                            <ClipboardCheck className="mr-2 h-5 w-5" />
+                            Duyệt khóa học
+                            {stats?.pendingCourses ? ` (${stats.pendingCourses})` : ''}
                         </Button>
                     </Link>
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { CourseStatus, EnrollmentType, PayoutStatus, PrismaClient } from '@prisma/client';
 import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent } from '../services/enroll.service';
 import { AuthenticatedUser } from '../types/auth';
 
@@ -11,6 +11,7 @@ const STUDENT_SUCCESS_URL = process.env.FRONTEND_URL
 const STUDENT_CANCEL_URL = process.env.FRONTEND_URL
     ? `${process.env.FRONTEND_URL}/payment-cancel`
     : 'http://localhost:5173/payment-cancel';
+const PLATFORM_FEE_PCT = parseFloat(process.env.PLATFORM_FEE_PCT || '0.3');
 
 export async function checkoutCourseController(req: Request, res: Response): Promise<Response> {
     try {
@@ -97,7 +98,15 @@ export async function getMyEnrollmentsController(req: Request, res: Response): P
         if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
 
         const enrollments = await prisma.enrollment.findMany({
-            where: { studentId: authReq.user.userId },
+            where: {
+                studentId: authReq.user.userId,
+                isActive: true,
+                OR: [
+                    { expiresAt: null },
+                    { expiresAt: { gt: new Date() } },
+                ],
+                course: { status: CourseStatus.PUBLISHED },
+            },
             include: {
                 course: {
                     include: {
@@ -123,16 +132,66 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
         const courseId = Number.parseInt(req.params.courseId, 10);
         if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
 
-        const course = await prisma.course.findUnique({ where: { id: courseId } });
+        const course = await prisma.course.findUnique({
+            where: { id: courseId },
+            select: {
+                id: true,
+                price: true,
+                teacherId: true,
+                accessDurationDays: true,
+                status: true,
+            },
+        });
         if (!course) return res.status(404).json({ error: 'Course not found' });
+        if (course.status !== CourseStatus.PUBLISHED) return res.status(400).json({ error: 'Course is not published' });
 
         const existing = await prisma.enrollment.findUnique({
             where: { studentId_courseId: { studentId: authReq.user.userId, courseId } },
         });
         if (existing) return res.status(200).json({ message: 'Already enrolled', enrollment: existing });
 
-        const enrollment = await prisma.enrollment.create({
-            data: { studentId: authReq.user.userId, courseId, isActive: true },
+        const enrollment = await prisma.$transaction(async (tx) => {
+            const createdEnrollment = await tx.enrollment.create({
+                data: {
+                    studentId: authReq.user!.userId,
+                    courseId,
+                    type: course.price > 0 ? EnrollmentType.PAID : EnrollmentType.FREE,
+                    expiresAt: course.accessDurationDays
+                        ? new Date(Date.now() + course.accessDurationDays * 24 * 60 * 60 * 1000)
+                        : null,
+                    isActive: true,
+                },
+            });
+
+            if (course.price > 0) {
+                const grossAmount = course.price;
+                const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
+                const teacherShare = Number((grossAmount - platformFee).toFixed(2));
+                const payment = await tx.payment.create({
+                    data: {
+                        amount: grossAmount,
+                        status: 'SUCCESSFUL',
+                        stripeSessionId: `dev-confirm-${createdEnrollment.id}-${Date.now()}`,
+                        enrollmentId: createdEnrollment.id,
+                        studentId: authReq.user!.userId,
+                    },
+                });
+
+                await tx.revenueLedger.create({
+                    data: {
+                        grossAmount,
+                        platformFee,
+                        teacherShare,
+                        payoutStatus: PayoutStatus.HELD,
+                        paymentId: payment.id,
+                        enrollmentId: createdEnrollment.id,
+                        courseId,
+                        teacherId: course.teacherId,
+                    },
+                });
+            }
+
+            return createdEnrollment;
         });
 
         return res.status(201).json({ message: 'Enrollment confirmed', enrollment });
@@ -157,6 +216,7 @@ export async function getCourseContentController(req: Request, res: Response): P
             if (message === 'NOT_ENROLLED') return res.status(403).json({ error: 'Not enrolled in this course' });
             if (message === 'ENROLLMENT_EXPIRED') return res.status(403).json({ error: 'Enrollment has expired', code: 'ENROLLMENT_EXPIRED' });
             if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
+            if (message === 'COURSE_NOT_PUBLISHED') return res.status(403).json({ error: 'Course is not published' });
             throw error;
         }
     } catch {

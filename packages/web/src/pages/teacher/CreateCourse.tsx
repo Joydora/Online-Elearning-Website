@@ -22,6 +22,8 @@ type CourseFormValues = {
     price: number;
     categoryId: number;
     thumbnailUrl: string;
+    trialDurationDays: number | null;
+    accessDurationDays: number | null;
 };
 
 export default function CreateCourse() {
@@ -36,6 +38,8 @@ export default function CreateCourse() {
             price: 0,
             categoryId: 0,
             thumbnailUrl: '',
+            trialDurationDays: null,
+            accessDurationDays: null,
         },
     });
 
@@ -283,6 +287,59 @@ export default function CreateCourse() {
                                     </FormItem>
                                 )}
                             />
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="trialDurationDays"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                                                Số ngày học thử
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="VD: 7"
+                                                    min="1"
+                                                    className="h-12"
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                                />
+                                            </FormControl>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                Để trống nếu không cho học thử.
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="accessDurationDays"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                                                Thời hạn truy cập sau khi mua
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Để trống = không giới hạn"
+                                                    min="1"
+                                                    className="h-12"
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                                />
+                                            </FormControl>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                Ví dụ 30 nghĩa là học viên có 30 ngày truy cập sau khi mua.
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             {/* Thumbnail Upload */}
                             <div>

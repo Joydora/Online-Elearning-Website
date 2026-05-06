@@ -10,16 +10,20 @@ import {
     getCategoriesController,
     getCourseDetailController,
     getCoursesController,
+    getFreePreviewContentController,
+    getMyCoursesController,
     submitForReviewController,
     updateCourseController,
 } from '../controllers/course.controller';
-import { isAuthenticated, isAuthorized } from '../middleware/auth.middleware';
+import { isAuthenticated, isAuthorized, optionalAuth } from '../middleware/auth.middleware';
 
 const router = Router();
 
 router.get('/categories', getCategoriesController);
 router.get('/courses', getCoursesController);
-router.get('/courses/:id', getCourseDetailController);
+router.get('/courses/:courseId/preview/:contentId', getFreePreviewContentController);
+router.get('/courses/:id', optionalAuth, getCourseDetailController);
+router.get('/teacher/courses', isAuthenticated, isAuthorized([Role.TEACHER]), getMyCoursesController);
 
 router.post('/courses', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), createCourseController);
 router.put('/courses/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), updateCourseController);

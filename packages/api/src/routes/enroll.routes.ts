@@ -12,7 +12,7 @@ router.post('/enroll/checkout/:courseId', isAuthenticated, isAuthorized([Role.ST
 router.post('/enroll/trial/:courseId', isAuthenticated, isAuthorized([Role.STUDENT]), trialEnrollController);
 // DEV ONLY — disabled in production
 if (process.env.NODE_ENV !== 'production') {
-    router.post('/enroll/confirm/:courseId', isAuthenticated, isAuthorized([Role.ADMIN]), confirmEnrollmentController);
+    router.post('/enroll/confirm/:courseId', isAuthenticated, isAuthorized([Role.STUDENT]), confirmEnrollmentController);
 }
 router.post('/stripe-webhook', stripeWebhookController);
 

@@ -41,6 +41,7 @@ export async function recommendLearningPath(options: {
 
     // Get all courses with their details
     const allCourses = await prisma.course.findMany({
+        where: { status: 'PUBLISHED' },
         select: {
             id: true,
             title: true,

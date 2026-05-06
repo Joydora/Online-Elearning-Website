@@ -3,17 +3,20 @@ import { ChevronDown, PlayCircle, FileText, CheckCircle, Lock } from 'lucide-rea
 import { Card } from './ui/card';
 
 type Content = {
-    contentId: number;
+    id?: number;
+    contentId?: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
+    isFreePreview?: boolean;
 };
 
 type Module = {
-    moduleId: number;
+    id?: number;
+    moduleId?: number;
     title: string;
     order: number;
     contents: Content[];
@@ -70,14 +73,15 @@ export function ModuleAccordion({
     return (
         <div className="space-y-3">
             {modules.map((module) => {
-                const isOpen = openModules.includes(module.moduleId);
+                const moduleId = module.moduleId ?? module.id;
+                const isOpen = moduleId !== undefined && openModules.includes(moduleId);
                 const totalDuration = getTotalDuration(module.contents);
 
                 return (
-                    <Card key={module.moduleId} className="overflow-hidden border-slate-200 dark:border-slate-800">
+                    <Card key={moduleId ?? module.order} className="overflow-hidden border-slate-200 dark:border-slate-800">
                         {/* Module Header */}
                         <button
-                            onClick={() => toggleModule(module.moduleId)}
+                            onClick={() => moduleId !== undefined && toggleModule(moduleId)}
                             className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                         >
                             <div className="flex items-center gap-3 text-left">
@@ -105,15 +109,21 @@ export function ModuleAccordion({
                         {isOpen && (
                             <div className="border-t border-slate-200 dark:border-slate-700">
                                 {module.contents.map((content) => {
-                                    const isCompleted = completedContents.includes(content.contentId);
+                                    const contentId = content.contentId ?? content.id;
+                                    const isCompleted = contentId !== undefined && completedContents.includes(contentId);
+                                    const canOpen = isEnrolled || !!content.isFreePreview;
 
                                     return (
                                         <button
-                                            key={content.contentId}
-                                            onClick={() => onContentClick?.(content.contentId, module.moduleId)}
-                                            disabled={!isEnrolled}
+                                            key={contentId ?? content.order}
+                                            onClick={() => {
+                                                if (contentId !== undefined && moduleId !== undefined) {
+                                                    onContentClick?.(contentId, moduleId);
+                                                }
+                                            }}
+                                            disabled={!canOpen}
                                             className={`w-full px-6 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${
-                                                !isEnrolled ? 'cursor-not-allowed opacity-60' : ''
+                                                !canOpen ? 'cursor-not-allowed opacity-60' : ''
                                             }`}
                                         >
                                             <div className="flex items-center gap-3 text-left">
@@ -130,6 +140,12 @@ export function ModuleAccordion({
                                                     </p>
                                                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                                                         <span className="uppercase">{content.contentType}</span>
+                                                        {content.isFreePreview && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span className="text-green-600 dark:text-green-400">Xem miễn phí</span>
+                                                            </>
+                                                        )}
                                                         {content.durationInSeconds && (
                                                             <>
                                                                 <span>•</span>
@@ -138,7 +154,7 @@ export function ModuleAccordion({
                                                         )}
                                                     </div>
                                                 </div>
-                                                {!isEnrolled && (
+                                                {!canOpen && (
                                                     <Lock className="h-4 w-4 text-slate-400" />
                                                 )}
                                                 {isCompleted && (

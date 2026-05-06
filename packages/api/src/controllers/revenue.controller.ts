@@ -3,10 +3,79 @@ import { PrismaClient, PayoutStatus } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 
 const prisma = new PrismaClient();
+const PLATFORM_FEE_PCT = parseFloat(process.env.PLATFORM_FEE_PCT || '0.3');
+
+async function backfillMissingRevenueLedgers(): Promise<void> {
+    const enrollments = await prisma.enrollment.findMany({
+        where: {
+            revenueLedger: null,
+            type: 'PAID',
+            isActive: true,
+            course: {
+                price: { gt: 0 },
+            },
+        },
+        include: {
+            payment: true,
+            course: {
+                select: {
+                    id: true,
+                    price: true,
+                    teacherId: true,
+                },
+            },
+        },
+    });
+
+    if (enrollments.length === 0) return;
+
+    await prisma.$transaction(async (tx) => {
+        for (const enrollment of enrollments) {
+            const grossAmount = enrollment.payment?.amount && enrollment.payment.amount > 0
+                ? enrollment.payment.amount
+                : enrollment.course.price;
+            const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
+            const teacherShare = Number((grossAmount - platformFee).toFixed(2));
+
+            const payment = enrollment.payment
+                ? await tx.payment.update({
+                    where: { id: enrollment.payment.id },
+                    data: {
+                        amount: grossAmount,
+                        status: 'SUCCESSFUL',
+                    },
+                })
+                : await tx.payment.create({
+                    data: {
+                        amount: grossAmount,
+                        status: 'SUCCESSFUL',
+                        stripeSessionId: `backfill-${enrollment.id}-${Date.now()}`,
+                        enrollmentId: enrollment.id,
+                        studentId: enrollment.studentId,
+                    },
+                });
+
+            await tx.revenueLedger.create({
+                data: {
+                    paymentId: payment.id,
+                    enrollmentId: enrollment.id,
+                    courseId: enrollment.course.id,
+                    teacherId: enrollment.course.teacherId,
+                    grossAmount,
+                    platformFee,
+                    teacherShare,
+                    payoutStatus: PayoutStatus.HELD,
+                },
+            });
+        }
+    });
+}
 
 // Admin: list ledger with filters
 export async function getRevenueLedgerController(req: Request, res: Response): Promise<Response> {
     try {
+        await backfillMissingRevenueLedgers();
+
         const { teacherId, courseId, payoutStatus, from, to, page = '1', limit = '50' } = req.query;
 
         const where: Record<string, unknown> = {};
@@ -86,6 +155,8 @@ export async function markPayoutController(req: Request, res: Response): Promise
 // Admin: export CSV
 export async function exportRevenueCSVController(req: Request, res: Response): Promise<void> {
     try {
+        await backfillMissingRevenueLedgers();
+
         const { teacherId, courseId, payoutStatus, from, to } = req.query;
 
         const where: Record<string, unknown> = {};
@@ -142,6 +213,8 @@ export async function exportRevenueCSVController(req: Request, res: Response): P
 // Teacher: read-only earnings view
 export async function getMyEarningsController(req: Request, res: Response): Promise<Response> {
     try {
+        await backfillMissingRevenueLedgers();
+
         const authReq = req as Request & { user?: AuthenticatedUser };
         if (!authReq.user) return res.status(401).json({ error: 'Not authenticated' });
 

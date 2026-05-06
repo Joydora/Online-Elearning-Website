@@ -41,7 +41,10 @@ export async function checkoutCourse(options: {
         where: { studentId_courseId: { studentId: options.studentId, courseId: options.courseId } },
     });
 
-    if (existingEnrollment) throw new Error('ALREADY_ENROLLED');
+    if (options.trial && existingEnrollment) throw new Error('ALREADY_ENROLLED');
+    if (!options.trial && existingEnrollment && existingEnrollment.type !== EnrollmentType.TRIAL) {
+        throw new Error('ALREADY_ENROLLED');
+    }
 
     // ── EPIC 1: Trial enrollment ──────────────────────────────────────
     if (options.trial) {
@@ -78,15 +81,26 @@ export async function checkoutCourse(options: {
 
     // ── Free course ───────────────────────────────────────────────────
     if (finalPrice === 0) {
-        await prisma.enrollment.create({
-            data: {
-                studentId: options.studentId,
-                courseId: options.courseId,
-                type: EnrollmentType.FREE,
-                expiresAt: calcExpiresAt(course.accessDurationDays),
-                isActive: true,
-            },
-        });
+        if (existingEnrollment?.type === EnrollmentType.TRIAL) {
+            await prisma.enrollment.update({
+                where: { id: existingEnrollment.id },
+                data: {
+                    type: EnrollmentType.FREE,
+                    expiresAt: calcExpiresAt(course.accessDurationDays),
+                    isActive: true,
+                },
+            });
+        } else {
+            await prisma.enrollment.create({
+                data: {
+                    studentId: options.studentId,
+                    courseId: options.courseId,
+                    type: EnrollmentType.FREE,
+                    expiresAt: calcExpiresAt(course.accessDurationDays),
+                    isActive: true,
+                },
+            });
+        }
         if (options.promotionCode) await incrementPromotionUsage(options.promotionCode);
         return `${options.successUrl}?free=true`;
     }
@@ -132,8 +146,18 @@ export async function getCourseForEnrolledStudent(courseId: number, studentId: n
 
     if (!enrollment) throw new Error('NOT_ENROLLED');
 
-    // EPIC 2: reject expired enrollments
-    if (!enrollment.isActive) throw new Error('ENROLLMENT_EXPIRED');
+    const expiresAtMs = enrollment.expiresAt?.getTime();
+    const isExpired = expiresAtMs !== undefined && expiresAtMs <= Date.now();
+
+    if (!enrollment.isActive || isExpired) {
+        if (enrollment.isActive && isExpired) {
+            await prisma.enrollment.update({
+                where: { id: enrollment.id },
+                data: { isActive: false },
+            });
+        }
+        throw new Error('ENROLLMENT_EXPIRED');
+    }
 
     const course = await prisma.course.findUnique({
         where: { id: courseId },
@@ -141,6 +165,7 @@ export async function getCourseForEnrolledStudent(courseId: number, studentId: n
             id: true,
             title: true,
             description: true,
+            status: true,
             modules: {
                 orderBy: { order: 'asc' },
                 select: {
@@ -167,18 +192,7 @@ export async function getCourseForEnrolledStudent(courseId: number, studentId: n
     });
 
     if (!course) throw new Error('COURSE_NOT_FOUND');
-
-    // EPIC 1: for TRIAL enrollments, mask non-free-preview content URLs
-    if (enrollment.type === EnrollmentType.TRIAL) {
-        course.modules = course.modules.map((mod) => ({
-            ...mod,
-            contents: mod.contents.map((c) => ({
-                ...c,
-                videoUrl: c.isFreePreview ? c.videoUrl : null,
-                documentUrl: c.isFreePreview ? c.documentUrl : null,
-            })),
-        }));
-    }
+    if (course.status !== 'PUBLISHED') throw new Error('COURSE_NOT_PUBLISHED');
 
     return {
         ...course,
@@ -223,7 +237,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
         where: { studentId_courseId: { studentId: studentIdNum, courseId: courseIdNum } },
     });
 
-    if (existing) {
+    if (existing && existing.type !== EnrollmentType.TRIAL) {
         console.log('User already enrolled, skipping...');
         return;
     }
@@ -234,15 +248,24 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
 
     // EPIC 2 + EPIC 4: create enrollment + payment + ledger atomically
     await prisma.$transaction(async (tx) => {
-        const enrollment = await tx.enrollment.create({
-            data: {
-                studentId: studentIdNum,
-                courseId: courseIdNum,
-                type: EnrollmentType.PAID,
-                expiresAt: calcExpiresAt(course.accessDurationDays),
-                isActive: true,
-            },
-        });
+        const enrollment = existing
+            ? await tx.enrollment.update({
+                where: { id: existing.id },
+                data: {
+                    type: EnrollmentType.PAID,
+                    expiresAt: calcExpiresAt(course.accessDurationDays),
+                    isActive: true,
+                },
+            })
+            : await tx.enrollment.create({
+                data: {
+                    studentId: studentIdNum,
+                    courseId: courseIdNum,
+                    type: EnrollmentType.PAID,
+                    expiresAt: calcExpiresAt(course.accessDurationDays),
+                    isActive: true,
+                },
+            });
 
         const payment = await tx.payment.create({
             data: {

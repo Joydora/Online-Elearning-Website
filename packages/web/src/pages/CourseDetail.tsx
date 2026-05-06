@@ -13,20 +13,31 @@ import { showErrorAlert, showSuccessAlert, showLoadingAlert } from '../lib/sweet
 import Swal from 'sweetalert2';
 
 type Content = {
-    contentId: number;
+    id?: number;
+    contentId?: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
+    isFreePreview?: boolean;
 };
 
 type Module = {
-    moduleId: number;
+    id?: number;
+    moduleId?: number;
     title: string;
     order: number;
     contents: Content[];
+};
+
+type PreviewContent = {
+    id: number;
+    title: string;
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+    videoUrl?: string | null;
+    documentUrl?: string | null;
 };
 
 type CourseDetailType = {
@@ -61,6 +72,8 @@ export default function CourseDetail() {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const user = useAuthStore((state) => state.user);
     const [promotionCode, setPromotionCode] = useState('');
+    const [previewContent, setPreviewContent] = useState<PreviewContent | null>(null);
+    const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null);
     const [appliedPromotion, setAppliedPromotion] = useState<{
         code: string;
         discountAmount: number;
@@ -222,6 +235,29 @@ export default function CourseDetail() {
     const handleStartLearning = () => {
         const courseId = course?.courseId || course?.id;
         navigate(`/learning/${courseId}`);
+    };
+
+    const handleContentClick = async (contentId: number) => {
+        const courseId = course?.courseId || course?.id;
+        if (!courseId) return;
+
+        if (isEnrolled) {
+            navigate(`/learning/${courseId}`);
+            return;
+        }
+
+        try {
+            setPreviewLoadingId(contentId);
+            const { data } = await apiClient.get<PreviewContent>(`/courses/${courseId}/preview/${contentId}`);
+            setPreviewContent(data);
+        } catch (error: any) {
+            showErrorAlert(
+                'Nội dung bị khóa',
+                error.response?.data?.error || 'Bài học này cần đăng ký hoặc mua khóa học để xem.',
+            );
+        } finally {
+            setPreviewLoadingId(null);
+        }
     };
 
     if (isLoading) {
@@ -508,7 +544,59 @@ export default function CourseDetail() {
                                     <ModuleAccordion
                                         modules={course.modules}
                                         isEnrolled={isEnrolled}
+                                        onContentClick={handleContentClick}
                                     />
+                                    {previewLoadingId && (
+                                        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                            Đang tải bài học xem thử...
+                                        </p>
+                                    )}
+                                    {previewContent && (
+                                        <Card className="mt-6 overflow-hidden border-green-200 dark:border-green-900">
+                                            <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
+                                                <div>
+                                                    <p className="text-xs font-semibold uppercase text-green-600 dark:text-green-400">
+                                                        Bài học miễn phí
+                                                    </p>
+                                                    <h3 className="font-semibold text-zinc-900 dark:text-white">
+                                                        {previewContent.title}
+                                                    </h3>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setPreviewContent(null)}
+                                                >
+                                                    Đóng
+                                                </Button>
+                                            </div>
+                                            {previewContent.contentType === 'VIDEO' && previewContent.videoUrl ? (
+                                                <div className="aspect-video bg-black">
+                                                    <video
+                                                        src={previewContent.videoUrl}
+                                                        controls
+                                                        className="h-full w-full"
+                                                    />
+                                                </div>
+                                            ) : previewContent.contentType === 'DOCUMENT' && previewContent.documentUrl ? (
+                                                <div className="p-4">
+                                                    <a
+                                                        href={previewContent.documentUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-red-600 hover:underline dark:text-red-400"
+                                                    >
+                                                        Mở tài liệu xem thử
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                                    Bài học xem thử này chưa có tài nguyên hiển thị.
+                                                </div>
+                                            )}
+                                        </Card>
+                                    )}
                                 </Card>
 
                                 {/* Reviews Section */}

@@ -25,6 +25,19 @@ type AdminCourse = {
         email?: string;
     };
     category: { name: string };
+    modules?: Array<{
+        id: number;
+        title: string;
+        order: number;
+        contents: Array<{
+            id: number;
+            title: string;
+            order: number;
+            contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+            durationInSeconds?: number | null;
+            timeLimitInMinutes?: number | null;
+        }>;
+    }>;
     _count: { modules: number; enrollments: number };
 };
 
@@ -61,6 +74,13 @@ function formatDate(value: string | null) {
         return value;
     }
 }
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+    VIDEO: 'Video',
+    DOCUMENT: 'Tài liệu',
+    QUIZ: 'Bài kiểm tra',
+    PRACTICE: 'Thực hành',
+};
 
 export default function ReviewCourses() {
     const navigate = useNavigate();
@@ -232,6 +252,42 @@ export default function ReviewCourses() {
                                                 <strong>Lý do từ chối:</strong> {course.rejectionReason}
                                             </div>
                                         )}
+                                        <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                                            <p className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                                Xem trước nội dung
+                                            </p>
+                                            {course.modules && course.modules.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {course.modules.map((module) => (
+                                                        <div key={module.id}>
+                                                            <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                                Chương {module.order}: {module.title}
+                                                            </p>
+                                                            {module.contents.length > 0 ? (
+                                                                <ul className="mt-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                                                    {module.contents.map((content) => (
+                                                                        <li key={content.id}>
+                                                                            {content.order}. {content.title}{' '}
+                                                                            <span className="text-xs text-zinc-500">
+                                                                                ({CONTENT_TYPE_LABELS[content.contentType] ?? content.contentType})
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ) : (
+                                                                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                                                                    Chưa có bài học trong chương này.
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                                                    Khóa học chưa có chương/nội dung.
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {course.status === 'PENDING_REVIEW' && (

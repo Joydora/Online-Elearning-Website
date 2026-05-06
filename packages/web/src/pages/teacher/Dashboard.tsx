@@ -1,12 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, Users, DollarSign, TrendingUp, Edit, Trash2, UserCheck, UserCircle } from 'lucide-react';
+import { Plus, BookOpen, Users, FileText, Edit, Trash2, UserCheck, UserCircle, Wallet } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { type Course } from '../../components/CourseCard';
 import Swal from 'sweetalert2';
+
+type TeacherCourse = Course & {
+    status?: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
+    modules?: Array<{
+        _count?: {
+            contents: number;
+        };
+    }>;
+    _count?: {
+        enrollments: number;
+        modules?: number;
+    };
+};
 
 export default function Dashboard() {
     const user = useAuthStore((state) => state.user);
@@ -16,12 +29,11 @@ export default function Dashboard() {
     const {
         data: courses = [],
         isLoading,
-    } = useQuery<Course[]>({
+    } = useQuery<TeacherCourse[]>({
         queryKey: ['teacher-courses'],
         queryFn: async () => {
-            const { data } = await apiClient.get('/courses');
-            // Filter courses by current teacher (backend uses "id" for userId)
-            return data.filter((course: Course) => (course.teacher.userId || course.teacher.id) === user?.id);
+            const { data } = await apiClient.get('/teacher/courses');
+            return data;
         },
         enabled: !!user,
     });
@@ -72,12 +84,11 @@ export default function Dashboard() {
     // Calculate stats
     const totalCourses = courses.length;
     const totalStudents = courses.reduce((acc, course) => acc + (course._count?.enrollments || 0), 0);
-    const totalRevenue = courses.reduce((acc, course) => acc + (course.price * (course._count?.enrollments || 0)), 0);
-
-    const formattedRevenue = new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-    }).format(totalRevenue);
+    const totalLessons = courses.reduce(
+        (acc, course) =>
+            acc + (course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0),
+        0,
+    );
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
@@ -93,12 +104,12 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <Card className="p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Tổng khóa học
+                                    Lớp đang quản lý
                                 </p>
                                 <p className="text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalCourses}
@@ -114,7 +125,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Tổng học viên
+                                    Học viên
                                 </p>
                                 <p className="text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalStudents}
@@ -130,30 +141,14 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Doanh thu
+                                    Bài học
                                 </p>
-                                <p className="text-2xl font-bold text-zinc-900 dark:text-white">
-                                    {formattedRevenue}
+                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                                    {totalLessons}
                                 </p>
                             </div>
                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600">
-                                <DollarSign className="h-6 w-6 text-white" />
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Đánh giá TB
-                                </p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
-                                    4.8
-                                </p>
-                            </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600">
-                                <TrendingUp className="h-6 w-6 text-white" />
+                                <FileText className="h-6 w-6 text-white" />
                             </div>
                         </div>
                     </Card>
@@ -169,6 +164,12 @@ export default function Dashboard() {
                             <Button variant="outline" className="gap-2">
                                 <UserCircle className="h-4 w-4" />
                                 Cập nhật hồ sơ
+                            </Button>
+                        </Link>
+                        <Link to="/teacher/earnings">
+                            <Button variant="outline" className="gap-2">
+                                <Wallet className="h-4 w-4" />
+                                Tiền đang giữ
                             </Button>
                         </Link>
                     </div>
@@ -246,12 +247,12 @@ export default function Dashboard() {
                                                     <div className="flex items-center gap-6 text-sm text-zinc-600 dark:text-zinc-400">
                                                         <div className="flex items-center gap-1">
                                                             <Users className="h-4 w-4" />
-                                                            <span>{course._count?.enrollments || course.totalEnrollments || 0} học viên</span>
+                                                            <span>{course._count?.enrollments ?? course.totalEnrollments ?? 0} học viên</span>
                                                         </div>
                                                         <div className="flex items-center gap-1">
-                                                            <DollarSign className="h-4 w-4" />
-                                                            <span className="font-medium text-blue-600 dark:text-blue-400">
-                                                                {course.price === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price)}
+                                                            <FileText className="h-4 w-4" />
+                                                            <span>
+                                                                {(course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0)} bài học
                                                             </span>
                                                         </div>
                                                     </div>

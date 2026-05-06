@@ -1,7 +1,12 @@
-import { ContentType, Prisma, PrismaClient } from '@prisma/client';
+import { ContentType, CourseStatus, Prisma, PrismaClient, Role } from '@prisma/client';
 import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
+
+type CourseViewer = {
+    userId: number;
+    role: Role;
+};
 
 const courseSummarySelect = {
     id: true,
@@ -55,6 +60,7 @@ const courseDetailSelect = {
                     contentType: true,
                     durationInSeconds: true,
                     timeLimitInMinutes: true,
+                    isFreePreview: true,
                     // Intentionally omit video/document URLs to keep asset links hidden
                 },
             },
@@ -74,15 +80,78 @@ export async function getAllCategories() {
 
 export async function getAllCourses() {
     return prisma.course.findMany({
+        where: { status: CourseStatus.PUBLISHED },
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
     });
 }
 
-export async function getCourseById(courseId: number) {
-    return prisma.course.findUnique({
-        where: { id: courseId },
+export async function getCoursesForTeacher(teacherId: number) {
+    return prisma.course.findMany({
+        where: { teacherId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+            ...courseSummarySelect,
+            modules: {
+                select: {
+                    _count: {
+                        select: {
+                            contents: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    enrollments: true,
+                    modules: true,
+                },
+            },
+        },
+    });
+}
+
+export async function getCourseById(courseId: number, viewer?: CourseViewer) {
+    const where: Prisma.CourseWhereInput = { id: courseId };
+
+    if (viewer?.role === Role.ADMIN) {
+        // Admins can preview all courses from the review/manage screens.
+    } else if (viewer?.role === Role.TEACHER) {
+        where.OR = [
+            { status: CourseStatus.PUBLISHED },
+            { teacherId: viewer.userId },
+        ];
+    } else {
+        where.status = CourseStatus.PUBLISHED;
+    }
+
+    return prisma.course.findFirst({
+        where,
         select: courseDetailSelect,
+    });
+}
+
+export async function getFreePreviewContent(courseId: number, contentId: number) {
+    return prisma.content.findFirst({
+        where: {
+            id: contentId,
+            isFreePreview: true,
+            module: {
+                courseId,
+                course: {
+                    status: CourseStatus.PUBLISHED,
+                },
+            },
+        },
+        select: {
+            id: true,
+            title: true,
+            contentType: true,
+            videoUrl: true,
+            documentUrl: true,
+            durationInSeconds: true,
+            fileType: true,
+        },
     });
 }
 
@@ -94,6 +163,8 @@ type CreateCourseInput = {
     categoryId: number;
     teacherId: number;
     thumbnailUrl?: string;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
 };
 
 type UpdateCourseInput = {
@@ -105,6 +176,8 @@ type UpdateCourseInput = {
     price?: number;
     categoryId?: number;
     thumbnailUrl?: string;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
     userRole?: string;
 };
 
@@ -127,6 +200,7 @@ type CreateContentInput = {
     documentUrl?: string | null;
     fileType?: string | null;
     timeLimitInMinutes?: number | null;
+    isFreePreview?: boolean;
     userRole?: string;
 };
 
@@ -140,6 +214,8 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
             categoryId: input.categoryId,
             teacherId: input.teacherId,
             thumbnailUrl: input.thumbnailUrl || null,
+            trialDurationDays: input.trialDurationDays ?? null,
+            accessDurationDays: input.accessDurationDays ?? null,
         },
     });
 
@@ -147,7 +223,7 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
         console.error('Unable to ingest course syllabus:', error);
     });
 
-    return getCourseById(course.id);
+    return getCourseById(course.id, { userId: input.teacherId, role: Role.TEACHER });
 }
 
 export async function updateCourseForTeacher(input: UpdateCourseInput) {
@@ -174,6 +250,8 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
             price: input.price ?? undefined,
             categoryId: input.categoryId ?? undefined,
             thumbnailUrl: input.thumbnailUrl !== undefined ? (input.thumbnailUrl || null) : undefined,
+            trialDurationDays: input.trialDurationDays !== undefined ? input.trialDurationDays : undefined,
+            accessDurationDays: input.accessDurationDays !== undefined ? input.accessDurationDays : undefined,
         },
     });
 
@@ -183,7 +261,10 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
         });
     }
 
-    return getCourseById(input.courseId);
+    return getCourseById(input.courseId, {
+        userId: input.teacherId,
+        role: input.userRole === Role.ADMIN ? Role.ADMIN : Role.TEACHER,
+    });
 }
 
 export async function deleteCourseForTeacher(courseId: number, teacherId: number, userRole?: string) {
@@ -305,6 +386,7 @@ export async function createContentForModule(input: CreateContentInput) {
             documentUrl: input.documentUrl ?? null,
             fileType: input.fileType ?? null,
             timeLimitInMinutes: input.timeLimitInMinutes ?? null,
+            isFreePreview: input.isFreePreview ?? false,
             moduleId: input.moduleId,
         },
         select: {
@@ -314,6 +396,7 @@ export async function createContentForModule(input: CreateContentInput) {
             contentType: true,
             durationInSeconds: true,
             timeLimitInMinutes: true,
+            isFreePreview: true,
             moduleId: true,
         },
     });

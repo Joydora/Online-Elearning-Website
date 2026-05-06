@@ -16,6 +16,7 @@ export async function getTeacherProfile(teacherId: number) {
             email: true,
             createdAt: true,
             coursesAsTeacher: {
+                where: { status: 'PUBLISHED' },
                 select: {
                     id: true,
                     title: true,
@@ -40,11 +41,6 @@ export async function getTeacherProfile(teacherId: number) {
                     createdAt: 'desc',
                 },
             },
-            _count: {
-                select: {
-                    coursesAsTeacher: true,
-                },
-            },
         },
     });
 
@@ -59,7 +55,7 @@ export async function getTeacherProfile(teacherId: number) {
     );
 
     // Calculate total courses
-    const totalCourses = teacher._count.coursesAsTeacher;
+    const totalCourses = teacher.coursesAsTeacher.length;
 
     return {
         id: teacher.id,
@@ -98,12 +94,8 @@ export async function getAllTeachers() {
             firstName: true,
             lastName: true,
             createdAt: true,
-            _count: {
-                select: {
-                    coursesAsTeacher: true,
-                },
-            },
             coursesAsTeacher: {
+                where: { status: 'PUBLISHED' },
                 select: {
                     _count: {
                         select: {
@@ -131,7 +123,7 @@ export async function getAllTeachers() {
             lastName: teacher.lastName,
             fullName: [teacher.firstName, teacher.lastName].filter(Boolean).join(' ') || teacher.username,
             joinedAt: teacher.createdAt,
-            totalCourses: teacher._count.coursesAsTeacher,
+            totalCourses: teacher.coursesAsTeacher.length,
             totalStudents,
         };
     });

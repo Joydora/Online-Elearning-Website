@@ -10,6 +10,8 @@ import {
     getAllCategories,
     getAllCourses,
     getCourseById,
+    getCoursesForTeacher,
+    getFreePreviewContent,
     updateCourseForTeacher,
 } from '../services/course.service';
 import { submitForReview } from '../services/courseReview.service';
@@ -41,6 +43,7 @@ export async function getCoursesController(_req: Request, res: Response): Promis
 
 export async function getCourseDetailController(req: Request, res: Response): Promise<Response> {
     try {
+        const authReq = req as AuthenticatedRequest;
         const idParam = req.params.id;
         const courseId = Number.parseInt(idParam, 10);
 
@@ -48,7 +51,7 @@ export async function getCourseDetailController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const course = await getCourseById(courseId);
+        const course = await getCourseById(courseId, authReq.user);
 
         if (!course) {
             return res.status(404).json({ error: 'Course not found' });
@@ -63,7 +66,49 @@ export async function getCourseDetailController(req: Request, res: Response): Pr
     }
 }
 
+export async function getFreePreviewContentController(req: Request, res: Response): Promise<Response> {
+    try {
+        const courseId = Number.parseInt(req.params.courseId, 10);
+        const contentId = Number.parseInt(req.params.contentId, 10);
+
+        if (Number.isNaN(courseId) || Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'courseId and contentId must be numbers' });
+        }
+
+        const content = await getFreePreviewContent(courseId, contentId);
+
+        if (!content) {
+            return res.status(404).json({ error: 'Free preview content not found' });
+        }
+
+        return res.status(200).json(content);
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch free preview content',
+            details: (error as Error).message,
+        });
+    }
+}
+
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
+
+export async function getMyCoursesController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+
+        if (!authReq.user || authReq.user.role !== Role.TEACHER) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const courses = await getCoursesForTeacher(authReq.user.userId);
+        return res.status(200).json(courses);
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch teacher courses',
+            details: (error as Error).message,
+        });
+    }
+}
 
 function getTeacherId(req: AuthenticatedRequest): number | null {
     // Allow both TEACHER and ADMIN to manage courses
@@ -95,6 +140,18 @@ function normalizeSyllabus(value: unknown) {
     return value ?? {};
 }
 
+function parseOptionalPositiveInt(value: unknown, fieldName: string): number | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new Error(`${fieldName} must be a positive integer when provided`);
+    }
+
+    return parsed;
+}
+
 export async function createCourseController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as AuthenticatedRequest;
@@ -104,7 +161,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, price, categoryId, thumbnailUrl, syllabus } = authReq.body ?? {};
+        const { title, description, price, categoryId, thumbnailUrl, syllabus, trialDurationDays, accessDurationDays } = authReq.body ?? {};
 
         if (!title || !description || price === undefined || categoryId === undefined) {
             return res.status(400).json({
@@ -123,6 +180,16 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'categoryId must be an integer' });
         }
 
+        let parsedTrialDurationDays: number | null | undefined;
+        let parsedAccessDurationDays: number | null | undefined;
+
+        try {
+            parsedTrialDurationDays = parseOptionalPositiveInt(trialDurationDays, 'trialDurationDays');
+            parsedAccessDurationDays = parseOptionalPositiveInt(accessDurationDays, 'accessDurationDays');
+        } catch (error) {
+            return res.status(400).json({ error: (error as Error).message });
+        }
+
         const course = await createCourseForTeacher({
             title,
             description,
@@ -131,6 +198,8 @@ export async function createCourseController(req: Request, res: Response): Promi
             categoryId: numericCategoryId,
             teacherId,
             thumbnailUrl,
+            trialDurationDays: parsedTrialDurationDays,
+            accessDurationDays: parsedAccessDurationDays,
         });
 
         if (!course) {
@@ -161,7 +230,7 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const { title, description, price, categoryId, thumbnailUrl, syllabus } = authReq.body ?? {};
+        const { title, description, price, categoryId, thumbnailUrl, syllabus, trialDurationDays, accessDurationDays } = authReq.body ?? {};
 
         if (
             title === undefined &&
@@ -169,7 +238,9 @@ export async function updateCourseController(req: Request, res: Response): Promi
             price === undefined &&
             categoryId === undefined &&
             thumbnailUrl === undefined &&
-            syllabus === undefined
+            syllabus === undefined &&
+            trialDurationDays === undefined &&
+            accessDurationDays === undefined
         ) {
             return res.status(400).json({ error: 'No fields provided for update' });
         }
@@ -187,6 +258,16 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'categoryId must be an integer' });
         }
 
+        let parsedTrialDurationDays: number | null | undefined;
+        let parsedAccessDurationDays: number | null | undefined;
+
+        try {
+            parsedTrialDurationDays = parseOptionalPositiveInt(trialDurationDays, 'trialDurationDays');
+            parsedAccessDurationDays = parseOptionalPositiveInt(accessDurationDays, 'accessDurationDays');
+        } catch (error) {
+            return res.status(400).json({ error: (error as Error).message });
+        }
+
         try {
             const updatedCourse = await updateCourseForTeacher({
                 courseId,
@@ -197,6 +278,8 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 price: numericPrice,
                 categoryId: numericCategoryId,
                 thumbnailUrl,
+                trialDurationDays: parsedTrialDurationDays,
+                accessDurationDays: parsedAccessDurationDays,
                 userRole: authReq.user?.role,
             });
 
@@ -342,6 +425,7 @@ export async function createContentController(req: Request, res: Response): Prom
             documentUrl,
             fileType,
             timeLimitInMinutes,
+            isFreePreview,
         } = authReq.body ?? {};
 
         if (!moduleId || !title || !contentType) {
@@ -390,6 +474,7 @@ export async function createContentController(req: Request, res: Response): Prom
                 documentUrl,
                 fileType,
                 timeLimitInMinutes: numericTimeLimit,
+                isFreePreview: Boolean(isFreePreview),
                 userRole: authReq.user?.role,
             });
 
