@@ -43,6 +43,7 @@ import ManagePromotions from './pages/admin/ManagePromotions';
 import AdminRevenue from './pages/admin/Revenue';
 import LearningPath from './pages/LearningPath';
 import Progress from './pages/learning/Progress';
+import Certificate from './pages/learning/Certificate';
 import Projects from './pages/learning/Projects';
 import ManageProjects from './pages/teacher/ManageProjects';
 import SyllabusImport from './pages/teacher/SyllabusImport';
@@ -194,6 +195,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/learning/:courseId/progress',
                         element: <Progress />,
+                    },
+                    {
+                        path: '/learning/:courseId/certificate',
+                        element: <Certificate />,
                     },
                     {
                         path: '/learning/:courseId/projects',

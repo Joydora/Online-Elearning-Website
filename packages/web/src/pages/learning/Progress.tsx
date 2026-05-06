@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, CheckCircle, Circle, Sparkles, Loader2, BookOpen, Target, Clock } from 'lucide-react';
+import { Award, ChevronLeft, CheckCircle, Circle, Sparkles, Loader2, BookOpen, Target, Clock } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -159,6 +159,31 @@ export default function Progress() {
                     />
                 </div>
             </div>
+
+            {/* AI Summary */}
+            {detail.progress >= 100 && (
+                <Card className="p-5 mb-6 border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-3">
+                            <Award className="mt-0.5 h-6 w-6 text-green-600" />
+                            <div>
+                                <h2 className="font-semibold text-green-900 dark:text-green-200">
+                                    Chứng chỉ đã sẵn sàng
+                                </h2>
+                                <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+                                    Bạn đã hoàn thành khóa học. Hệ thống đã tự động cấp chứng chỉ hoàn thành.
+                                </p>
+                            </div>
+                        </div>
+                        <Link to={`/learning/${courseId}/certificate`}>
+                            <Button className="bg-green-600 hover:bg-green-700 gap-2">
+                                <Award className="h-4 w-4" />
+                                Xem chứng chỉ
+                            </Button>
+                        </Link>
+                    </div>
+                </Card>
+            )}
 
             {/* AI Summary */}
             <Card className="p-5 mb-6 border-dashed border-red-300 dark:border-red-700">

@@ -1,5 +1,6 @@
 import { PrismaClient, ContentType, EnrollmentType } from '@prisma/client';
 import { Ollama } from 'ollama';
+import { issueCertificateForEnrollment } from './certificate.service';
 
 const prisma = new PrismaClient();
 const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
@@ -97,10 +98,18 @@ export async function markContentCompleted(
     const progress = await calculateWeightedProgress(enrollment.id, courseId);
     const isCompleted = progress >= 100;
 
+    const completedAt = isCompleted ? new Date() : enrollment.completionDate;
+
     await prisma.enrollment.update({
         where: { id: enrollment.id },
-        data: { progress, completionDate: isCompleted ? new Date() : enrollment.completionDate },
+        data: { progress, completionDate: completedAt },
     });
+
+    if (isCompleted && completedAt) {
+        await issueCertificateForEnrollment(enrollment.id).catch((error) => {
+            console.error('Unable to issue course certificate:', error);
+        });
+    }
 
     return { progress, isCompleted };
 }

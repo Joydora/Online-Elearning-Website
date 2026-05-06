@@ -298,7 +298,7 @@ export default function CoursePlayer() {
             queryClient.invalidateQueries({ queryKey: ['completed-contents', courseId] });
             queryClient.invalidateQueries({ queryKey: ['enrolled-course-content', courseId] });
             if (data.isCompleted) {
-                showSuccessAlert('Chúc mừng!', 'Bạn đã hoàn thành khóa học này! 🎉');
+                showSuccessAlert('Chúc mừng!', 'Bạn đã hoàn thành khóa học này! Chứng chỉ đã sẵn sàng trong trang Tiến độ.');
             }
         },
         onError: (error: any) => {
