@@ -1,4 +1,5 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { NotificationType, PrismaClient, Role } from '@prisma/client';
+import { createNotification } from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -116,14 +117,16 @@ export async function createDiscussionPost({ courseId, userId, userRole, text, p
         throw new Error('DISCUSSION_ACCESS_DENIED');
     }
 
+    let parentAuthorId: number | null = null;
     if (parentId) {
         const parent = await prisma.discussionPost.findUnique({
             where: { id: parentId },
-            select: { id: true, courseId: true },
+            select: { id: true, courseId: true, authorId: true },
         });
         if (!parent || parent.courseId !== courseId) {
             throw new Error('INVALID_PARENT_POST');
         }
+        parentAuthorId = parent.authorId;
     }
 
     const post = await prisma.discussionPost.create({
@@ -149,6 +152,17 @@ export async function createDiscussionPost({ courseId, userId, userRole, text, p
             },
         },
     });
+
+    if (parentAuthorId && parentAuthorId !== userId) {
+        await createNotification({
+            userId: parentAuthorId,
+            type: NotificationType.DISCUSSION_REPLY,
+            title: 'Ban co phan hoi moi trong thao luan',
+            message: `Co nguoi vua phan hoi bai viet cua ban trong khoa hoc.`,
+            link: `/courses/${courseId}/discussions`,
+            sendEmail: true,
+        });
+    }
 
     return { ...post, replies: [] as DiscussionNode[] };
 }

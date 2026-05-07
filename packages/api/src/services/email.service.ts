@@ -519,3 +519,47 @@ export async function sendEnrollmentExpiryReminder(
     }
 }
 
+export async function sendNotificationEmail(
+    to: string,
+    name: string,
+    title: string,
+    message: string,
+    link?: string,
+): Promise<boolean> {
+    const actionLink = link ? `${FRONTEND_URL}${link}` : `${FRONTEND_URL}/profile`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:'Segoe UI',sans-serif;background:#f4f4f4;margin:0;padding:0;">
+  <table style="max-width:600px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;">
+    <tr><td style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:28px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:24px;">E-Learning Notification</h1>
+    </td></tr>
+    <tr><td style="padding:28px;">
+      <p>Xin chào <strong>${name}</strong>,</p>
+      <h2 style="color:#111827;margin-top:0;">${title}</h2>
+      <p style="color:#374151;line-height:1.6;">${message}</p>
+      <a href="${actionLink}" style="display:inline-block;margin-top:14px;padding:12px 22px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">
+        Xem chi tiết
+      </a>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+    try {
+        await transporter.sendMail({
+            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+            to,
+            subject: `[E-Learning] ${title}`,
+            text: `${title}\n\n${message}\n\nXem chi tiết: ${actionLink}`,
+            html,
+        });
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to send notification email:', (error as Error).message);
+        return false;
+    }
+}
+

@@ -12,7 +12,8 @@ import {
     Award,
     BookOpen,
     GraduationCap,
-    Trophy
+    Trophy,
+    Bell,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,13 @@ import { Input } from '@/components/ui/input';
 import { apiClient } from '../lib/api';
 import { useAuthStore } from '../stores/useAuthStore';
 import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
+
+type NotificationPreferenceRow = {
+    type: string;
+    inAppEnabled: boolean;
+    emailEnabled: boolean;
+    label: string;
+};
 
 type UserProfile = {
     id: number;
@@ -121,6 +129,37 @@ export default function Profile() {
         onError: (error: any) => {
             const errorMessage = error.response?.data?.error || error.message || 'Không thể cập nhật thông tin.';
             showErrorAlert('Lỗi', errorMessage);
+        },
+    });
+
+    const [prefDraft, setPrefDraft] = useState<NotificationPreferenceRow[]>([]);
+
+    const { data: notificationPreferences, isLoading: prefsLoading } = useQuery({
+        queryKey: ['notification-preferences'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/notifications/preferences');
+            return data.preferences as NotificationPreferenceRow[];
+        },
+        enabled: !!profile,
+    });
+
+    useEffect(() => {
+        if (notificationPreferences) {
+            setPrefDraft(notificationPreferences);
+        }
+    }, [notificationPreferences]);
+
+    const saveNotificationPrefsMutation = useMutation({
+        mutationFn: async () => {
+            await apiClient.put('/notifications/preferences', { preferences: prefDraft });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+            showSuccessAlert('Thành công!', 'Cài đặt thông báo đã được lưu.');
+        },
+        onError: (error: any) => {
+            const msg = error.response?.data?.error || error.message || 'Không thể lưu cài đặt.';
+            showErrorAlert('Lỗi', msg);
         },
     });
 
@@ -263,7 +302,7 @@ export default function Profile() {
                     </div>
 
                     {/* Main Form */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-2 space-y-6">
                         <Card className="p-4 sm:p-6">
                             <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
                                 Thông tin cá nhân
@@ -424,6 +463,80 @@ export default function Profile() {
                                     </Button>
                                 </div>
                             </form>
+                        </Card>
+
+                        <Card className="p-4 sm:p-6">
+                            <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-2 flex items-center gap-2">
+                                <Bell className="h-5 w-5 text-red-600" />
+                                Cài đặt thông báo
+                            </h2>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                                Bật hoặc tắt từng loại thông báo trên ứng dụng và qua email.
+                            </p>
+
+                            {prefsLoading ? (
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">Đang tải...</p>
+                            ) : (
+                                <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-left">
+                                            <tr>
+                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">Loại</th>
+                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-center">Trong app</th>
+                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-center">Email</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {prefDraft.map((row, index) => (
+                                                <tr
+                                                    key={row.type}
+                                                    className="border-t border-zinc-200 dark:border-zinc-800"
+                                                >
+                                                    <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200">
+                                                        {row.label}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-red-600"
+                                                            checked={row.inAppEnabled}
+                                                            onChange={(e) => {
+                                                                const next = [...prefDraft];
+                                                                next[index] = { ...row, inAppEnabled: e.target.checked };
+                                                                setPrefDraft(next);
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 accent-red-600"
+                                                            checked={row.emailEnabled}
+                                                            onChange={(e) => {
+                                                                const next = [...prefDraft];
+                                                                next[index] = { ...row, emailEnabled: e.target.checked };
+                                                                setPrefDraft(next);
+                                                            }}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            <div className="mt-4">
+                                <Button
+                                    type="button"
+                                    disabled={saveNotificationPrefsMutation.isPending || prefsLoading}
+                                    onClick={() => saveNotificationPrefsMutation.mutate()}
+                                    className="gap-2 bg-red-600 hover:bg-red-700"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    {saveNotificationPrefsMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt thông báo'}
+                                </Button>
+                            </div>
                         </Card>
                     </div>
                 </div>

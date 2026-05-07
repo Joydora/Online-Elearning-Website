@@ -8,6 +8,7 @@ import {
     getPendingCourses,
     rejectCourse,
 } from '../services/courseReview.service';
+import { writeAdminAuditLog } from '../services/adminAudit.service';
 
 const prisma = new PrismaClient();
 
@@ -177,6 +178,7 @@ export async function getAllUsersController(req: Request, res: Response): Promis
 
 export async function updateUserRoleController(req: Request, res: Response): Promise<Response> {
     try {
+        const authReq = req as AuthenticatedRequest;
         const userId = Number.parseInt(req.params.id, 10);
         const { role } = req.body;
 
@@ -207,6 +209,16 @@ export async function updateUserRoleController(req: Request, res: Response): Pro
                 lastName: true,
                 role: true,
             },
+        });
+
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'UPDATE',
+            resource: 'USER',
+            resourceId: updated.id,
+            description: `Updated role for user ${updated.username}`,
+            before: { role: user.role },
+            after: { role: updated.role },
         });
 
         return res.status(200).json(updated);
@@ -244,6 +256,19 @@ export async function deleteUserController(req: Request, res: Response): Promise
             where: { id: userId },
         });
 
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'DELETE',
+            resource: 'USER',
+            resourceId: userId,
+            description: `Deleted user ${user.username}`,
+            before: {
+                username: user.username,
+                email: user.email,
+                role: user.role,
+            },
+        });
+
         return res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
         return res.status(500).json({
@@ -255,6 +280,7 @@ export async function deleteUserController(req: Request, res: Response): Promise
 
 export async function createUserController(req: Request, res: Response): Promise<Response> {
     try {
+        const authReq = req as AuthenticatedRequest;
         const { username, email, password, role, firstName, lastName } = req.body;
 
         if (!username || !email || !password || !role) {
@@ -304,6 +330,19 @@ export async function createUserController(req: Request, res: Response): Promise
             },
         });
 
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'CREATE',
+            resource: 'USER',
+            resourceId: user.id,
+            description: `Created user ${user.username}`,
+            after: {
+                username: user.username,
+                email: user.email,
+                role: user.role,
+            },
+        });
+
         return res.status(201).json(user);
     } catch (error) {
         return res.status(500).json({
@@ -317,6 +356,7 @@ export async function createUserController(req: Request, res: Response): Promise
 
 export async function createCourseAdminController(req: Request, res: Response): Promise<Response> {
     try {
+        const authReq = req as AuthenticatedRequest;
         const { title, description, price, categoryId, teacherId, thumbnailUrl, trialDurationDays, accessDurationDays } = req.body;
 
         if (!title || !description || price === undefined || !categoryId || !teacherId) {
@@ -367,6 +407,20 @@ export async function createCourseAdminController(req: Request, res: Response): 
             },
         });
 
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'CREATE',
+            resource: 'COURSE',
+            resourceId: course.id,
+            description: `Created course ${course.title}`,
+            after: {
+                title: course.title,
+                price: course.price,
+                teacherId: course.teacher.id,
+                categoryId: course.category.id,
+            },
+        });
+
         return res.status(201).json(course);
     } catch (error) {
         return res.status(500).json({
@@ -378,6 +432,7 @@ export async function createCourseAdminController(req: Request, res: Response): 
 
 export async function updateCourseAdminController(req: Request, res: Response): Promise<Response> {
     try {
+        const authReq = req as AuthenticatedRequest;
         const courseId = Number.parseInt(req.params.id, 10);
         const { title, description, price, categoryId, teacherId, thumbnailUrl, trialDurationDays, accessDurationDays } = req.body;
 
@@ -436,6 +491,28 @@ export async function updateCourseAdminController(req: Request, res: Response): 
                         lastName: true,
                     },
                 },
+            },
+        });
+
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'UPDATE',
+            resource: 'COURSE',
+            resourceId: updated.id,
+            description: `Updated course ${updated.title}`,
+            before: {
+                title: course.title,
+                description: course.description,
+                price: course.price,
+                teacherId: course.teacherId,
+                categoryId: course.categoryId,
+            },
+            after: {
+                title: updated.title,
+                description: updated.description,
+                price: updated.price,
+                teacherId: updated.teacher.id,
+                categoryId: updated.category.id,
             },
         });
 
@@ -545,6 +622,7 @@ export async function getAllCoursesAdminController(req: Request, res: Response):
 
 export async function deleteCourseAdminController(req: Request, res: Response): Promise<Response> {
     try {
+        const authReq = req as AuthenticatedRequest;
         const courseId = Number.parseInt(req.params.id, 10);
 
         if (Number.isNaN(courseId)) {
@@ -573,6 +651,20 @@ export async function deleteCourseAdminController(req: Request, res: Response): 
 
         await prisma.course.delete({
             where: { id: courseId },
+        });
+
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'DELETE',
+            resource: 'COURSE',
+            resourceId: courseId,
+            description: `Deleted course ${course.title}`,
+            before: {
+                title: course.title,
+                price: course.price,
+                teacherId: course.teacherId,
+                categoryId: course.categoryId,
+            },
         });
 
         return res.status(200).json({ message: 'Course deleted successfully' });

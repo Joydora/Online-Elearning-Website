@@ -41,6 +41,7 @@ import AdminCreateCourse from './pages/admin/CreateCourse';
 import AdminEditCourse from './pages/admin/EditCourse';
 import ManagePromotions from './pages/admin/ManagePromotions';
 import AdminRevenue from './pages/admin/Revenue';
+import AdminAuditLogs from './pages/admin/AuditLogs';
 import LearningPath from './pages/LearningPath';
 import Progress from './pages/learning/Progress';
 import Certificate from './pages/learning/Certificate';
@@ -50,6 +51,7 @@ import ManageProjects from './pages/teacher/ManageProjects';
 import SyllabusImport from './pages/teacher/SyllabusImport';
 import TeacherEarnings from './pages/teacher/Earnings';
 import ReviewCourses from './pages/admin/ReviewCourses';
+import Notifications from './pages/Notifications';
 
 function MainLayout() {
     return (
@@ -188,6 +190,10 @@ export const router = createBrowserRouter([
                         path: '/courses/:courseId/discussions',
                         element: <Discussion />,
                     },
+                    {
+                        path: '/notifications',
+                        element: <Notifications />,
+                    },
                 ],
             },
             {
@@ -318,6 +324,10 @@ export const router = createBrowserRouter([
                         {
                             path: '/admin/revenue',
                             element: <AdminRevenue />,
+                        },
+                        {
+                            path: '/admin/audit-logs',
+                            element: <AdminAuditLogs />,
                         },
                         {
                             path: '/admin/courses/review',

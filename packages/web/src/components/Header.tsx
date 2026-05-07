@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Menu, X, BookOpen, Trophy, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { LogOut, LayoutDashboard, Menu, X, BookOpen, Trophy, Settings, Bell } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
@@ -15,6 +15,7 @@ export function Header() {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const user = useAuthStore((state) => state.user);
     const clearUser = useAuthStore((state) => state.clearUser);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
 
     const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.username;
 
@@ -37,6 +38,65 @@ export function Header() {
     };
 
     const isActive = (path: string) => location.pathname === path;
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setUnreadNotifications(0);
+            return;
+        }
+
+        let cancelled = false;
+        let es: EventSource | null = null;
+        let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+
+        const fetchUnreadOnce = async () => {
+            try {
+                const response = await apiClient.get('/notifications/me?page=1&pageSize=1');
+                if (!cancelled) {
+                    setUnreadNotifications(response.data.unreadCount || 0);
+                }
+            } catch {
+                if (!cancelled) {
+                    setUnreadNotifications(0);
+                }
+            }
+        };
+
+        const openStream = () => {
+            const base = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+            const token = localStorage.getItem('token');
+            const url = `${base}/notifications/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+            es = new EventSource(url);
+            es.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data as string);
+                    if (typeof data.unreadCount === 'number') {
+                        setUnreadNotifications(data.unreadCount);
+                    }
+                } catch {
+                    // ignore malformed payload
+                }
+            };
+            es.onerror = () => {
+                es?.close();
+                es = null;
+                if (!cancelled) {
+                    reconnectTimer = setTimeout(openStream, 3000);
+                }
+            };
+        };
+
+        fetchUnreadOnce();
+        openStream();
+
+        return () => {
+            cancelled = true;
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+            }
+            es?.close();
+        };
+    }, [isAuthenticated]);
 
     const navLinks = [
         { path: '/', label: 'Trang chủ' },
@@ -152,6 +212,19 @@ export function Header() {
                                         </Link>
                                     </>
                                 )}
+
+                                {/* Profile Button */}
+                                <Link to="/notifications">
+                                    <Button variant="outline" size="sm" className="gap-2 relative">
+                                        <Bell className="h-4 w-4" />
+                                        Thong bao
+                                        {unreadNotifications > 0 && (
+                                            <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-red-600 text-white text-[10px] leading-5 text-center">
+                                                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                                            </span>
+                                        )}
+                                    </Button>
+                                </Link>
 
                                 {/* Profile Button */}
                                 <Link to="/profile">
@@ -277,6 +350,12 @@ export function Header() {
                                         <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-zinc-600 text-white hover:bg-zinc-700 transition-colors flex items-center gap-2 justify-center">
                                             <Settings className="h-4 w-4" />
                                             Hồ sơ
+                                        </button>
+                                    </Link>
+                                    <Link to="/notifications" onClick={() => setMobileMenuOpen(false)}>
+                                        <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-zinc-600 text-white hover:bg-zinc-700 transition-colors flex items-center gap-2 justify-center">
+                                            <Bell className="h-4 w-4" />
+                                            Thong bao {unreadNotifications > 0 ? `(${unreadNotifications})` : ''}
                                         </button>
                                     </Link>
 

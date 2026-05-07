@@ -51,6 +51,13 @@ enum CourseStatus {
   PUBLISHED
 }
 
+enum NotificationType {
+  DEADLINE_REMINDER
+  REENGAGEMENT_REMINDER
+  PROJECT_GRADED
+  DISCUSSION_REPLY
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -79,9 +86,30 @@ model User {
   reviewedCourses    Course[]           @relation("CourseReviewer")
   certificates        Certificate[]
   discussionPosts     DiscussionPost[]
+  notifications       Notification[]
+  notificationPreferences UserNotificationPreference[]
+  adminAuditLogs      AdminAuditLog[] @relation("AdminAuditActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AdminAuditLog {
+  id          Int      @id @default(autoincrement())
+  adminId     Int?
+  admin       User?    @relation("AdminAuditActor", fields: [adminId], references: [id], onDelete: SetNull)
+  action      String
+  resource    String
+  resourceId  String?
+  description String?
+  before      Json?
+  after       Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([resource, createdAt])
+  @@index([action, createdAt])
 }
 
 model Category {
@@ -460,4 +488,36 @@ model DiscussionPost {
 
   @@index([courseId, createdAt])
   @@index([parentId])
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  link        String?
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  sentEmailAt DateTime?
+  dedupeKey   String?          @unique
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, type, createdAt])
+}
+
+model UserNotificationPreference {
+  id           Int              @id @default(autoincrement())
+  userId       Int
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         NotificationType
+  inAppEnabled Boolean          @default(true)
+  emailEnabled Boolean          @default(true)
+
+  @@unique([userId, type])
+  @@index([userId])
 }

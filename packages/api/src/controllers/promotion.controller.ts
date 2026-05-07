@@ -10,6 +10,13 @@ import {
     type CreatePromotionInput,
     type UpdatePromotionInput,
 } from '../services/promotion.service';
+import { AuthenticatedUser } from '../types/auth';
+import { writeAdminAuditLog } from '../services/adminAudit.service';
+
+function getAdminId(req: Request): number | null {
+    const user = (req as Request & { user?: AuthenticatedUser }).user;
+    return user?.userId ?? null;
+}
 
 export async function getAllPromotionsController(req: Request, res: Response): Promise<Response> {
     try {
@@ -101,6 +108,21 @@ export async function createPromotionController(req: Request, res: Response): Pr
             endDate: new Date(input.endDate),
         });
 
+        await writeAdminAuditLog({
+            adminId: getAdminId(req),
+            action: 'CREATE',
+            resource: 'PROMOTION',
+            resourceId: promotion.id,
+            description: `Created promotion ${promotion.code}`,
+            after: {
+                code: promotion.code,
+                discountType: promotion.discountType,
+                discountValue: promotion.discountValue,
+                startDate: promotion.startDate.toISOString(),
+                endDate: promotion.endDate.toISOString(),
+            },
+        });
+
         return res.status(201).json(promotion);
     } catch (error) {
         const message = (error as Error).message;
@@ -129,11 +151,34 @@ export async function updatePromotionController(req: Request, res: Response): Pr
         }
 
         const input = req.body as UpdatePromotionInput;
+        const before = await getPromotionById(promotionId);
 
         const promotion = await updatePromotion(promotionId, {
             ...input,
             startDate: input.startDate ? new Date(input.startDate) : undefined,
             endDate: input.endDate ? new Date(input.endDate) : undefined,
+        });
+
+        await writeAdminAuditLog({
+            adminId: getAdminId(req),
+            action: 'UPDATE',
+            resource: 'PROMOTION',
+            resourceId: promotion.id,
+            description: `Updated promotion ${promotion.code}`,
+            before: before
+                ? {
+                      code: before.code,
+                      discountType: before.discountType,
+                      discountValue: before.discountValue,
+                      isActive: before.isActive,
+                  }
+                : undefined,
+            after: {
+                code: promotion.code,
+                discountType: promotion.discountType,
+                discountValue: promotion.discountValue,
+                isActive: promotion.isActive,
+            },
         });
 
         return res.status(200).json(promotion);
@@ -163,7 +208,24 @@ export async function deletePromotionController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Promotion ID must be a number' });
         }
 
+        const before = await getPromotionById(promotionId);
         await deletePromotion(promotionId);
+
+        await writeAdminAuditLog({
+            adminId: getAdminId(req),
+            action: 'DELETE',
+            resource: 'PROMOTION',
+            resourceId: promotionId,
+            description: `Deleted promotion ${before?.code ?? promotionId}`,
+            before: before
+                ? {
+                      code: before.code,
+                      discountType: before.discountType,
+                      discountValue: before.discountValue,
+                      isActive: before.isActive,
+                  }
+                : undefined,
+        });
 
         return res.status(200).json({ message: 'Promotion deleted successfully' });
     } catch (error) {

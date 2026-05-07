@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign, ClipboardCheck } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4 mb-6 sm:mb-8">
                     <Link to="/admin/users">
                         <Button className="w-full h-16 sm:h-20 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal">
                             <Users className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
@@ -200,6 +200,13 @@ export default function AdminDashboard() {
                         <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
                             <DollarSign className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                             <span>Doanh thu</span>
+                        </Button>
+                    </Link>
+
+                    <Link to="/admin/audit-logs">
+                        <Button className="w-full h-16 sm:h-20 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <ShieldCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Audit logs</span>
                         </Button>
                     </Link>
                 </div>
