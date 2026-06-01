@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Clock, Users, Star, BookOpen, Award, Play, ShoppingCart, CheckCircle, Tag, X } from 'lucide-react';
 import { apiClient } from '../lib/api';
+import { getYouTubeEmbedUrl } from '../lib/video';
 import { useAuthStore } from '../stores/useAuthStore';
 import { ModuleAccordion } from '../components/ModuleAccordion';
 import { ReviewSection } from '../components/ReviewSection';
@@ -579,11 +580,21 @@ export default function CourseDetail() {
                                             </div>
                                             {previewContent.contentType === 'VIDEO' && previewContent.videoUrl ? (
                                                 <div className="aspect-video bg-black">
-                                                    <video
-                                                        src={previewContent.videoUrl}
-                                                        controls
-                                                        className="h-full w-full"
-                                                    />
+                                                    {getYouTubeEmbedUrl(previewContent.videoUrl) ? (
+                                                        <iframe
+                                                            src={getYouTubeEmbedUrl(previewContent.videoUrl) || undefined}
+                                                            title={previewContent.title}
+                                                            className="h-full w-full"
+                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                            allowFullScreen
+                                                        />
+                                                    ) : (
+                                                        <video
+                                                            src={previewContent.videoUrl}
+                                                            controls
+                                                            className="h-full w-full"
+                                                        />
+                                                    )}
                                                 </div>
                                             ) : previewContent.contentType === 'DOCUMENT' && previewContent.documentUrl ? (
                                                 <div className="p-4">

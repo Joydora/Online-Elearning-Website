@@ -95,6 +95,21 @@ function RoleRoute({ requiredRole }: RoleRouteProps) {
     return <Outlet />;
 }
 
+function MultiRoleRoute({ roles }: { roles: Role[] }) {
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const user = useAuthStore((state) => state.user);
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (!user || !roles.includes(user.role)) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <Outlet />;
+}
+
 export const router = createBrowserRouter([
     {
         element: <MainLayout />,
@@ -197,12 +212,19 @@ export const router = createBrowserRouter([
                 ],
             },
             {
-                element: <RoleRoute requiredRole="STUDENT" />,
+                // The course player is accessible to enrolled students AND to the
+                // owning teacher / admins (so staff can view their own course content).
+                element: <MultiRoleRoute roles={['STUDENT', 'TEACHER', 'ADMIN']} />,
                 children: [
                     {
                         path: '/learning/:courseId',
                         element: <CoursePlayer />,
                     },
+                ],
+            },
+            {
+                element: <RoleRoute requiredRole="STUDENT" />,
+                children: [
                     {
                         path: '/learning/:courseId/progress',
                         element: <Progress />,

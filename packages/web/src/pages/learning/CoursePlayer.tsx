@@ -3,8 +3,9 @@ import type { SyntheticEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine, Lock, MessageCircle } from 'lucide-react';
+import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine, Lock, MessageCircle, X } from 'lucide-react';
 import { apiClient } from '../../lib/api';
+import { getYouTubeEmbedUrl } from '../../lib/video';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { showErrorAlert, showSuccessAlert } from '../../lib/sweetalert';
@@ -157,23 +158,6 @@ type QuizAttemptHistory = {
     endTime: string;
 };
 
-const getYouTubeEmbedUrl = (url: string): string | null => {
-    try {
-        const parsed = new URL(url);
-        if (parsed.hostname.includes('youtube.com')) {
-            const id = parsed.searchParams.get('v');
-            return id ? `https://www.youtube.com/embed/${id}` : null;
-        }
-        if (parsed.hostname === 'youtu.be') {
-            const id = parsed.pathname.replace('/', '').trim();
-            return id ? `https://www.youtube.com/embed/${id}` : null;
-        }
-    } catch {
-        return null;
-    }
-    return null;
-};
-
 export default function CoursePlayer() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
@@ -208,6 +192,13 @@ export default function CoursePlayer() {
     const [taQuestion, setTaQuestion] = useState('');
     const [taLoading, setTaLoading] = useState(false);
     const [taQuizLoading, setTaQuizLoading] = useState(false);
+    const [taOpen, setTaOpen] = useState(false);
+    const taEndRef = useRef<HTMLDivElement | null>(null);
+
+    // Keep the AI chat scrolled to the latest message while the overlay is open.
+    useEffect(() => {
+        if (taOpen) taEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [taMessages, taLoading, taQuizLoading, taOpen]);
 
     // Practice states
     const [practiceData, setPracticeData] = useState<PracticeData | null>(null);
@@ -1464,41 +1455,91 @@ export default function CoursePlayer() {
                         </div>
 
                         <div className="mt-6 border-t border-zinc-700 pt-6">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Bot className="h-5 w-5 text-red-400" />
-                                <h3 className="text-white font-semibold">AI Teaching Assistant</h3>
-                            </div>
-                            <p className="text-xs text-zinc-400 mb-3">
-                                Hỏi AI theo syllabus khóa học và bài đang xem.
-                            </p>
+                            <button
+                                onClick={() => setTaOpen(true)}
+                                className="w-full flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-700/60 px-4 py-3 text-left transition-colors"
+                            >
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600/20 text-red-400 shrink-0">
+                                    <Bot className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-white font-semibold text-sm">AI Teaching Assistant</h3>
+                                    <p className="text-xs text-zinc-400 truncate">
+                                        {taMessages.length > 0
+                                            ? `${taMessages.length} tin nhắn · bấm để mở`
+                                            : 'Hỏi AI theo bài đang xem'}
+                                    </p>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                            <div className="space-y-3 max-h-80 overflow-y-auto mb-3 pr-1">
-                                {taMessages.length === 0 ? (
-                                    <div className="text-xs text-zinc-500 bg-zinc-900/60 rounded-lg p-3">
-                                        Ví dụ: "Bài này cần nhớ ý chính nào?" hoặc bấm tạo câu hỏi quiz gợi ý.
-                                    </div>
-                                ) : (
-                                    taMessages.map((message, index) => (
-                                        <div
-                                            key={`${message.role}-${index}`}
-                                            className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${message.role === 'user'
-                                                ? 'bg-red-600 text-white'
-                                                : 'bg-zinc-900 text-zinc-200 border border-zinc-700'
-                                                }`}
-                                        >
-                                            {message.content}
-                                        </div>
-                                    ))
-                                )}
-                                {(taLoading || taQuizLoading) && (
-                                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        AI đang suy nghĩ...
-                                    </div>
-                                )}
+            {/* AI Teaching Assistant — full-size overlay */}
+            {taOpen && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6 bg-black/70"
+                    onClick={() => setTaOpen(false)}
+                >
+                    <Card
+                        className="flex w-full max-w-3xl h-[85vh] flex-col overflow-hidden bg-zinc-900 border-zinc-700"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between gap-3 border-b border-zinc-700 bg-zinc-800 px-4 sm:px-5 py-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600/20 text-red-400 shrink-0">
+                                    <Bot className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-white font-semibold">AI Teaching Assistant</h3>
+                                    <p className="text-xs text-zinc-400 truncate">
+                                        {currentContent ? `Bài đang xem: ${currentContent.title}` : 'Hỏi AI theo syllabus khóa học'}
+                                    </p>
+                                </div>
                             </div>
+                            <button
+                                onClick={() => setTaOpen(false)}
+                                aria-label="Đóng"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors shrink-0"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
 
-                            <div className="flex gap-2 mb-2">
+                        {/* Messages */}
+                        <div className="flex-1 space-y-3 overflow-y-auto overflow-x-hidden overscroll-contain p-4 sm:p-5">
+                            {taMessages.length === 0 ? (
+                                <div className="text-sm text-zinc-500 bg-zinc-800/60 rounded-lg p-4">
+                                    Ví dụ: "Bài này cần nhớ ý chính nào?" hoặc bấm tạo câu hỏi quiz gợi ý.
+                                </div>
+                            ) : (
+                                taMessages.map((message, index) => (
+                                    <div
+                                        key={`${message.role}-${index}`}
+                                        className={`rounded-lg p-3 text-sm whitespace-pre-wrap break-words max-w-[85%] ${message.role === 'user'
+                                            ? 'ml-auto bg-red-600 text-white'
+                                            : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                                            }`}
+                                    >
+                                        {message.content}
+                                    </div>
+                                ))
+                            )}
+                            {(taLoading || taQuizLoading) && (
+                                <div className="flex items-center gap-2 text-sm text-zinc-400">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    AI đang suy nghĩ...
+                                </div>
+                            )}
+                            <div ref={taEndRef} />
+                        </div>
+
+                        {/* Input footer */}
+                        <div className="border-t border-zinc-700 bg-zinc-800 p-3 sm:p-4 space-y-2">
+                            <div className="flex gap-2">
                                 <input
                                     value={taQuestion}
                                     onChange={(event) => setTaQuestion(event.target.value)}
@@ -1509,21 +1550,19 @@ export default function CoursePlayer() {
                                         }
                                     }}
                                     placeholder="Hỏi về bài này..."
-                                    className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    autoFocus
+                                    className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                                     disabled={taLoading}
                                 />
                                 <Button
-                                    size="sm"
                                     onClick={askTeachingAssistant}
                                     disabled={taLoading || !taQuestion.trim()}
-                                    className="bg-red-600 hover:bg-red-700"
+                                    className="bg-red-600 hover:bg-red-700 px-4"
                                 >
                                     <Send className="h-4 w-4" />
                                 </Button>
                             </div>
-
                             <Button
-                                size="sm"
                                 variant="outline"
                                 onClick={generateQuizSuggestions}
                                 disabled={taQuizLoading}
@@ -1537,7 +1576,7 @@ export default function CoursePlayer() {
                                 Gợi ý câu hỏi quiz từ bài này
                             </Button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
         </div>

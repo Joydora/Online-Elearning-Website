@@ -460,7 +460,7 @@ Trả lời:`;
             ? `${input.question}\nBài đang xem: ${currentContent.title}`
             : input.question;
 
-        const searchResults = await vectorStoreService.search(searchQuery, 6, { namespace });
+        const searchResults = await vectorStoreService.search(searchQuery, 4, { namespace });
         const context = searchResults
             .map((result, index) => `[Nguồn ${index + 1}]\n${result.document.content}`)
             .join('\n\n');
@@ -492,6 +492,8 @@ TRẢ LỜI:`;
             model: this.model,
             prompt,
             stream: false,
+            // Bound generation time on CPU: cap output length and keep it focused.
+            options: { num_predict: 512, temperature: 0.4 },
         });
 
         return {

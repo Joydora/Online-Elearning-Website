@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { CourseStatus, EnrollmentType, PayoutStatus, PrismaClient } from '@prisma/client';
-import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent } from '../services/enroll.service';
+import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent, getCourseContentForStaff } from '../services/enroll.service';
 import { AuthenticatedUser } from '../types/auth';
 
 const prisma = new PrismaClient();
@@ -243,11 +243,17 @@ export async function getCourseContentController(req: Request, res: Response): P
         if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
 
         try {
-            const courseData = await getCourseForEnrolledStudent(courseId, authReq.user.userId);
+            // Staff (the owning teacher or any admin) can open their own course in
+            // the learning player without enrolling.
+            const courseData =
+                authReq.user.role === 'TEACHER' || authReq.user.role === 'ADMIN'
+                    ? await getCourseContentForStaff(courseId, authReq.user.userId, authReq.user.role)
+                    : await getCourseForEnrolledStudent(courseId, authReq.user.userId);
             return res.status(200).json(courseData);
         } catch (error) {
             const message = (error as Error).message;
             if (message === 'NOT_ENROLLED') return res.status(403).json({ error: 'Not enrolled in this course' });
+            if (message === 'NOT_COURSE_OWNER') return res.status(403).json({ error: 'You do not own this course' });
             if (message === 'ENROLLMENT_EXPIRED') return res.status(403).json({ error: 'Enrollment has expired', code: 'ENROLLMENT_EXPIRED' });
             if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
             if (message === 'COURSE_NOT_PUBLISHED') return res.status(403).json({ error: 'Course is not published' });

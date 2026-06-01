@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { PrismaClient, EnrollmentType } from '@prisma/client';
+import { PrismaClient, EnrollmentType, Role } from '@prisma/client';
 import { getActivePromotionByCode, calculateDiscount, incrementPromotionUsage } from './promotion.service';
 
 const prisma = new PrismaClient();
@@ -229,6 +229,69 @@ export async function getCourseForEnrolledStudent(courseId: number, studentId: n
             type: enrollment.type,
             expiresAt: enrollment.expiresAt,
             isActive: enrollment.isActive,
+        },
+    };
+}
+
+/**
+ * Course content for staff (the owning teacher or any admin) — full access, no
+ * enrollment required, and unpublished courses are allowed so teachers can
+ * preview their own work in the learning player.
+ */
+export async function getCourseContentForStaff(courseId: number, userId: number, role: Role) {
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            teacherId: true,
+            modules: {
+                orderBy: { order: 'asc' },
+                select: {
+                    id: true,
+                    title: true,
+                    order: true,
+                    contents: {
+                        orderBy: { order: 'asc' },
+                        select: {
+                            id: true,
+                            title: true,
+                            order: true,
+                            contentType: true,
+                            videoUrl: true,
+                            documentUrl: true,
+                            durationInSeconds: true,
+                            timeLimitInMinutes: true,
+                            isFreePreview: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!course) throw new Error('COURSE_NOT_FOUND');
+    if (role !== Role.ADMIN && course.teacherId !== userId) throw new Error('NOT_COURSE_OWNER');
+
+    const modules = course.modules.map((module) => ({
+        ...module,
+        contents: module.contents.map((content) => ({ ...content, isLocked: false })),
+    }));
+
+    return {
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        modules,
+        // Synthetic enrollment so the player treats staff as having full access.
+        enrollment: {
+            enrollmentId: 0,
+            progress: 0,
+            completionDate: null,
+            type: EnrollmentType.PAID,
+            expiresAt: null,
+            isActive: true,
         },
     };
 }

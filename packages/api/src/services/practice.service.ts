@@ -6,9 +6,25 @@ const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';
 
 export async function getPracticeByContent(contentId: number) {
-    return prisma.practice.findUnique({
+    const practice = await prisma.practice.findUnique({
         where: { contentId },
+        include: { content: { select: { title: true } } },
     });
+    if (!practice) return null;
+
+    // Normalize shape for the frontend: it expects `title` (lesson name) and
+    // `description` (the practice prompt). Keep the raw fields too for editors.
+    return {
+        id: practice.id,
+        contentId: practice.contentId,
+        title: practice.content.title,
+        description: practice.prompt,
+        prompt: practice.prompt,
+        starterCode: practice.starterCode,
+        expectedOutput: practice.expectedOutput,
+        rubric: practice.rubric,
+        language: practice.language,
+    };
 }
 
 export async function createPractice(data: {
