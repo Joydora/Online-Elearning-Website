@@ -17,3 +17,7 @@ packages/*/package-lock.json
 
 # Test artifacts
 tests/screenshots/
+
+# Build artifacts
+packages/api/dist/
+packages/web/dist/

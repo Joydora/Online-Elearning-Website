@@ -147,29 +147,35 @@ and `vectorStore.service.ts`). You just need keys.
 
 ## 4. Backend — Render Web Service
 
-### 4.1 One-time repo prep
+### 4.1 One-time repo prep — already done
 
-Add production build scripts to `packages/api/package.json` so Render compiles
-TypeScript at build time and runs plain Node at runtime (much faster cold
-starts than `ts-node`).
+The repo now ships with these scripts in `packages/api/package.json`
+(committed in the same change as this doc):
 
 ```jsonc
 {
   "scripts": {
-    "dev":   "ts-node src/index.ts",
-    "build": "prisma generate && tsc -p tsconfig.json",
-    "start": "node dist/src/index.js",
+    "dev":         "ts-node src/index.ts",
+    "build":       "tsc -p tsconfig.json",
+    "start":       "node dist/src/index.js",
     "postinstall": "prisma generate"
   }
 }
 ```
 
-> Don't forget to move `typescript` and `@types/*` to `dependencies` (not
-> `devDependencies`) **or** set `NPM_CONFIG_PRODUCTION=false` on Render so dev
-> deps survive the install — Render prunes dev deps by default in production
-> mode and the build will fail without `tsc`.
+…and a `packageManager` pin in the root `package.json`:
 
-Commit and push to your `deploy` branch.
+```jsonc
+{ "packageManager": "pnpm@10.2.0" }
+```
+
+> **Heads-up on dev-deps.** `typescript` and `@types/*` are still in
+> `devDependencies`. Render runs the install at build time with dev deps
+> available, so `tsc` resolves. But if you ever flip Render to a "production
+> install" or set `NODE_ENV=production` so early that it skips dev deps, the
+> build will fail with `tsc: not found`. The bulletproof fix is to add
+> `NPM_CONFIG_PRODUCTION=false` as a build-time env var on Render, or
+> override the install command to `pnpm install --frozen-lockfile --prod=false`.
 
 ### 4.2 Delete the old Railway configs
 
@@ -194,11 +200,8 @@ but they leak intent — delete them or leave them, your call.
    - **Instance Type**: **Free**
 
    Why `corepack enable`? Render's Node image ships npm by default; corepack
-   activates the pnpm version pinned in your root `package.json`'s
-   `packageManager` field. If you don't have that field, add it now:
-   ```jsonc
-   { "packageManager": "pnpm@9.0.0" }
-   ```
+   activates the pnpm version pinned in the root `package.json`'s
+   `packageManager` field (`pnpm@10.2.0`, already set).
 
 3. **Environment** tab → paste this block (replace `…` with real values):
 

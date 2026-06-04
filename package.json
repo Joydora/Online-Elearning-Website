@@ -2,6 +2,7 @@
     "name": "online-elearning-platform-monorepo",
     "private": true,
     "version": "1.0.0",
+    "packageManager": "pnpm@10.2.0",
     "description": "Monorepo for the Online E-Learning Platform project",
     "scripts": {
         "api": "pnpm --filter api",
