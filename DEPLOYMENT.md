@@ -348,6 +348,169 @@ If the API returns categories but the frontend page shows "Network Error",
 
 ---
 
+## 6.5 Stripe — paid course checkout (optional)
+
+Skip this section if you only want free/trial enrollments. The dev-only
+`/api/enroll/confirm/:courseId` endpoint (active whenever
+`NODE_ENV !== 'production'`) fakes a paid enrollment without Stripe — handy for
+smoke tests but you can't ship a real "buy this course" button without the
+section below.
+
+> Stripe **Test mode** is free forever, requires no business verification, and
+> needs no real card. You can leave the project in test mode for a school
+> demo / KLTN defence. Going to Live mode is a separate step (business
+> details + bank account); the docs in this section work for both modes.
+
+### 6.5.1 How the wiring already works in this repo
+
+You don't need to touch any code — the integration is already in place:
+
+| Path                            | What it does                                                  |
+|---------------------------------|---------------------------------------------------------------|
+| `POST /api/enroll/checkout/:id` | Creates a Stripe Checkout Session, returns the redirect URL   |
+| `POST /api/stripe-webhook`      | Receives `checkout.session.completed`, grants the enrollment  |
+| `packages/api/src/index.ts:46`  | Express middleware that preserves the **raw body** on the webhook route — required for signature verification |
+| `packages/api/src/services/enroll.service.ts` | Reads `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` at request time |
+
+Currency is hard-coded to **USD** (`enroll.service.ts:136`). If you want VND,
+that's a code change, not a deployment change. Stripe supports VND but only as
+a zero-decimal currency — `unit_amount` would need to drop the `* 100`.
+
+### 6.5.2 Create the Stripe account
+
+1. <https://dashboard.stripe.com/register> — email + password, that's it.
+2. Skip "Activate payments" for now (that's the business-verification step
+   required only for Live mode). You'll land in **Test mode** automatically —
+   the orange "TEST" banner at the top of the dashboard is your friend.
+3. Top-right toggle should read **Test mode**. Leave it there.
+
+### 6.5.3 Grab the test secret key
+
+1. Dashboard → **Developers → API keys** ([direct link](https://dashboard.stripe.com/test/apikeys)).
+2. Reveal the **Secret key** (`sk_test_…`). Copy it.
+
+### 6.5.4 Add the four env vars to Render
+
+In the Render dashboard for `elearning-api` → **Environment**:
+
+```env
+STRIPE_SECRET_KEY=sk_test_…
+STRIPE_SUCCESS_URL=https://<your-vercel-app>.vercel.app/payment/success
+STRIPE_CANCEL_URL=https://<your-vercel-app>.vercel.app/payment/cancel
+# STRIPE_WEBHOOK_SECRET — leave blank for now, you'll fill it in 6.5.5
+```
+
+Save. Render redeploys. Checkout-session creation now works; the webhook will
+keep failing signature verification until §6.5.5.
+
+### 6.5.5 Register the webhook endpoint
+
+This is the step everyone gets wrong on their first deploy.
+
+1. Stripe dashboard → **Developers → Webhooks** → **Add an endpoint**
+   ([direct link](https://dashboard.stripe.com/test/webhooks/create)).
+2. **Endpoint URL**:
+   ```
+   https://<your-render-app>.onrender.com/api/stripe-webhook
+   ```
+   No trailing slash. Note the path is `/api/stripe-webhook`, not
+   `/webhooks/stripe` or any of the other names you'll see in tutorials.
+3. **Listen to**: `Events on your account`.
+4. **Select events** → pick **`checkout.session.completed`** only. That's the
+   single event our handler reacts to. (Adding more events doesn't break
+   anything — they'll be received and ignored — but it wastes Stripe's
+   retry budget on payloads we don't care about.)
+5. **API version**: leave on "Latest".
+6. **Add endpoint**.
+7. On the next screen, **Signing secret → Reveal**. Copy the `whsec_…` value.
+8. Back to Render → Environment → set:
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_…
+   ```
+   Save. Render redeploys.
+
+### 6.5.6 Test the full flow end-to-end
+
+1. Log into your Vercel frontend as a student.
+2. Find a paid course (price > 0 — `course 1: Học React JS từ Zero đến Hero`
+   is paid in the default seed). Click **Buy**.
+3. You'll be redirected to Stripe Checkout. Use this magic test card:
+   ```
+   Card number   : 4242 4242 4242 4242
+   Expiry        : any future date (e.g. 12/30)
+   CVC           : any 3 digits (e.g. 123)
+   ZIP / postcode: any (e.g. 90210)
+   ```
+   ([Full list of Stripe test cards](https://docs.stripe.com/testing#cards) —
+   `4000 0000 0000 0002` simulates a decline, `4000 0027 6000 3184` triggers
+   3-D Secure, etc.)
+4. Complete payment. You'll be redirected to `STRIPE_SUCCESS_URL`.
+5. **Verify the webhook arrived**: Stripe dashboard → Developers → Webhooks →
+   your endpoint → **Events** tab. You should see one
+   `checkout.session.completed` row with a green **200**. If it's red, see
+   §11 of this doc.
+6. **Verify the enrollment was created**: log into the student's account on
+   your frontend; the course should now appear under "My courses" with a PAID
+   badge.
+
+### 6.5.7 Local development — forward webhooks with the Stripe CLI
+
+In production, Stripe POSTs straight to your Render URL. Locally, Stripe can't
+reach `localhost:3001`, so you need the CLI to tunnel events into your
+machine.
+
+```bash
+# Install (one-time)
+#   macOS:    brew install stripe/stripe-cli/stripe
+#   Windows:  scoop install stripe
+#   Linux:    https://github.com/stripe/stripe-cli/releases
+
+stripe login                                        # opens browser, OAuth
+stripe listen --forward-to localhost:3001/api/stripe-webhook
+```
+
+The CLI prints a *different* `whsec_…` signing secret on startup — that's the
+**local** webhook secret, used only when forwarding through the CLI. Put it
+in `packages/api/.env` as `STRIPE_WEBHOOK_SECRET` for local testing. The
+production secret on Render stays untouched.
+
+While `stripe listen` is running, every Stripe event gets mirrored to your
+laptop and to the Render endpoint, so you can debug locally without breaking
+the deployed flow.
+
+### 6.5.8 Free-tier cold-start interaction
+
+Render's 15-min sleep is a real concern here. When Stripe POSTs to your
+webhook and the service is asleep:
+
+1. The first POST gets a 502 / timeout while Render spins up (~30–60 s).
+2. Stripe sees the failure and retries — [the schedule is exponential, ~3
+   days total](https://docs.stripe.com/webhooks#retries), so you do not lose
+   the event.
+3. The second attempt usually hits a warm server and succeeds.
+
+In practice the enrollment is granted within a minute of payment, but if a
+student reports "I paid but don't have the course", check the Webhook **Events**
+tab in Stripe — you'll usually see a red row followed by a green one a few
+seconds later. The uptime-monitor keep-alive in §9 eliminates this entirely.
+
+### 6.5.9 Going to Live mode (real payments)
+
+Only do this when the project is past KLTN. The flow:
+
+1. Stripe dashboard → **Activate payments** → fill in business details + bank
+   account. Vietnam is supported via Stripe Atlas or a local payment-card
+   reseller; for a school project, keep it in Test mode.
+2. Switch the dashboard toggle from **Test** → **Live**.
+3. Regenerate the Secret key in Live mode (`sk_live_…`) and re-create the
+   webhook endpoint in Live mode (Live and Test have separate webhook
+   registrations and separate signing secrets — this is the most common cause
+   of "it works locally but breaks in prod after going live").
+4. Update Render env vars `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` to
+   the Live values.
+
+---
+
 ## 7. Seed the database
 
 You have two seed options:
@@ -451,7 +614,11 @@ $19 + Vercel Pro $20 = $46/mo**. Stripe/Cloudinary still free at that scale.
 | Cold-start 502 on Render                       | Normal for free tier. Wait ~60 s and retry.           |
 | Files uploaded but 404 on next deploy          | Render disk is ephemeral. Confirm Cloudinary is wired and `CLOUDINARY_*` env vars are set. |
 | 500 on `/api/rag/...`                          | Vector store re-ingest in progress on first request. Wait 10 s and retry. |
-| Stripe webhook returns 400                     | `STRIPE_WEBHOOK_SECRET` must match the secret Stripe shows in the dashboard *for this endpoint*, not the global one. |
+| Stripe webhook returns 400 "No signatures found matching the expected signature for payload" | `STRIPE_WEBHOOK_SECRET` doesn't match this endpoint's signing secret. Each endpoint in Stripe has its own `whsec_…`; the Live and Test endpoints have **different** secrets. Copy the one shown under your specific endpoint, not from anywhere else. |
+| Stripe webhook returns 400 "Missing raw request body" | Some middleware ran before `express.json` and consumed the body. Check `packages/api/src/index.ts` — the `express.json({ verify })` block at line 46 must run **before** any route handler and the webhook route must be `/api/stripe-webhook` (matched by `originalUrl` on line 48). |
+| Payment succeeds but enrollment never appears  | Open Stripe → Developers → Webhooks → your endpoint → Events. If the row is red, copy the response body — it's the actual error from your API. If the row is missing entirely, the URL on the endpoint is wrong. |
+| Stripe Checkout shows "Something went wrong" before the card form | `STRIPE_SECRET_KEY` not set on Render, or it's a Live key while the dashboard is in Test mode (or vice versa). |
+| Local `stripe listen` works but Render webhook fails | You copied the CLI's local `whsec_…` into Render. Use the dashboard endpoint's signing secret, not the CLI's. |
 
 ---
 
@@ -468,6 +635,9 @@ $19 + Vercel Pro $20 = $46/mo**. Stripe/Cloudinary still free at that scale.
 - [Northflank — Best PostgreSQL hosting providers in 2026](https://northflank.com/blog/best-postgresql-hosting-providers)
 - [The Software Scout — Railway vs Render 2026](https://thesoftwarescout.com/railway-vs-render-2026-best-platform-for-deploying-apps/)
 - [Koyeb acquisition by Mistral (Feb 2026)](https://northflank.com/blog/koyeb-alternatives)
+- [Stripe — Testing & test cards](https://docs.stripe.com/testing)
+- [Stripe — Webhook retry behaviour](https://docs.stripe.com/webhooks#retries)
+- [Stripe CLI — listen & forward](https://docs.stripe.com/stripe-cli/overview)
 - [Groq Cloud — API keys & rate limits](https://console.groq.com/docs/rate-limits)
 - [Google AI Studio — Gemini API pricing](https://ai.google.dev/pricing)
 - [Cloudinary — Free plan](https://cloudinary.com/pricing)
