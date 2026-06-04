@@ -1,4 +1,4 @@
-import { Ollama } from 'ollama';
+import { llmService } from './llm.service';
 import { vectorStoreService } from './vectorStore.service';
 import { PrismaClient, Role } from '@prisma/client';
 
@@ -9,14 +9,6 @@ const prisma = new PrismaClient();
  * Combines vector search with LLM generation
  */
 class RAGService {
-    private ollama: Ollama;
-    private model: string;
-
-    constructor() {
-        // Use IPv4 to avoid IPv6 connection issues
-        this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-        this.model = 'gemma3:4b'; // Using gemma3:4b model
-    }
 
     private getCourseNamespace(courseId: number): string {
         return `course:${courseId}`;
@@ -331,10 +323,10 @@ Hãy trả lời câu hỏi một cách chính xác, hữu ích và thân thiệ
 Trả lời:`;
 
         // 4. Generate answer using LLM
-        const response = await this.ollama.generate({
-            model: this.model,
-            prompt: prompt,
-            stream: false,
+        const answer = await llmService.chat({
+            messages: [{ role: 'user', content: prompt }],
+            tier: 'fast',
+            temperature: 0.7,
         });
 
         // 5. Prepare sources
@@ -345,7 +337,7 @@ Trả lời:`;
         }));
 
         return {
-            answer: response.response,
+            answer,
             sources,
         };
     }
@@ -387,14 +379,12 @@ Hãy trả lời câu hỏi một cách chính xác, hữu ích và thân thiệ
 Trả lời:`;
 
         // 4. Stream response
-        const stream = await this.ollama.generate({
-            model: this.model,
-            prompt: prompt,
-            stream: true,
-        });
-
-        for await (const chunk of stream) {
-            yield chunk.response;
+        for await (const chunk of llmService.chatStream({
+            messages: [{ role: 'user', content: prompt }],
+            tier: 'fast',
+            temperature: 0.7,
+        })) {
+            yield chunk;
         }
     }
 
@@ -480,14 +470,14 @@ CÂU HỎI CỦA HỌC VIÊN: ${input.question}
 
 TRẢ LỜI:`;
 
-        const response = await this.ollama.generate({
-            model: this.model,
-            prompt,
-            stream: false,
+        const answer = await llmService.chat({
+            messages: [{ role: 'user', content: prompt }],
+            tier: 'fast',
+            temperature: 0.7,
         });
 
         return {
-            answer: response.response,
+            answer,
             sources: searchResults.map((result) => ({
                 content: result.document.content,
                 score: result.score,
@@ -560,13 +550,13 @@ Hãy tạo 5 câu hỏi trắc nghiệm gợi ý trong phạm vi syllabus. Mỗi
 
 Trả lời bằng tiếng Việt, định dạng Markdown.`;
 
-        const response = await this.ollama.generate({
-            model: this.model,
-            prompt,
-            stream: false,
+        const suggestions = await llmService.chat({
+            messages: [{ role: 'user', content: prompt }],
+            tier: 'fast',
+            temperature: 0.7,
         });
 
-        return { suggestions: response.response };
+        return { suggestions };
     }
 }
 

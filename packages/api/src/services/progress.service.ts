@@ -1,9 +1,7 @@
 import { PrismaClient, ContentType } from '@prisma/client';
-import { Ollama } from 'ollama';
+import { llmService } from './llm.service';
 
 const prisma = new PrismaClient();
-const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';
 
 // EPIC 7: weighted progress formula
 // video × 0.4 + quiz × 0.3 + practice × 0.3
@@ -209,12 +207,12 @@ ${practiceScores.length > 0 ? `Thực hành: ${practiceScores.map((p) => `${p.ti
 Hãy đưa ra nhận xét ngắn gọn (2-3 câu) bằng tiếng Việt về điểm mạnh và điểm cần cải thiện của học viên này.`;
 
     try {
-        const response = await ollama.chat({
-            model: OLLAMA_MODEL,
+        const answer = await llmService.chat({
             messages: [{ role: 'user', content: prompt }],
-            options: { temperature: 0.7 },
+            tier: 'fast',
+            temperature: 0.7,
         });
-        return response.message.content.trim();
+        return answer || `Bạn đã hoàn thành ${detail.progress}% khoá học. Hãy tiếp tục cố gắng để đạt kết quả tốt hơn!`;
     } catch {
         return `Bạn đã hoàn thành ${detail.progress}% khoá học. Hãy tiếp tục cố gắng để đạt kết quả tốt hơn!`;
     }

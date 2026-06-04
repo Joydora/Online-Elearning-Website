@@ -1,27 +1,25 @@
-import { Ollama } from 'ollama';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-/**
- * Service for generating embeddings using Ollama
- */
+const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004';
+
 class EmbeddingService {
-    private ollama: Ollama;
-    private model: string;
-    private readonly fallbackDimensions = 384;
+    private client: GoogleGenerativeAI | null = null;
+    private readonly fallbackDimensions = 768;
 
-    constructor() {
-        // Initialize Ollama client (use IPv4 to avoid IPv6 connection issues)
-        this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-        this.model = process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text';
+    private getClient(): GoogleGenerativeAI | null {
+        if (this.client) return this.client;
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) return null;
+        this.client = new GoogleGenerativeAI(apiKey);
+        return this.client;
     }
 
     private hashToken(token: string): number {
         let hash = 2166136261;
-
         for (let i = 0; i < token.length; i++) {
             hash ^= token.charCodeAt(i);
             hash = Math.imul(hash, 16777619);
         }
-
         return hash >>> 0;
     }
 
@@ -30,7 +28,7 @@ class EmbeddingService {
         const tokens = text
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[̀-ͯ]/g, '')
             .split(/[^a-z0-9]+/)
             .filter(Boolean);
 
@@ -48,43 +46,36 @@ class EmbeddingService {
         return vector;
     }
 
-    /**
-     * Generate embedding for a single text
-     */
     async generateEmbedding(text: string): Promise<number[]> {
+        const client = this.getClient();
+        if (!client) {
+            return this.generateFallbackEmbedding(text);
+        }
         try {
-            const response = await this.ollama.embeddings({
-                model: this.model,
-                prompt: text,
-            });
-
-            return response.embedding;
+            const model = client.getGenerativeModel({ model: EMBEDDING_MODEL });
+            const result = await model.embedContent(text);
+            const values = result.embedding?.values;
+            if (!values || values.length === 0) {
+                return this.generateFallbackEmbedding(text);
+            }
+            return values;
         } catch (error) {
             console.warn(
-                `Ollama embedding model "${this.model}" unavailable; using local fallback embedding.`,
-                (error as Error).message
+                `Gemini embedding "${EMBEDDING_MODEL}" failed; using local fallback.`,
+                (error as Error).message,
             );
             return this.generateFallbackEmbedding(text);
         }
     }
 
-    /**
-     * Generate embeddings for multiple texts
-     */
     async generateEmbeddings(texts: string[]): Promise<number[][]> {
         const embeddings: number[][] = [];
-
         for (const text of texts) {
-            const embedding = await this.generateEmbedding(text);
-            embeddings.push(embedding);
+            embeddings.push(await this.generateEmbedding(text));
         }
-
         return embeddings;
     }
 
-    /**
-     * Calculate cosine similarity between two vectors
-     */
     cosineSimilarity(a: number[], b: number[]): number {
         if (a.length !== b.length) {
             throw new Error('Vectors must have the same length');
@@ -109,4 +100,3 @@ class EmbeddingService {
 }
 
 export const embeddingService = new EmbeddingService();
-

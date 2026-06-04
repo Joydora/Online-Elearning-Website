@@ -1,9 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { Ollama } from 'ollama';
+import { llmService } from './llm.service';
 
 const prisma = new PrismaClient();
-const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';
 
 export async function getPracticeByContent(contentId: number) {
     return prisma.practice.findUnique({
@@ -59,7 +57,7 @@ export async function submitPractice(options: {
     });
     if (!enrollment) throw new Error('NOT_ENROLLED');
 
-    // AI grading via Ollama
+    // AI grading via Groq (OpenAI-compatible)
     let aiFeedback = '';
     let score = 0;
     let passed = false;
@@ -71,7 +69,8 @@ Evaluate the code objectively and return JSON with this exact structure:
   "score": <number 0-100>,
   "passed": <boolean, true if score >= 60>,
   "feedback": "<concise feedback in Vietnamese explaining what is correct and what needs improvement>"
-}`;
+}
+Respond with valid JSON only.`;
 
         const userPrompt = `Practice Task: ${practice.prompt}
 ${practice.expectedOutput ? `Expected Output: ${practice.expectedOutput}` : ''}
@@ -84,16 +83,16 @@ ${submittedCode}
 
 Grade this submission and return only valid JSON.`;
 
-        const response = await ollama.chat({
-            model: OLLAMA_MODEL,
+        const raw = await llmService.chat({
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
             ],
-            options: { temperature: 0.1 },
+            tier: 'fast',
+            temperature: 0.1,
+            jsonMode: true,
         });
 
-        const raw = response.message.content.trim();
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);

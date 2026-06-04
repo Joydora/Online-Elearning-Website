@@ -1,9 +1,7 @@
 import { ContentType, PrismaClient } from '@prisma/client';
-import { Ollama } from 'ollama';
+import { llmService } from './llm.service';
 
 const prisma = new PrismaClient();
-const ollama = new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
 
 const SYSTEM_PROMPT = `You are a curriculum designer. Given a course syllabus text, extract and structure it into chapters and lessons.
 Return ONLY valid JSON in this exact format (no markdown, no explanation):
@@ -36,17 +34,16 @@ export type ParsedSyllabus = {
 };
 
 export async function parseSyllabus(text: string): Promise<ParsedSyllabus> {
-    const response = await ollama.chat({
-        model: OLLAMA_MODEL,
+    const content = await llmService.chat({
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: `Parse this syllabus:\n\n${text}` },
+            { role: 'user', content: `Parse this syllabus and respond with JSON only:\n\n${text}` },
         ],
-        options: { temperature: 0.1 },
+        tier: 'smart',
+        temperature: 0.1,
+        jsonMode: true,
     });
 
-    const content = response.message.content.trim();
-    // Extract JSON from response (handle ```json ... ``` wrapping)
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AI did not return valid JSON');
 
