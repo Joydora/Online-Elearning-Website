@@ -5,8 +5,8 @@ import logo from '../logo.png';
 export function Footer() {
     return (
         <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-            <div className="container mx-auto px-4 py-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+            <div className="container mx-auto px-4 sm:px-6 py-10 sm:py-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
                     {/* Brand Section */}
                     <div className="space-y-4">
                         <Link to="/" className="flex items-center gap-3 group">
@@ -184,31 +184,31 @@ export function Footer() {
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="pt-8 border-t border-zinc-200 dark:border-zinc-800">
+                <div className="pt-6 sm:pt-8 border-t border-zinc-200 dark:border-zinc-800">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center md:text-left flex items-center gap-2">
+                        <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 text-center md:text-left flex items-center justify-center gap-2 flex-wrap">
                             © 2024 E-Learning Platform. Made with
                             <Heart className="h-4 w-4 text-red-600 dark:text-red-500 fill-current" />
                             in Vietnam
                         </p>
-                        <div className="flex items-center gap-6">
+                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-x-6">
                             <Link
                                 to="/terms"
-                                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             >
                                 Điều khoản
                             </Link>
-                            <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                            <span className="text-zinc-300 dark:text-zinc-700 hidden sm:inline">|</span>
                             <Link
                                 to="/privacy"
-                                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             >
                                 Bảo mật
                             </Link>
-                            <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                            <span className="text-zinc-300 dark:text-zinc-700 hidden sm:inline">|</span>
                             <Link
                                 to="/privacy"
-                                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             >
                                 Cookies
                             </Link>

@@ -15,6 +15,32 @@ const COOKIE_NAME = process.env.AUTH_COOKIE_NAME ?? 'token';
 
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 
+export function tryGetAuthenticatedUser(req: Request): AuthenticatedUser | null {
+    try {
+        let token: string | undefined = req.cookies?.[COOKIE_NAME];
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7);
+        }
+        const queryToken = req.query.token;
+        if (typeof queryToken === 'string' && queryToken.length > 0) {
+            token = queryToken;
+        }
+
+        if (!token) {
+            return null;
+        }
+
+        const decoded = jwt.verify(token, getJwtSecret());
+        if (!isAuthenticatedUser(decoded)) {
+            return null;
+        }
+        return decoded;
+    } catch {
+        return null;
+    }
+}
+
 function isAuthenticatedUser(payload: unknown): payload is AuthenticatedUser {
     if (!payload || typeof payload !== 'object') {
         return false;

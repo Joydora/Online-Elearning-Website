@@ -22,6 +22,8 @@ type CourseFormValues = {
     price: number;
     categoryId: number;
     thumbnailUrl: string;
+    trialDurationDays: number | null;
+    accessDurationDays: number | null;
 };
 
 type CourseDetail = {
@@ -33,6 +35,8 @@ type CourseDetail = {
     } | string | null;
     price: number;
     thumbnailUrl?: string;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
     category: {
         id: number;
         name: string;
@@ -52,6 +56,8 @@ export default function EditCourse() {
             price: 0,
             categoryId: 0,
             thumbnailUrl: '',
+            trialDurationDays: null,
+            accessDurationDays: null,
         },
     });
 
@@ -121,6 +127,8 @@ export default function EditCourse() {
                 price: course.price,
                 categoryId: course.category.id,
                 thumbnailUrl: course.thumbnailUrl || '',
+                trialDurationDays: course.trialDurationDays ?? null,
+                accessDurationDays: course.accessDurationDays ?? null,
             });
         }
     }, [course, form]);
@@ -179,28 +187,28 @@ export default function EditCourse() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => navigate('/dashboard')}
-                        className="mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
+                        className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Quay lại Dashboard
                     </Button>
 
-                    <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                         Chỉnh sửa khóa học
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">
                         Cập nhật thông tin cho khóa học: <span className="font-semibold">{course.title}</span>
                     </p>
                 </div>
 
                 {/* Form Card */}
-                <Card className="p-6 md:p-8 border-zinc-200 dark:border-zinc-800">
+                <Card className="p-4 sm:p-6 md:p-8 border-zinc-200 dark:border-zinc-800">
                     <Form {...form}>
                         <form onSubmit={onSubmit} className="space-y-6">
                             {/* Title */}
@@ -350,6 +358,59 @@ export default function EditCourse() {
                                 )}
                             />
 
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="trialDurationDays"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                                                Số ngày học thử
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="VD: 7"
+                                                    min="1"
+                                                    className="h-12"
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                                />
+                                            </FormControl>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                Để trống nếu không cho học thử.
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="accessDurationDays"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
+                                                Thời hạn truy cập sau khi mua
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Để trống = không giới hạn"
+                                                    min="1"
+                                                    className="h-12"
+                                                    value={field.value ?? ''}
+                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                                                />
+                                            </FormControl>
+                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                Ví dụ 30 nghĩa là học viên có 30 ngày truy cập sau khi mua.
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
                             {/* Thumbnail Upload */}
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -405,20 +466,20 @@ export default function EditCourse() {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-4 pt-4">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                                 <Button
                                     type="button"
                                     variant="outline"
                                     onClick={() => navigate('/dashboard')}
                                     disabled={updateMutation.isPending}
-                                    className="flex-1 h-12 border-zinc-300 dark:border-zinc-700"
+                                    className="w-full sm:flex-1 h-12 border-zinc-300 dark:border-zinc-700"
                                 >
                                     Hủy
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={updateMutation.isPending}
-                                    className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white"
+                                    className="w-full sm:flex-1 h-12 bg-red-600 hover:bg-red-700 text-white"
                                 >
                                     {updateMutation.isPending ? (
                                         <>

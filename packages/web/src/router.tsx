@@ -41,12 +41,17 @@ import AdminCreateCourse from './pages/admin/CreateCourse';
 import AdminEditCourse from './pages/admin/EditCourse';
 import ManagePromotions from './pages/admin/ManagePromotions';
 import AdminRevenue from './pages/admin/Revenue';
+import AdminAuditLogs from './pages/admin/AuditLogs';
 import LearningPath from './pages/LearningPath';
 import Progress from './pages/learning/Progress';
+import Certificate from './pages/learning/Certificate';
 import Projects from './pages/learning/Projects';
+import Discussion from './pages/learning/Discussion';
 import ManageProjects from './pages/teacher/ManageProjects';
 import SyllabusImport from './pages/teacher/SyllabusImport';
+import TeacherEarnings from './pages/teacher/Earnings';
 import ReviewCourses from './pages/admin/ReviewCourses';
+import Notifications from './pages/Notifications';
 
 function MainLayout() {
     return (
@@ -84,6 +89,21 @@ function RoleRoute({ requiredRole }: RoleRouteProps) {
     }
 
     if (user?.role !== requiredRole) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <Outlet />;
+}
+
+function MultiRoleRoute({ roles }: { roles: Role[] }) {
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const user = useAuthStore((state) => state.user);
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (!user || !roles.includes(user.role)) {
         return <Navigate to="/" replace />;
     }
 
@@ -181,22 +201,45 @@ export const router = createBrowserRouter([
                         path: '/profile',
                         element: <Profile />,
                     },
+                    {
+                        path: '/courses/:courseId/discussions',
+                        element: <Discussion />,
+                    },
+                    {
+                        path: '/notifications',
+                        element: <Notifications />,
+                    },
+                ],
+            },
+            {
+                // The course player is accessible to enrolled students AND to the
+                // owning teacher / admins (so staff can view their own course content).
+                element: <MultiRoleRoute roles={['STUDENT', 'TEACHER', 'ADMIN']} />,
+                children: [
+                    {
+                        path: '/learning/:courseId',
+                        element: <CoursePlayer />,
+                    },
                 ],
             },
             {
                 element: <RoleRoute requiredRole="STUDENT" />,
                 children: [
                     {
-                        path: '/learning/:courseId',
-                        element: <CoursePlayer />,
-                    },
-                    {
                         path: '/learning/:courseId/progress',
                         element: <Progress />,
                     },
                     {
+                        path: '/learning/:courseId/certificate',
+                        element: <Certificate />,
+                    },
+                    {
                         path: '/learning/:courseId/projects',
                         element: <Projects />,
+                    },
+                    {
+                        path: '/learning/:courseId/discussions',
+                        element: <Discussion />,
                     },
                     {
                         path: '/my-courses',
@@ -244,8 +287,16 @@ export const router = createBrowserRouter([
                         element: <ManageProjects />,
                     },
                     {
+                        path: '/teacher/courses/:courseId/syllabus',
+                        element: <SyllabusImport />,
+                    },
+                    {
                         path: '/courses/:courseId/syllabus',
                         element: <SyllabusImport />,
+                    },
+                    {
+                        path: '/teacher/earnings',
+                        element: <TeacherEarnings />,
                     },
                 ],
             },
@@ -280,6 +331,10 @@ export const router = createBrowserRouter([
                         path: '/admin/courses/:id/manage',
                         element: <ManageCourse />,
                     },
+                    {
+                        path: '/admin/courses/:courseId/syllabus',
+                        element: <SyllabusImport />,
+                    },
                         {
                             path: '/admin/quiz/:contentId/manage',
                             element: <ManageQuiz />,
@@ -291,6 +346,10 @@ export const router = createBrowserRouter([
                         {
                             path: '/admin/revenue',
                             element: <AdminRevenue />,
+                        },
+                        {
+                            path: '/admin/audit-logs',
+                            element: <AdminAuditLogs />,
                         },
                         {
                             path: '/admin/courses/review',

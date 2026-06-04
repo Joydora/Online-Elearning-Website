@@ -1,4 +1,5 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, NotificationType } from '@prisma/client';
+import { createNotification } from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -180,8 +181,20 @@ export async function gradeSubmission(submissionId: number, data: { feedback?: s
     });
     if (!submission || submission.project.course.teacherId !== teacherId) throw new Error('FORBIDDEN');
 
-    return prisma.projectSubmission.update({
+    const updated = await prisma.projectSubmission.update({
         where: { id: submissionId },
         data: { feedback: data.feedback, grade: data.grade },
     });
+
+    await createNotification({
+        userId: submission.studentId,
+        type: NotificationType.PROJECT_GRADED,
+        title: `Project "${submission.project.title}" da duoc cham`,
+        message: `Giang vien da cap nhat diem${data.grade !== undefined ? ` (${data.grade})` : ''} va phan hoi cho bai nop cua ban.`,
+        link: `/learning/${submission.project.courseId}/projects`,
+        dedupeKey: `project-graded-${submissionId}-${updated.updatedAt.toISOString()}`,
+        sendEmail: true,
+    });
+
+    return updated;
 }

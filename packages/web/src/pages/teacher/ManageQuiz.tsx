@@ -332,22 +332,22 @@ export default function ManageQuiz() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8 max-w-4xl">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => navigate(-1)}
-                        className="mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
+                        className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Quay lại
                     </Button>
 
-                    <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                         Quản lý bài kiểm tra
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">{quiz.title}</p>
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">{quiz.title}</p>
                     {quiz.timeLimitInMinutes && (
                         <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">
                             Thời gian: {quiz.timeLimitInMinutes} phút
@@ -356,7 +356,7 @@ export default function ManageQuiz() {
                 </div>
 
                 {/* Video Quiz Markers */}
-                <Card className="p-6 mb-8">
+                <Card className="p-4 sm:p-6 mb-6 sm:mb-8">
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
                             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
@@ -377,8 +377,8 @@ export default function ManageQuiz() {
                             Hãy tạo ít nhất một câu hỏi trước khi thêm marker.
                         </div>
                     ) : (
-                        <div className="space-y-5">
-                            <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-4 sm:space-y-5">
+                            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                         Video
@@ -425,7 +425,7 @@ export default function ManageQuiz() {
                                 </video>
                             )}
 
-                            <div className="grid md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] gap-3 sm:gap-4 items-end">
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                         Timestamp (giây)
@@ -458,6 +458,7 @@ export default function ManageQuiz() {
                                     variant="outline"
                                     onClick={handleUseCurrentVideoTime}
                                     disabled={!selectedVideo?.videoUrl}
+                                    className="w-full sm:w-auto sm:col-span-2 lg:col-span-1"
                                 >
                                     Lấy thời điểm hiện tại
                                 </Button>
@@ -466,7 +467,7 @@ export default function ManageQuiz() {
                             <Button
                                 onClick={handleCreateMarker}
                                 disabled={createMarkerMutation.isPending}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
                             >
                                 {createMarkerMutation.isPending ? (
                                     <>
@@ -496,21 +497,21 @@ export default function ManageQuiz() {
                                             return (
                                                 <div
                                                     key={marker.id}
-                                                    className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
+                                                    className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800"
                                                 >
-                                                    <span className="font-mono text-sm text-red-600 dark:text-red-400">
+                                                    <span className="font-mono text-xs sm:text-sm text-red-600 dark:text-red-400 shrink-0">
                                                         {formatTime(marker.timestampSec)}
                                                     </span>
-                                                    <span className="flex-1 text-sm text-zinc-700 dark:text-zinc-300">
+                                                    <span className="flex-1 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 min-w-0 break-words">
                                                         Câu {questionIndex >= 0 ? questionIndex + 1 : '?'}: {quiz.questions[questionIndex]?.questionText ?? 'Câu hỏi đã xóa'}
                                                     </span>
-                                                    <span className="text-xs px-2 py-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
+                                                    <span className="text-xs px-2 py-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 shrink-0">
                                                         {marker.blockingMode === 'pause' ? 'Pause' : 'Non-blocking'}
                                                     </span>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 shrink-0"
                                                         onClick={() => handleDeleteMarker(marker.id)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -540,8 +541,8 @@ export default function ManageQuiz() {
                             </Button>
                         </Card>
                     ) : (
-                        <Card className="p-4 border-2 border-red-500">
-                            <div className="flex gap-2">
+                        <Card className="p-3 sm:p-4 border-2 border-red-500">
+                            <div className="flex flex-col sm:flex-row gap-2">
                                 <Input
                                     placeholder="Nhập câu hỏi..."
                                     value={newQuestionText}
@@ -556,29 +557,32 @@ export default function ManageQuiz() {
                                     autoFocus
                                     className="flex-1"
                                 />
-                                <Button
-                                    onClick={handleAddQuestion}
-                                    disabled={
-                                        !newQuestionText.trim() ||
-                                        createQuestionMutation.isPending
-                                    }
-                                    className="bg-red-600 hover:bg-red-700"
-                                >
-                                    {createQuestionMutation.isPending ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Save className="h-4 w-4" />
-                                    )}
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        setIsAddingQuestion(false);
-                                        setNewQuestionText('');
-                                    }}
-                                    variant="outline"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={handleAddQuestion}
+                                        disabled={
+                                            !newQuestionText.trim() ||
+                                            createQuestionMutation.isPending
+                                        }
+                                        className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
+                                    >
+                                        {createQuestionMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Save className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            setIsAddingQuestion(false);
+                                            setNewQuestionText('');
+                                        }}
+                                        variant="outline"
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </Card>
                     )}
@@ -592,21 +596,21 @@ export default function ManageQuiz() {
                         </Card>
                     ) : (
                         quiz.questions.map((question, index) => (
-                            <Card key={question.id} className="p-6">
+                            <Card key={question.id} className="p-4 sm:p-6">
                                 {/* Question Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-zinc-900 dark:text-white mb-1">
+                                <div className="flex items-start justify-between gap-2 mb-4">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white mb-1 break-words">
                                             Câu {index + 1}: {question.questionText}
                                         </h3>
-                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
                                             {question.options.length} đáp án
                                         </p>
                                     </div>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 shrink-0"
                                         onClick={() =>
                                             handleDeleteQuestion(question.id, question.questionText)
                                         }
@@ -620,7 +624,7 @@ export default function ManageQuiz() {
                                     {question.options.map((option) => (
                                         <div
                                             key={option.id}
-                                            className={`flex items-center gap-3 p-3 rounded-lg border ${option.isCorrect
+                                            className={`flex items-center gap-2 sm:gap-3 p-3 rounded-lg border ${option.isCorrect
                                                     ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800'
                                                     : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
                                                 }`}
@@ -630,13 +634,13 @@ export default function ManageQuiz() {
                                             ) : (
                                                 <Circle className="h-5 w-5 text-zinc-400 flex-shrink-0" />
                                             )}
-                                            <p className="flex-1 text-zinc-900 dark:text-white">
+                                            <p className="flex-1 text-sm sm:text-base text-zinc-900 dark:text-white break-words min-w-0">
                                                 {option.optionText}
                                             </p>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 shrink-0"
                                                 onClick={() => handleDeleteOption(option.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />

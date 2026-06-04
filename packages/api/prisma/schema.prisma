@@ -18,6 +18,7 @@ enum ContentType {
   DOCUMENT
   QUIZ
   PRACTICE
+  ASSIGNMENT
 }
 
 enum VideoQuizBlockingMode {
@@ -50,6 +51,13 @@ enum CourseStatus {
   PUBLISHED
 }
 
+enum NotificationType {
+  DEADLINE_REMINDER
+  REENGAGEMENT_REMINDER
+  PROJECT_GRADED
+  DISCUSSION_REPLY
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -76,9 +84,32 @@ model User {
   projectSubmissions  ProjectSubmission[]
   revenueLedgers     RevenueLedger[]    @relation("TeacherLedger")
   reviewedCourses    Course[]           @relation("CourseReviewer")
+  certificates        Certificate[]
+  discussionPosts     DiscussionPost[]
+  notifications       Notification[]
+  notificationPreferences UserNotificationPreference[]
+  adminAuditLogs      AdminAuditLog[] @relation("AdminAuditActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AdminAuditLog {
+  id          Int      @id @default(autoincrement())
+  adminId     Int?
+  admin       User?    @relation("AdminAuditActor", fields: [adminId], references: [id], onDelete: SetNull)
+  action      String
+  resource    String
+  resourceId  String?
+  description String?
+  before      Json?
+  after       Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([resource, createdAt])
+  @@index([action, createdAt])
 }
 
 model Category {
@@ -115,6 +146,8 @@ model Course {
   enrollments    Enrollment[]
   revenueLedgers RevenueLedger[]
   projects       Project[]
+  certificates   Certificate[]
+  discussionPosts DiscussionPost[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -203,10 +236,29 @@ model Enrollment {
   review            Review?           @relation("EnrollmentReview")
   contentProgresses ContentProgress[]
   revenueLedger     RevenueLedger?
+  certificate       Certificate?
 
   @@unique([studentId, courseId])
   @@index([isActive, expiresAt])
   @@index([studentId, isActive])
+}
+
+model Certificate {
+  id              Int      @id @default(autoincrement())
+  certificateCode String   @unique
+  issuedAt        DateTime @default(now())
+
+  enrollmentId Int        @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   User @relation(fields: [studentId], references: [id])
+
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id])
+
+  @@index([studentId])
+  @@index([courseId])
 }
 
 model ContentProgress {
@@ -416,4 +468,56 @@ model ProjectSubmission {
   @@unique([projectId, studentId])
   @@index([projectId])
   @@index([studentId])
+}
+
+model DiscussionPost {
+  id   Int    @id @default(autoincrement())
+  text String
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  parentId Int?
+  parent   DiscussionPost?  @relation("DiscussionReplies", fields: [parentId], references: [id])
+  replies  DiscussionPost[] @relation("DiscussionReplies")
+
+  createdAt DateTime @default(now())
+
+  @@index([courseId, createdAt])
+  @@index([parentId])
+}
+
+model Notification {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  link        String?
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  sentEmailAt DateTime?
+  dedupeKey   String?          @unique
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, type, createdAt])
+}
+
+model UserNotificationPreference {
+  id           Int              @id @default(autoincrement())
+  userId       Int
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         NotificationType
+  inAppEnabled Boolean          @default(true)
+  emailEnabled Boolean          @default(true)
+
+  @@unique([userId, type])
+  @@index([userId])
 }

@@ -1,7 +1,12 @@
-import { ContentType, Prisma, PrismaClient } from '@prisma/client';
+import { ContentType, CourseLevel, CourseStatus, Prisma, PrismaClient, Role } from '@prisma/client';
 import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
+
+type CourseViewer = {
+    userId: number;
+    role: Role;
+};
 
 const courseSummarySelect = {
     id: true,
@@ -31,6 +36,13 @@ const courseSummarySelect = {
             lastName: true,
         },
     },
+    prerequisites: {
+        select: {
+            id: true,
+            title: true,
+            level: true,
+        },
+    },
     _count: {
         select: {
             enrollments: true,
@@ -55,6 +67,7 @@ const courseDetailSelect = {
                     contentType: true,
                     durationInSeconds: true,
                     timeLimitInMinutes: true,
+                    isFreePreview: true,
                     // Intentionally omit video/document URLs to keep asset links hidden
                 },
             },
@@ -74,15 +87,78 @@ export async function getAllCategories() {
 
 export async function getAllCourses() {
     return prisma.course.findMany({
+        where: { status: CourseStatus.PUBLISHED },
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
     });
 }
 
-export async function getCourseById(courseId: number) {
-    return prisma.course.findUnique({
-        where: { id: courseId },
+export async function getCoursesForTeacher(teacherId: number) {
+    return prisma.course.findMany({
+        where: { teacherId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+            ...courseSummarySelect,
+            modules: {
+                select: {
+                    _count: {
+                        select: {
+                            contents: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    enrollments: true,
+                    modules: true,
+                },
+            },
+        },
+    });
+}
+
+export async function getCourseById(courseId: number, viewer?: CourseViewer) {
+    const where: Prisma.CourseWhereInput = { id: courseId };
+
+    if (viewer?.role === Role.ADMIN) {
+        // Admins can preview all courses from the review/manage screens.
+    } else if (viewer?.role === Role.TEACHER) {
+        where.OR = [
+            { status: CourseStatus.PUBLISHED },
+            { teacherId: viewer.userId },
+        ];
+    } else {
+        where.status = CourseStatus.PUBLISHED;
+    }
+
+    return prisma.course.findFirst({
+        where,
         select: courseDetailSelect,
+    });
+}
+
+export async function getFreePreviewContent(courseId: number, contentId: number) {
+    return prisma.content.findFirst({
+        where: {
+            id: contentId,
+            isFreePreview: true,
+            module: {
+                courseId,
+                course: {
+                    status: CourseStatus.PUBLISHED,
+                },
+            },
+        },
+        select: {
+            id: true,
+            title: true,
+            contentType: true,
+            videoUrl: true,
+            documentUrl: true,
+            durationInSeconds: true,
+            fileType: true,
+        },
     });
 }
 
@@ -94,6 +170,10 @@ type CreateCourseInput = {
     categoryId: number;
     teacherId: number;
     thumbnailUrl?: string;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
+    level?: CourseLevel | null;
+    prerequisiteIds?: number[];
 };
 
 type UpdateCourseInput = {
@@ -105,6 +185,10 @@ type UpdateCourseInput = {
     price?: number;
     categoryId?: number;
     thumbnailUrl?: string;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
+    level?: CourseLevel | null;
+    prerequisiteIds?: number[];
     userRole?: string;
 };
 
@@ -127,10 +211,26 @@ type CreateContentInput = {
     documentUrl?: string | null;
     fileType?: string | null;
     timeLimitInMinutes?: number | null;
+    isFreePreview?: boolean;
+    practicePrompt?: string;
+    starterCode?: string | null;
+    expectedOutput?: string | null;
+    rubric?: string | null;
+    language?: string | null;
     userRole?: string;
 };
 
 export async function createCourseForTeacher(input: CreateCourseInput) {
+    if (input.prerequisiteIds && input.prerequisiteIds.length > 0) {
+        const prerequisiteCount = await prisma.course.count({
+            where: { id: { in: input.prerequisiteIds } },
+        });
+
+        if (prerequisiteCount !== input.prerequisiteIds.length) {
+            throw new Error('INVALID_PREREQUISITES');
+        }
+    }
+
     const course = await prisma.course.create({
         data: {
             title: input.title,
@@ -140,6 +240,14 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
             categoryId: input.categoryId,
             teacherId: input.teacherId,
             thumbnailUrl: input.thumbnailUrl || null,
+            trialDurationDays: input.trialDurationDays ?? null,
+            accessDurationDays: input.accessDurationDays ?? null,
+            level: input.level ?? null,
+            prerequisites: input.prerequisiteIds && input.prerequisiteIds.length > 0
+                ? {
+                    connect: input.prerequisiteIds.map((id) => ({ id })),
+                }
+                : undefined,
         },
     });
 
@@ -147,7 +255,7 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
         console.error('Unable to ingest course syllabus:', error);
     });
 
-    return getCourseById(course.id);
+    return getCourseById(course.id, { userId: input.teacherId, role: Role.TEACHER });
 }
 
 export async function updateCourseForTeacher(input: UpdateCourseInput) {
@@ -165,6 +273,24 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
         throw new Error('COURSE_FORBIDDEN');
     }
 
+    if (input.prerequisiteIds !== undefined) {
+        if (input.prerequisiteIds.includes(input.courseId)) {
+            throw new Error('INVALID_SELF_PREREQUISITE');
+        }
+
+        if (input.prerequisiteIds.length > 0) {
+            const prerequisiteCount = await prisma.course.count({
+                where: {
+                    id: { in: input.prerequisiteIds },
+                },
+            });
+
+            if (prerequisiteCount !== input.prerequisiteIds.length) {
+                throw new Error('INVALID_PREREQUISITES');
+            }
+        }
+    }
+
     await prisma.course.update({
         where: { id: input.courseId },
         data: {
@@ -174,6 +300,14 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
             price: input.price ?? undefined,
             categoryId: input.categoryId ?? undefined,
             thumbnailUrl: input.thumbnailUrl !== undefined ? (input.thumbnailUrl || null) : undefined,
+            trialDurationDays: input.trialDurationDays !== undefined ? input.trialDurationDays : undefined,
+            accessDurationDays: input.accessDurationDays !== undefined ? input.accessDurationDays : undefined,
+            level: input.level !== undefined ? input.level : undefined,
+            prerequisites: input.prerequisiteIds !== undefined
+                ? {
+                    set: input.prerequisiteIds.map((id) => ({ id })),
+                }
+                : undefined,
         },
     });
 
@@ -183,7 +317,10 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
         });
     }
 
-    return getCourseById(input.courseId);
+    return getCourseById(input.courseId, {
+        userId: input.teacherId,
+        role: input.userRole === Role.ADMIN ? Role.ADMIN : Role.TEACHER,
+    });
 }
 
 export async function deleteCourseForTeacher(courseId: number, teacherId: number, userRole?: string) {
@@ -295,6 +432,10 @@ export async function createContentForModule(input: CreateContentInput) {
             ? input.order
             : (await prisma.content.count({ where: { moduleId: input.moduleId } })) + 1;
 
+    const shouldCreatePractice =
+        (input.contentType === ContentType.PRACTICE || input.contentType === ContentType.ASSIGNMENT) &&
+        !!input.practicePrompt?.trim();
+
     return prisma.content.create({
         data: {
             title: input.title,
@@ -305,7 +446,19 @@ export async function createContentForModule(input: CreateContentInput) {
             documentUrl: input.documentUrl ?? null,
             fileType: input.fileType ?? null,
             timeLimitInMinutes: input.timeLimitInMinutes ?? null,
+            isFreePreview: input.isFreePreview ?? false,
             moduleId: input.moduleId,
+            practice: shouldCreatePractice
+                ? {
+                    create: {
+                        prompt: input.practicePrompt!.trim(),
+                        starterCode: input.starterCode ?? null,
+                        expectedOutput: input.expectedOutput ?? null,
+                        rubric: input.rubric ?? null,
+                        language: input.language || 'javascript',
+                    },
+                }
+                : undefined,
         },
         select: {
             id: true,
@@ -314,6 +467,51 @@ export async function createContentForModule(input: CreateContentInput) {
             contentType: true,
             durationInSeconds: true,
             timeLimitInMinutes: true,
+            isFreePreview: true,
+            moduleId: true,
+            practice: true,
+        },
+    });
+}
+
+export async function updateContentPreviewForTeacher(
+    contentId: number,
+    teacherId: number,
+    isFreePreview: boolean,
+    userRole?: string,
+) {
+    const owningContent = await prisma.content.findUnique({
+        where: { id: contentId },
+        select: {
+            module: {
+                select: {
+                    course: {
+                        select: { teacherId: true },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!owningContent) {
+        throw new Error('CONTENT_NOT_FOUND');
+    }
+
+    if (userRole !== 'ADMIN' && owningContent.module.course.teacherId !== teacherId) {
+        throw new Error('COURSE_FORBIDDEN');
+    }
+
+    return prisma.content.update({
+        where: { id: contentId },
+        data: { isFreePreview },
+        select: {
+            id: true,
+            title: true,
+            order: true,
+            contentType: true,
+            durationInSeconds: true,
+            timeLimitInMinutes: true,
+            isFreePreview: true,
             moduleId: true,
         },
     });

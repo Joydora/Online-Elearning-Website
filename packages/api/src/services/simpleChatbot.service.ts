@@ -25,6 +25,7 @@ class SimpleChatbotService {
         console.log('🔄 Loading course data for chatbot...');
 
         const courses = await prisma.course.findMany({
+            where: { status: 'PUBLISHED' },
             include: {
                 teacher: {
                     select: {

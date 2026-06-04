@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
 
-type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
 
 type Props = {
     moduleId: number;
@@ -23,6 +23,12 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     const [documentUrl, setDocumentUrl] = useState('');
     const [fileType, setFileType] = useState('application/pdf');
     const [timeLimitInMinutes, setTimeLimitInMinutes] = useState('');
+    const [practicePrompt, setPracticePrompt] = useState('');
+    const [starterCode, setStarterCode] = useState('');
+    const [expectedOutput, setExpectedOutput] = useState('');
+    const [rubric, setRubric] = useState('');
+    const [language, setLanguage] = useState('javascript');
+    const [isFreePreview, setIsFreePreview] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 
@@ -53,6 +59,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
             moduleId,
             title: title.trim(),
             contentType,
+            isFreePreview,
         };
 
         let data: any = { ...baseData };
@@ -77,6 +84,16 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
             if (timeLimitInMinutes) {
                 data.timeLimitInMinutes = parseInt(timeLimitInMinutes);
             }
+        } else if (contentType === 'PRACTICE' || contentType === 'ASSIGNMENT') {
+            if (!practicePrompt.trim()) {
+                showErrorAlert('Lỗi', 'Vui lòng nhập yêu cầu bài thực hành/bài tập');
+                return;
+            }
+            data.practicePrompt = practicePrompt.trim();
+            data.starterCode = starterCode || undefined;
+            data.expectedOutput = expectedOutput || undefined;
+            data.rubric = rubric || undefined;
+            data.language = language || 'javascript';
         }
 
         createContentMutation.mutate(data);
@@ -116,25 +133,25 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-lg shadow-xl max-w-2xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
+                    <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                         Thêm nội dung mới
                     </h2>
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={onClose}
-                        className="p-2"
+                        className="p-2 shrink-0"
                     >
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                     {/* Content Type */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -148,6 +165,8 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             <option value="VIDEO">Video</option>
                             <option value="DOCUMENT">Tài liệu</option>
                             <option value="QUIZ">Bài kiểm tra</option>
+                            <option value="PRACTICE">Bài thực hành</option>
+                            <option value="ASSIGNMENT">Bài tập</option>
                         </select>
                     </div>
 
@@ -163,6 +182,24 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             className="h-12"
                         />
                     </div>
+
+                    {/* Conditional Fields */}
+                    <label className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-sm dark:border-green-900/50 dark:bg-green-950/30">
+                        <input
+                            type="checkbox"
+                            checked={isFreePreview}
+                            onChange={(e) => setIsFreePreview(e.target.checked)}
+                            className="mt-1"
+                        />
+                        <span>
+                            <span className="block font-medium text-green-800 dark:text-green-300">
+                                Cho phép xem miễn phí
+                            </span>
+                            <span className="text-green-700 dark:text-green-400">
+                                Học viên chưa mua/chưa học thử vẫn có thể mở bài này trên trang chi tiết khóa học.
+                            </span>
+                        </span>
+                    </label>
 
                     {/* Conditional Fields */}
                     {contentType === 'VIDEO' && (
@@ -368,8 +405,78 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                         </>
                     )}
 
+                    {(contentType === 'PRACTICE' || contentType === 'ASSIGNMENT') && (
+                        <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-900/50 dark:bg-purple-950/30">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                    Yêu cầu bài {contentType === 'PRACTICE' ? 'thực hành' : 'tập'} <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    value={practicePrompt}
+                                    onChange={(e) => setPracticePrompt(e.target.value)}
+                                    placeholder="Mô tả yêu cầu, input/output, ràng buộc..."
+                                    rows={4}
+                                    className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                    Starter code
+                                </label>
+                                <textarea
+                                    value={starterCode}
+                                    onChange={(e) => setStarterCode(e.target.value)}
+                                    placeholder="function solve() { ... }"
+                                    rows={5}
+                                    className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 font-mono text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                                />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Ngôn ngữ
+                                    </label>
+                                    <select
+                                        value={language}
+                                        onChange={(e) => setLanguage(e.target.value)}
+                                        className="w-full h-12 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
+                                    >
+                                        <option value="javascript">JavaScript</option>
+                                        <option value="typescript">TypeScript</option>
+                                        <option value="python">Python</option>
+                                        <option value="java">Java</option>
+                                        <option value="cpp">C++</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Expected output
+                                    </label>
+                                    <Input
+                                        value={expectedOutput}
+                                        onChange={(e) => setExpectedOutput(e.target.value)}
+                                        placeholder="Kết quả mong đợi"
+                                        className="h-12"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                    Rubric chấm điểm
+                                </label>
+                                <textarea
+                                    value={rubric}
+                                    onChange={(e) => setRubric(e.target.value)}
+                                    placeholder="Tiêu chí đúng/sai, hiệu năng, style code..."
+                                    rows={3}
+                                    className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Actions */}
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 pt-4">
                         <Button
                             type="button"
                             variant="outline"

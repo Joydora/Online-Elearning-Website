@@ -25,6 +25,7 @@ import {
     markPayoutController,
     exportRevenueCSVController,
 } from '../controllers/revenue.controller';
+import { getAdminAuditLogsController } from '../controllers/audit.controller';
 
 const router = Router();
 
@@ -63,6 +64,7 @@ router.delete('/admin/courses/:id', ...adminOnly, deleteCourseAdminController);
 router.get('/admin/revenue', ...adminOnly, getRevenueLedgerController);
 router.post('/admin/revenue/payout', ...adminOnly, markPayoutController);
 router.get('/admin/revenue/export', ...adminOnly, exportRevenueCSVController);
+router.get('/admin/audit-logs', ...adminOnly, getAdminAuditLogsController);
 
 export default router;
 

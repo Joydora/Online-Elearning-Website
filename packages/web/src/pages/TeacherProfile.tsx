@@ -109,31 +109,31 @@ export default function TeacherProfile() {
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
             {/* Hero Section */}
-            <section className="relative py-16 bg-red-600 overflow-hidden">
+            <section className="relative py-10 sm:py-16 bg-red-600 overflow-hidden">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')]"></div>
 
-                <div className="container mx-auto px-4 relative z-10">
-                    <Link to="/courses" className="inline-flex items-center gap-2 text-red-200 hover:text-white mb-6 transition-colors">
+                <div className="container mx-auto px-4 sm:px-6 relative z-10">
+                    <Link to="/courses" className="inline-flex items-center gap-2 text-red-200 hover:text-white mb-4 sm:mb-6 transition-colors text-sm">
                         <ArrowLeft className="w-4 h-4" />
                         Quay lại khóa học
                     </Link>
 
-                    <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8">
                         {/* Avatar */}
-                        <div className="w-32 h-32 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border-4 border-white/30 shadow-2xl">
-                            <span className="text-5xl font-bold text-white">
+                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border-4 border-white/30 shadow-2xl shrink-0">
+                            <span className="text-4xl sm:text-5xl font-bold text-white">
                                 {teacher.fullName.charAt(0).toUpperCase()}
                             </span>
                         </div>
 
                         {/* Info */}
-                        <div className="text-center md:text-left text-white flex-1">
+                        <div className="text-center md:text-left text-white flex-1 min-w-0">
                             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                                 <Award className="w-5 h-5 text-yellow-400" />
                                 <span className="text-red-200 text-sm font-medium">Giảng viên</span>
                             </div>
-                            <h1 className="text-3xl md:text-4xl font-bold mb-2">{teacher.fullName}</h1>
-                            <p className="text-red-200 mb-4">@{teacher.username}</p>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{teacher.fullName}</h1>
+                            <p className="text-red-200 mb-4 break-all">@{teacher.username}</p>
 
                             <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm">
                                 <div className="flex items-center gap-2">
@@ -149,43 +149,43 @@ export default function TeacherProfile() {
             </section>
 
             {/* Stats */}
-            <section className="py-8 -mt-8 relative z-20">
-                <div className="container mx-auto px-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                        <Card className="p-6 text-center bg-white dark:bg-zinc-900 shadow-xl">
-                            <BookOpen className="w-8 h-8 mx-auto mb-2 text-red-600" />
-                            <div className="text-3xl font-bold text-zinc-900 dark:text-white">
+            <section className="py-6 sm:py-8 -mt-6 sm:-mt-8 relative z-20">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
+                        <Card className="p-4 sm:p-6 text-center bg-white dark:bg-zinc-900 shadow-xl">
+                            <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 mx-auto mb-2 text-red-600" />
+                            <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                 {teacher.stats.totalCourses}
                             </div>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Khóa học</div>
+                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Khóa học</div>
                         </Card>
-                        <Card className="p-6 text-center bg-white dark:bg-zinc-900 shadow-xl">
-                            <Users className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                            <div className="text-3xl font-bold text-zinc-900 dark:text-white">
+                        <Card className="p-4 sm:p-6 text-center bg-white dark:bg-zinc-900 shadow-xl">
+                            <Users className="w-7 h-7 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
+                            <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                 {teacher.stats.totalStudents}
                             </div>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Học viên</div>
+                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Học viên</div>
                         </Card>
-                        <Card className="p-6 text-center bg-white dark:bg-zinc-900 shadow-xl col-span-2 md:col-span-1">
-                            <GraduationCap className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                            <div className="text-3xl font-bold text-zinc-900 dark:text-white">
+                        <Card className="p-4 sm:p-6 text-center bg-white dark:bg-zinc-900 shadow-xl col-span-2 md:col-span-1">
+                            <GraduationCap className="w-7 h-7 sm:w-8 sm:h-8 mx-auto mb-2 text-green-600" />
+                            <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                 {teacher.courses.reduce((sum, c) => sum + c.totalModules, 0)}
                             </div>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Bài giảng</div>
+                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Bài giảng</div>
                         </Card>
                     </div>
                 </div>
             </section>
 
             {/* Courses */}
-            <section className="py-12">
-                <div className="container mx-auto px-4">
-                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-8 text-center">
+            <section className="py-10 sm:py-12">
+                <div className="container mx-auto px-4 sm:px-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-6 sm:mb-8 text-center break-words">
                         Khóa học của {teacher.fullName}
                     </h2>
 
                     {teacher.courses.length === 0 ? (
-                        <Card className="max-w-md mx-auto p-8 text-center">
+                        <Card className="max-w-md mx-auto p-6 sm:p-8 text-center">
                             <BookOpen className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
                             <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                                 Chưa có khóa học
@@ -195,7 +195,7 @@ export default function TeacherProfile() {
                             </p>
                         </Card>
                     ) : (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
                             {teacher.courses.map((course) => (
                                 <Link key={course.id} to={`/courses/${course.id}`}>
                                     <Card className="overflow-hidden hover:shadow-xl transition-all group h-full">

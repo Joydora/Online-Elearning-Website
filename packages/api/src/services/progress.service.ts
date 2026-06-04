@@ -1,5 +1,6 @@
-import { PrismaClient, ContentType } from '@prisma/client';
+import { PrismaClient, ContentType, EnrollmentType } from '@prisma/client';
 import { llmService } from './llm.service';
+import { issueCertificateForEnrollment } from './certificate.service';
 
 const prisma = new PrismaClient();
 
@@ -15,9 +16,15 @@ async function calculateWeightedProgress(enrollmentId: number, courseId: number)
 
     const videos = allContents.filter((c) => c.contentType === ContentType.VIDEO);
     const quizzes = allContents.filter((c) => c.contentType === ContentType.QUIZ);
-    const practices = allContents.filter((c) => c.contentType === ContentType.PRACTICE);
+    const practices = allContents.filter(
+        (c) => c.contentType === ContentType.PRACTICE || c.contentType === ContentType.ASSIGNMENT,
+    );
     const others = allContents.filter(
-        (c) => c.contentType !== ContentType.VIDEO && c.contentType !== ContentType.QUIZ && c.contentType !== ContentType.PRACTICE,
+        (c) =>
+            c.contentType !== ContentType.VIDEO &&
+            c.contentType !== ContentType.QUIZ &&
+            c.contentType !== ContentType.PRACTICE &&
+            c.contentType !== ContentType.ASSIGNMENT,
     );
 
     const completed = await prisma.contentProgress.findMany({
@@ -73,32 +80,34 @@ export async function markContentCompleted(
         where: { studentId_courseId: { studentId, courseId } },
     });
     if (!enrollment) throw new Error('NOT_ENROLLED');
-    if (!enrollment.isActive) throw new Error('ENROLLMENT_EXPIRED');
+    const isExpired = enrollment.expiresAt !== null && enrollment.expiresAt.getTime() <= Date.now();
+    if (!enrollment.isActive || isExpired) throw new Error('ENROLLMENT_EXPIRED');
+    if (enrollment.type === EnrollmentType.TRIAL && !content.isFreePreview) throw new Error('CONTENT_LOCKED');
 
-    const existing = await prisma.contentProgress.findUnique({
+    await prisma.contentProgress.upsert({
         where: { enrollmentId_contentId: { enrollmentId: enrollment.id, contentId } },
+        update: {
+            completedAt: new Date(),
+            ...(watchedSeconds !== undefined ? { watchedSeconds } : {}),
+        },
+        create: { enrollmentId: enrollment.id, contentId, watchedSeconds },
     });
-
-    if (existing) {
-        if (watchedSeconds !== undefined) {
-            await prisma.contentProgress.update({
-                where: { id: existing.id },
-                data: { watchedSeconds },
-            });
-        }
-    } else {
-        await prisma.contentProgress.create({
-            data: { enrollmentId: enrollment.id, contentId, watchedSeconds },
-        });
-    }
 
     const progress = await calculateWeightedProgress(enrollment.id, courseId);
     const isCompleted = progress >= 100;
 
+    const completedAt = isCompleted ? new Date() : enrollment.completionDate;
+
     await prisma.enrollment.update({
         where: { id: enrollment.id },
-        data: { progress, completionDate: isCompleted ? new Date() : enrollment.completionDate },
+        data: { progress, completionDate: completedAt },
     });
+
+    if (isCompleted && completedAt) {
+        await issueCertificateForEnrollment(enrollment.id).catch((error) => {
+            console.error('Unable to issue course certificate:', error);
+        });
+    }
 
     return { progress, isCompleted };
 }

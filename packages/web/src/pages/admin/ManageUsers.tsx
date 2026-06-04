@@ -55,14 +55,58 @@ export default function ManageUsers() {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-8">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-4 sm:p-6 lg:p-8">
             <div className="container mx-auto max-w-6xl">
-                <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-4">
+                <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Quay lại
                 </Button>
-                <h1 className="text-3xl font-bold mb-8 text-zinc-900 dark:text-white">Quản lý Người dùng</h1>
-                <Card className="p-6">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-8 text-zinc-900 dark:text-white">Quản lý Người dùng</h1>
+
+                {/* Mobile card view */}
+                <div className="md:hidden space-y-3">
+                    {users.map((user: any) => (
+                        <Card key={user.id} className="p-4">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-semibold text-zinc-900 dark:text-white break-words">{user.username}</p>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400 break-all">{user.email}</p>
+                                </div>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDelete(user.id, user.username)}
+                                    disabled={user.role === 'ADMIN' || deleteMutation.isPending}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <select
+                                    value={user.role}
+                                    onChange={(e) => updateRoleMutation.mutate({ userId: user.id, role: e.target.value })}
+                                    disabled={user.role === 'ADMIN' || updateRoleMutation.isPending}
+                                    className={`px-3 py-1 text-xs rounded-full border-2 ${user.role === 'ADMIN'
+                                            ? 'bg-red-100 text-red-800 border-red-300 cursor-not-allowed'
+                                            : user.role === 'TEACHER'
+                                                ? 'bg-green-100 text-green-800 border-green-300'
+                                                : 'bg-blue-100 text-blue-800 border-blue-300'
+                                        }`}
+                                >
+                                    <option value="STUDENT">STUDENT</option>
+                                    <option value="TEACHER">TEACHER</option>
+                                    <option value="ADMIN" disabled>ADMIN</option>
+                                </select>
+                                <span className="text-zinc-500 dark:text-zinc-400">
+                                    Khóa học: {user._count?.coursesAsTeacher || 0} / Đăng ký: {user._count?.enrollments || 0}
+                                </span>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Desktop table */}
+                <Card className="p-4 sm:p-6 hidden md:block">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>

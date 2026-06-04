@@ -144,12 +144,12 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
     return (
         <div className="space-y-6">
             {/* Stats Section */}
-            <Card className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            <Card className="p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
                     Đánh giá và nhận xét
                 </h2>
 
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className="grid md:grid-cols-2 gap-6 md:gap-8">
                     {/* Average Rating */}
                     <div className="text-center md:text-left">
                         <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
@@ -202,10 +202,10 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
 
             {/* User Review Form */}
             {isEnrolled && user && (
-                <Card className="p-6">
+                <Card className="p-4 sm:p-6">
                     {userReview && !showForm ? (
                         <div>
-                            <div className="flex items-start justify-between mb-4">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
                                         <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -350,7 +350,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
 
             {/* Reviews List */}
             {reviewData.reviews.length === 0 ? (
-                <Card className="p-8 text-center">
+                <Card className="p-6 sm:p-8 text-center">
                     <Star className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                         Chưa có đánh giá nào
@@ -362,22 +362,22 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
             ) : (
                 <div className="space-y-4">
                     {reviewData.reviews.map((review) => (
-                        <Card key={review.id} className="p-6">
-                            <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold">
+                        <Card key={review.id} className="p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold shrink-0">
                                         {review.student.fullName.charAt(0).toUpperCase()}
                                     </div>
-                                    <div>
-                                        <p className="font-semibold text-gray-900 dark:text-white">
+                                    <div className="min-w-0">
+                                        <p className="font-semibold text-gray-900 dark:text-white truncate">
                                             {review.student.fullName}
                                         </p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-500">
+                                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-500">
                                             {formatDate(review.datePosted)}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex gap-1">
+                                <div className="flex gap-1 shrink-0">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <Star
                                             key={star}

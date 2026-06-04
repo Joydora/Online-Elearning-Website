@@ -1,6 +1,6 @@
 import { llmService } from './llm.service';
 import { vectorStoreService } from './vectorStore.service';
-import { PrismaClient, Role } from '@prisma/client';
+import { CourseStatus, PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -33,7 +33,7 @@ class RAGService {
     async assertCourseAccess(courseId: number, userId: number, role?: Role | string): Promise<void> {
         const course = await prisma.course.findUnique({
             where: { id: courseId },
-            select: { teacherId: true },
+            select: { teacherId: true, status: true },
         });
 
         if (!course) {
@@ -45,6 +45,10 @@ class RAGService {
         }
 
         if (role === Role.STUDENT) {
+            if (course.status !== CourseStatus.PUBLISHED) {
+                throw new Error('COURSE_FORBIDDEN');
+            }
+
             const enrollment = await prisma.enrollment.findUnique({
                 where: {
                     studentId_courseId: {
@@ -54,7 +58,11 @@ class RAGService {
                 },
             });
 
-            if (enrollment) {
+            const hasActiveAccess =
+                enrollment?.isActive === true &&
+                (enrollment.expiresAt === null || enrollment.expiresAt.getTime() > Date.now());
+
+            if (hasActiveAccess) {
                 return;
             }
         }
@@ -442,7 +450,7 @@ Trả lời:`;
             ? `${input.question}\nBài đang xem: ${currentContent.title}`
             : input.question;
 
-        const searchResults = await vectorStoreService.search(searchQuery, 6, { namespace });
+        const searchResults = await vectorStoreService.search(searchQuery, 4, { namespace });
         const context = searchResults
             .map((result, index) => `[Nguồn ${index + 1}]\n${result.document.content}`)
             .join('\n\n');
@@ -473,7 +481,8 @@ TRẢ LỜI:`;
         const answer = await llmService.chat({
             messages: [{ role: 'user', content: prompt }],
             tier: 'fast',
-            temperature: 0.7,
+            temperature: 0.4,
+            maxTokens: 512,
         });
 
         return {

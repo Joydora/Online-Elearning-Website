@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, CheckCircle, Circle, Sparkles, Loader2, BookOpen, Target, Clock } from 'lucide-react';
+import { Award, ChevronLeft, CheckCircle, Circle, Sparkles, Loader2, BookOpen, Target, Clock } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -39,6 +39,7 @@ const TYPE_LABEL: Record<string, string> = {
     DOCUMENT: 'Tài liệu',
     QUIZ: 'Kiểm tra',
     PRACTICE: 'Thực hành',
+    ASSIGNMENT: 'Bài tập',
 };
 
 function fmtSeconds(s: number): string {
@@ -94,34 +95,34 @@ export default function Progress() {
     const totalCount = allContents.length;
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            <div className="flex items-center gap-3 mb-6">
-                <Link to={`/learning/${courseId}`}>
+        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-5 sm:mb-6">
+                <Link to={`/learning/${courseId}`} className="self-start">
                     <Button variant="ghost" size="sm" className="gap-1">
                         <ChevronLeft className="w-4 h-4" />
                         Quay lại học
                     </Button>
                 </Link>
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Tiến độ học tập</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Tiến độ học tập</h1>
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <Card className="p-4 text-center">
-                    <p className="text-3xl font-bold text-red-600">{detail.progress}%</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <Card className="p-3 sm:p-4 text-center">
+                    <p className="text-2xl sm:text-3xl font-bold text-red-600">{detail.progress}%</p>
                     <p className="text-xs text-zinc-500 mt-1">Tiến độ tổng</p>
                 </Card>
-                <Card className="p-4 text-center">
-                    <p className="text-3xl font-bold text-blue-600">{completedCount}/{totalCount}</p>
+                <Card className="p-3 sm:p-4 text-center">
+                    <p className="text-2xl sm:text-3xl font-bold text-blue-600">{completedCount}/{totalCount}</p>
                     <p className="text-xs text-zinc-500 mt-1">Bài hoàn thành</p>
                 </Card>
-                <Card className="p-4 text-center">
+                <Card className="p-3 sm:p-4 text-center">
                     <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 capitalize">
                         {detail.type === 'TRIAL' ? 'Học thử' : detail.type === 'PAID' ? 'Đã mua' : 'Miễn phí'}
                     </p>
                     <p className="text-xs text-zinc-500 mt-1">Loại đăng ký</p>
                 </Card>
-                <Card className="p-4 text-center">
+                <Card className="p-3 sm:p-4 text-center">
                     {detail.completionDate ? (
                         <>
                             <p className="text-sm font-semibold text-green-600">
@@ -160,8 +161,33 @@ export default function Progress() {
             </div>
 
             {/* AI Summary */}
-            <Card className="p-5 mb-6 border-dashed border-red-300 dark:border-red-700">
-                <div className="flex items-center justify-between mb-3">
+            {detail.progress >= 100 && (
+                <Card className="p-4 sm:p-5 mb-6 border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-3">
+                            <Award className="mt-0.5 h-6 w-6 text-green-600 shrink-0" />
+                            <div>
+                                <h2 className="font-semibold text-green-900 dark:text-green-200">
+                                    Chứng chỉ đã sẵn sàng
+                                </h2>
+                                <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+                                    Bạn đã hoàn thành khóa học. Hệ thống đã tự động cấp chứng chỉ hoàn thành.
+                                </p>
+                            </div>
+                        </div>
+                        <Link to={`/learning/${courseId}/certificate`} className="md:shrink-0">
+                            <Button className="bg-green-600 hover:bg-green-700 gap-2 w-full md:w-auto">
+                                <Award className="h-4 w-4" />
+                                Xem chứng chỉ
+                            </Button>
+                        </Link>
+                    </div>
+                </Card>
+            )}
+
+            {/* AI Summary */}
+            <Card className="p-4 sm:p-5 mb-6 border-dashed border-red-300 dark:border-red-700">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-red-500" />
                         <h2 className="font-semibold text-zinc-900 dark:text-white">Nhận xét AI</h2>
@@ -171,7 +197,7 @@ export default function Progress() {
                         onClick={() => summaryMutation.mutate()}
                         disabled={summaryMutation.isPending}
                         variant="outline"
-                        className="gap-1 text-xs"
+                        className="gap-1 text-xs w-full sm:w-auto"
                     >
                         {summaryMutation.isPending ? (
                             <><Loader2 className="w-3 h-3 animate-spin" />Đang phân tích...</>
@@ -199,17 +225,17 @@ export default function Progress() {
                     return (
                         <Card key={mod.id} className="overflow-hidden">
                             <button
-                                className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                 onClick={() => toggleModule(mod.id)}
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${modCompleted === mod.contents.length ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'}`}>
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${modCompleted === mod.contents.length ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'}`}>
                                         {modCompleted}/{mod.contents.length}
                                     </div>
-                                    <span className="font-medium text-zinc-900 dark:text-white text-sm">{mod.title}</span>
+                                    <span className="font-medium text-zinc-900 dark:text-white text-sm text-left break-words">{mod.title}</span>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-24 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                    <div className="w-16 sm:w-24 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-red-500 rounded-full"
                                             style={{ width: mod.contents.length ? `${(modCompleted / mod.contents.length) * 100}%` : '0%' }}
@@ -221,15 +247,15 @@ export default function Progress() {
                             {isOpen && (
                                 <div className="border-t border-zinc-100 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800">
                                     {mod.contents.map(content => (
-                                        <div key={content.id} className="flex items-center gap-3 px-4 py-3">
+                                        <div key={content.id} className="flex items-start gap-3 px-3 sm:px-4 py-3">
                                             {content.completed ? (
-                                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                                             ) : (
-                                                <Circle className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+                                                <Circle className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm text-zinc-900 dark:text-white truncate">{content.title}</p>
-                                                <div className="flex items-center gap-3 mt-0.5">
+                                                <p className="text-sm text-zinc-900 dark:text-white break-words">{content.title}</p>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                                                     <span className="text-xs text-zinc-400">{TYPE_LABEL[content.contentType] || content.contentType}</span>
                                                     {content.watchedSeconds !== null && content.watchedSeconds > 0 && (
                                                         <span className="text-xs text-zinc-400 flex items-center gap-1">
@@ -246,13 +272,13 @@ export default function Progress() {
                                                             {content.practiceScore.passed ? 'Đạt' : 'Chưa đạt'} ({content.practiceScore.score})
                                                         </span>
                                                     )}
+                                                    {content.completedAt && (
+                                                        <span className="text-xs text-zinc-400">
+                                                            {new Date(content.completedAt).toLocaleDateString('vi-VN')}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
-                                            {content.completedAt && (
-                                                <span className="text-xs text-zinc-400 flex-shrink-0">
-                                                    {new Date(content.completedAt).toLocaleDateString('vi-VN')}
-                                                </span>
-                                            )}
                                         </div>
                                     ))}
                                 </div>

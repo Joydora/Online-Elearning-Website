@@ -17,7 +17,9 @@ import {
     UserCheck,
     Github,
     Send,
-    Sparkles
+    Sparkles,
+    Eye,
+    Clock
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -32,12 +34,13 @@ type Content = {
     id: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
     videoUrl?: string;
     durationInSeconds?: number;
     documentUrl?: string;
     fileType?: string;
     timeLimitInMinutes?: number;
+    isFreePreview?: boolean;
 };
 
 type Module = {
@@ -56,6 +59,8 @@ type CourseDetail = {
     price: number;
     status?: CourseStatus;
     rejectionReason?: string | null;
+    trialDurationDays?: number | null;
+    accessDurationDays?: number | null;
     modules: Module[];
 };
 
@@ -149,6 +154,19 @@ export default function ManageCourse() {
         },
         onError: (error: any) => {
             showErrorAlert('Lỗi xóa nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
+    });
+
+    const togglePreviewMutation = useMutation({
+        mutationFn: async ({ contentId, isFreePreview }: { contentId: number; isFreePreview: boolean }) => {
+            await apiClient.patch(`/content/${contentId}/preview`, { isFreePreview });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
+            showSuccessAlert('Đã cập nhật!', 'Thiết lập bài học xem thử đã được lưu.');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi cập nhật preview', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
 
@@ -249,6 +267,9 @@ export default function ManageCourse() {
                 return <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />;
             case 'QUIZ':
                 return <ClipboardList className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
+            case 'PRACTICE':
+            case 'ASSIGNMENT':
+                return <ClipboardList className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
             default:
                 return null;
         }
@@ -262,6 +283,10 @@ export default function ManageCourse() {
                 return 'Tài liệu';
             case 'QUIZ':
                 return 'Bài kiểm tra';
+            case 'PRACTICE':
+                return 'Bài thực hành';
+            case 'ASSIGNMENT':
+                return 'Bài tập';
             default:
                 return type;
         }
@@ -291,25 +316,25 @@ export default function ManageCourse() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                     <Button
                         variant="ghost"
                         onClick={() => navigate(dashboardPath)}
-                        className="mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
+                        className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Quay lại {isAdmin ? 'Admin' : 'Dashboard'}
                     </Button>
 
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                                 Quản lý khóa học
                             </h1>
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <p className="text-zinc-600 dark:text-zinc-400">
+                            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                                <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">
                                     {course.title}
                                 </p>
                                 {course.status && (
@@ -337,16 +362,14 @@ export default function ManageCourse() {
                                         Gửi duyệt
                                     </Button>
                                 )}
-                            {!isAdmin && (
-                                <Button
-                                    onClick={() => navigate(`/courses/${id}/syllabus`)}
-                                    variant="outline"
-                                    className="gap-2"
-                                >
-                                    <Sparkles className="h-4 w-4" />
-                                    Cấu trúc AI
-                                </Button>
-                            )}
+                            <Button
+                                onClick={() => navigate(isAdmin ? `/admin/courses/${id}/syllabus` : `/teacher/courses/${id}/syllabus`)}
+                                variant="outline"
+                                className="gap-2"
+                            >
+                                <Sparkles className="h-4 w-4" />
+                                Cấu trúc AI
+                            </Button>
                             <Button
                                 onClick={() => navigate(studentsPath)}
                                 variant="outline"
@@ -375,6 +398,32 @@ export default function ManageCourse() {
                             </Button>
                         </div>
                     </div>
+
+                    <Card className="mt-4 border-blue-200 bg-blue-50 p-3 sm:p-4 text-xs sm:text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-200">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-start gap-3 min-w-0">
+                                <Clock className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-300 shrink-0" />
+                                <div className="min-w-0">
+                                    <p className="font-semibold">Thiết lập thời hạn truy cập</p>
+                                    <p className="mt-1">
+                                        {course.accessDurationDays
+                                            ? `Sau khi mua, học viên được truy cập khóa học trong ${course.accessDurationDays} ngày.`
+                                            : 'Khóa học hiện đang để trống thời hạn, học viên được truy cập không giới hạn sau khi mua.'}
+                                    </p>
+                                    <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
+                                        Người set phần này là teacher/admin tại mục "Sửa thông tin" của khóa học.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={() => navigate(editPath)}
+                                variant="outline"
+                                className="shrink-0 border-blue-300 bg-white/70 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200 w-full md:w-auto"
+                            >
+                                Cài thời hạn
+                            </Button>
+                        </div>
+                    </Card>
 
                     {course.status === 'REJECTED' && course.rejectionReason && (
                         <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
@@ -410,8 +459,8 @@ export default function ManageCourse() {
                             </Button>
                         </Card>
                     ) : (
-                        <Card className="p-4 border-2 border-red-500">
-                            <div className="flex gap-2">
+                        <Card className="p-3 sm:p-4 border-2 border-red-500">
+                            <div className="flex flex-col sm:flex-row gap-2">
                                 <Input
                                     placeholder="Tên chương (VD: Chương 1: Giới thiệu)"
                                     value={newModuleTitle}
@@ -426,26 +475,29 @@ export default function ManageCourse() {
                                     autoFocus
                                     className="flex-1"
                                 />
-                                <Button
-                                    onClick={handleAddModule}
-                                    disabled={!newModuleTitle.trim() || createModuleMutation.isPending}
-                                    className="bg-red-600 hover:bg-red-700"
-                                >
-                                    {createModuleMutation.isPending ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Save className="h-4 w-4" />
-                                    )}
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        setIsAddingModule(false);
-                                        setNewModuleTitle('');
-                                    }}
-                                    variant="outline"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={handleAddModule}
+                                        disabled={!newModuleTitle.trim() || createModuleMutation.isPending}
+                                        className="bg-red-600 hover:bg-red-700 flex-1 sm:flex-none"
+                                    >
+                                        {createModuleMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Save className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            setIsAddingModule(false);
+                                            setNewModuleTitle('');
+                                        }}
+                                        variant="outline"
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </Card>
                     )}
@@ -461,13 +513,13 @@ export default function ManageCourse() {
                         course.modules.map((module) => (
                             <Card key={module.id} className="overflow-hidden border-zinc-200 dark:border-zinc-800">
                                 {/* Module Header */}
-                                <div className="p-4 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between">
-                                    <div className="flex items-center gap-3 flex-1">
+                                <div className="p-3 sm:p-4 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => toggleModule(module.id)}
-                                            className="p-0 h-8 w-8"
+                                            className="p-0 h-8 w-8 shrink-0"
                                         >
                                             {expandedModules.has(module.id) ? (
                                                 <ChevronDown className="h-5 w-5" />
@@ -475,14 +527,14 @@ export default function ManageCourse() {
                                                 <ChevronRight className="h-5 w-5" />
                                             )}
                                         </Button>
-                                        <h3 className="font-semibold text-zinc-900 dark:text-white">
+                                        <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white break-words min-w-0">
                                             {module.title}
                                         </h3>
-                                        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                                        <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
                                             ({module.contents.length} bài)
                                         </span>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 shrink-0">
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -496,7 +548,7 @@ export default function ManageCourse() {
 
                                 {/* Module Contents */}
                                 {expandedModules.has(module.id) && (
-                                    <div className="p-4 space-y-2">
+                                    <div className="p-3 sm:p-4 space-y-2">
                                         {/* Add Content Button */}
                                         <Button
                                             variant="outline"
@@ -518,39 +570,59 @@ export default function ManageCourse() {
                                                 {module.contents.map((content) => (
                                                     <div
                                                         key={content.id}
-                                                        className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700"
+                                                        className="flex flex-col gap-3 p-3 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 sm:flex-row sm:items-center"
                                                     >
-                                                        {getContentIcon(content.contentType)}
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-zinc-900 dark:text-white text-sm">
-                                                                {content.title}
-                                                            </p>
-                                                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                                                {getContentTypeLabel(content.contentType)}
-                                                                {content.durationInSeconds && (
-                                                                    <> • {Math.floor(content.durationInSeconds / 60)} phút</>
-                                                                )}
-                                                            </p>
+                                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                            <div className="shrink-0">{getContentIcon(content.contentType)}</div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-zinc-900 dark:text-white text-sm break-words">
+                                                                    {content.title}
+                                                                </p>
+                                                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                    {getContentTypeLabel(content.contentType)}
+                                                                    {content.durationInSeconds && (
+                                                                        <> • {Math.floor(content.durationInSeconds / 60)} phút</>
+                                                                    )}
+                                                                    {content.isFreePreview && (
+                                                                        <> • Xem thử miễn phí</>
+                                                                    )}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        {content.contentType === 'QUIZ' && (
+                                                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                                                             <Button
-                                                                variant="outline"
+                                                                variant={content.isFreePreview ? 'default' : 'outline'}
                                                                 size="sm"
-                                                                className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 dark:text-blue-400"
-                                                                onClick={() => navigate(quizManagePath(content.id))}
+                                                                className="gap-1 text-xs"
+                                                                disabled={togglePreviewMutation.isPending}
+                                                                onClick={() => togglePreviewMutation.mutate({
+                                                                    contentId: content.id,
+                                                                    isFreePreview: !content.isFreePreview,
+                                                                })}
                                                             >
-                                                                <Edit className="h-4 w-4 mr-1" />
-                                                                Quản lý câu hỏi
+                                                                <Eye className="h-4 w-4" />
+                                                                {content.isFreePreview ? 'Đang preview' : 'Mở preview'}
                                                             </Button>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:text-red-400"
-                                                            onClick={() => handleDeleteContent(content.id, content.title)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                            {content.contentType === 'QUIZ' && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 dark:text-blue-400 text-xs"
+                                                                    onClick={() => navigate(quizManagePath(content.id))}
+                                                                >
+                                                                    <Edit className="h-4 w-4 mr-1" />
+                                                                    Quản lý câu hỏi
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:text-red-400"
+                                                                onClick={() => handleDeleteContent(content.id, content.title)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

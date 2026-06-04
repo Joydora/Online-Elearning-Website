@@ -1,12 +1,28 @@
-import { PrismaClient } from '@prisma/client';
+import { EnrollmentType, PrismaClient } from '@prisma/client';
 import { llmService } from './llm.service';
 
 const prisma = new PrismaClient();
 
 export async function getPracticeByContent(contentId: number) {
-    return prisma.practice.findUnique({
+    const practice = await prisma.practice.findUnique({
         where: { contentId },
+        include: { content: { select: { title: true } } },
     });
+    if (!practice) return null;
+
+    // Normalize shape for the frontend: it expects `title` (lesson name) and
+    // `description` (the practice prompt). Keep the raw fields too for editors.
+    return {
+        id: practice.id,
+        contentId: practice.contentId,
+        title: practice.content.title,
+        description: practice.prompt,
+        prompt: practice.prompt,
+        starterCode: practice.starterCode,
+        expectedOutput: practice.expectedOutput,
+        rubric: practice.rubric,
+        language: practice.language,
+    };
 }
 
 export async function createPractice(data: {
@@ -56,6 +72,11 @@ export async function submitPractice(options: {
         where: { studentId, courseId: practice.content.module.courseId, isActive: true },
     });
     if (!enrollment) throw new Error('NOT_ENROLLED');
+    const isExpired = enrollment.expiresAt !== null && enrollment.expiresAt.getTime() <= Date.now();
+    if (isExpired) throw new Error('ENROLLMENT_EXPIRED');
+    if (enrollment.type === EnrollmentType.TRIAL && !practice.content.isFreePreview) {
+        throw new Error('CONTENT_LOCKED');
+    }
 
     // AI grading via Groq (OpenAI-compatible)
     let aiFeedback = '';

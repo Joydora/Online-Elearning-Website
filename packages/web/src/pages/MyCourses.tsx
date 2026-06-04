@@ -52,19 +52,19 @@ export default function MyCourses() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                         Khóa học của tôi
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                         Quản lý và tiếp tục học các khóa học bạn đã đăng ký
                     </p>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                     <Card className="p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                         <div className="flex items-center gap-3">
                             <BookOpen className="w-8 h-8" />
@@ -95,7 +95,7 @@ export default function MyCourses() {
                 </div>
 
                 {enrollments.length === 0 ? (
-                    <Card className="p-12 text-center">
+                    <Card className="p-8 sm:p-12 text-center">
                         <BookOpen className="w-16 h-16 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                             Chưa có khóa học nào
@@ -114,11 +114,11 @@ export default function MyCourses() {
                         {/* In Progress */}
                         {inProgressCourses.length > 0 && (
                             <div>
-                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+                                <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
                                     <Clock className="w-5 h-5 text-amber-500" />
                                     Đang học ({inProgressCourses.length})
                                 </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                     {inProgressCourses.map((enrollment) => (
                                         <CourseCard key={enrollment.enrollmentId} enrollment={enrollment} />
                                     ))}
@@ -129,11 +129,11 @@ export default function MyCourses() {
                         {/* Completed */}
                         {completedCourses.length > 0 && (
                             <div>
-                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+                                <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">
                                     <CheckCircle className="w-5 h-5 text-green-500" />
                                     Đã hoàn thành ({completedCourses.length})
                                 </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                                     {completedCourses.map((enrollment) => (
                                         <CourseCard key={enrollment.enrollmentId} enrollment={enrollment} completed />
                                     ))}

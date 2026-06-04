@@ -1,12 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, Users, DollarSign, TrendingUp, Edit, Trash2, UserCheck, UserCircle } from 'lucide-react';
+import { Plus, BookOpen, Users, FileText, Edit, Trash2, UserCheck, UserCircle, Wallet } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { type Course } from '../../components/CourseCard';
 import Swal from 'sweetalert2';
+
+type TeacherCourse = Course & {
+    status?: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
+    modules?: Array<{
+        _count?: {
+            contents: number;
+        };
+    }>;
+    _count?: {
+        enrollments: number;
+        modules?: number;
+    };
+};
 
 export default function Dashboard() {
     const user = useAuthStore((state) => state.user);
@@ -16,12 +29,11 @@ export default function Dashboard() {
     const {
         data: courses = [],
         isLoading,
-    } = useQuery<Course[]>({
+    } = useQuery<TeacherCourse[]>({
         queryKey: ['teacher-courses'],
         queryFn: async () => {
-            const { data } = await apiClient.get('/courses');
-            // Filter courses by current teacher (backend uses "id" for userId)
-            return data.filter((course: Course) => (course.teacher.userId || course.teacher.id) === user?.id);
+            const { data } = await apiClient.get('/teacher/courses');
+            return data;
         },
         enabled: !!user,
     });
@@ -72,111 +84,98 @@ export default function Dashboard() {
     // Calculate stats
     const totalCourses = courses.length;
     const totalStudents = courses.reduce((acc, course) => acc + (course._count?.enrollments || 0), 0);
-    const totalRevenue = courses.reduce((acc, course) => acc + (course.price * (course._count?.enrollments || 0)), 0);
-
-    const formattedRevenue = new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND'
-    }).format(totalRevenue);
+    const totalLessons = courses.reduce(
+        (acc, course) =>
+            acc + (course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0),
+        0,
+    );
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                         Dashboard Giảng viên
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                         Chào mừng trở lại, {user?.firstName || user?.username}!
                     </p>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <Card className="p-5 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Tổng khóa học
+                                    Lớp đang quản lý
                                 </p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                                <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalCourses}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600">
-                                <BookOpen className="h-6 w-6 text-white" />
+                            <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-blue-600 shrink-0">
+                                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
+                    <Card className="p-5 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Tổng học viên
+                                    Học viên
                                 </p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                                <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalStudents}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600">
-                                <Users className="h-6 w-6 text-white" />
+                            <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-purple-600 shrink-0">
+                                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
+                    <Card className="p-5 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Doanh thu
+                                    Bài học
                                 </p>
-                                <p className="text-2xl font-bold text-zinc-900 dark:text-white">
-                                    {formattedRevenue}
-                                </p>
-                            </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600">
-                                <DollarSign className="h-6 w-6 text-white" />
-                            </div>
-                        </div>
-                    </Card>
-
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Đánh giá TB
-                                </p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
-                                    4.8
+                                <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
+                                    {totalLessons}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600">
-                                <TrendingUp className="h-6 w-6 text-white" />
+                            <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-green-600 shrink-0">
+                                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
-                            Khóa học của tôi
-                        </h2>
-                        <Link to="/profile">
-                            <Button variant="outline" className="gap-2">
+                <div className="flex flex-col gap-4 mb-6 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
+                    <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
+                        Khóa học của tôi
+                    </h2>
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                        <Link to="/profile" className="flex-1 sm:flex-initial">
+                            <Button variant="outline" className="w-full gap-2">
                                 <UserCircle className="h-4 w-4" />
-                                Cập nhật hồ sơ
+                                <span>Cập nhật hồ sơ</span>
                             </Button>
                         </Link>
-                    </div>
-                    <div className="flex gap-3 mt-4">
-                        <Link to="/courses/create">
-                            <Button className="gap-2 bg-red-600 hover:bg-red-700">
+                        <Link to="/teacher/earnings" className="flex-1 sm:flex-initial">
+                            <Button variant="outline" className="w-full gap-2">
+                                <Wallet className="h-4 w-4" />
+                                <span>Tiền đang giữ</span>
+                            </Button>
+                        </Link>
+                        <Link to="/courses/create" className="flex-1 sm:flex-initial">
+                            <Button className="w-full gap-2 bg-red-600 hover:bg-red-700">
                                 <Plus className="h-4 w-4" />
-                                Tạo khóa học mới
+                                <span>Tạo khóa học mới</span>
                             </Button>
                         </Link>
                     </div>
@@ -196,7 +195,7 @@ export default function Dashboard() {
                         ))}
                     </div>
                 ) : courses.length === 0 ? (
-                    <Card className="p-12 text-center border-zinc-200 dark:border-zinc-800">
+                    <Card className="p-8 sm:p-12 text-center border-zinc-200 dark:border-zinc-800">
                         <BookOpen className="h-16 w-16 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
                             Chưa có khóa học nào
@@ -216,10 +215,10 @@ export default function Dashboard() {
                         {/* List View */}
                         <div className="space-y-4">
                             {courses.map((course) => (
-                                <Card key={course.courseId || course.id} className="p-6 border-zinc-200 dark:border-zinc-800">
-                                    <div className="flex items-start gap-6">
+                                <Card key={course.courseId || course.id} className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                                    <div className="flex flex-col md:flex-row items-stretch md:items-start gap-4 md:gap-6">
                                         {/* Thumbnail */}
-                                        <div className="flex-shrink-0 w-48 aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                                        <div className="md:flex-shrink-0 md:w-48 aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                             {course.thumbnailUrl ? (
                                                 <img
                                                     src={course.thumbnailUrl}
@@ -235,30 +234,30 @@ export default function Dashboard() {
 
                                         {/* Content */}
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between gap-4">
+                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2 break-all">
+                                                    <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-white mb-2 break-words">
                                                         {course.title}
                                                     </h3>
-                                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 line-clamp-2 break-all">
+                                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 sm:mb-4 line-clamp-2 break-words">
                                                         {course.description}
                                                     </p>
-                                                    <div className="flex items-center gap-6 text-sm text-zinc-600 dark:text-zinc-400">
+                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                                                         <div className="flex items-center gap-1">
                                                             <Users className="h-4 w-4" />
-                                                            <span>{course._count?.enrollments || course.totalEnrollments || 0} học viên</span>
+                                                            <span>{course._count?.enrollments ?? course.totalEnrollments ?? 0} học viên</span>
                                                         </div>
                                                         <div className="flex items-center gap-1">
-                                                            <DollarSign className="h-4 w-4" />
-                                                            <span className="font-medium text-blue-600 dark:text-blue-400">
-                                                                {course.price === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price)}
+                                                            <FileText className="h-4 w-4" />
+                                                            <span>
+                                                                {(course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0)} bài học
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 {/* Actions */}
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                     <Link to={`/courses/${course.courseId || course.id}/manage`}>
                                                         <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700">
                                                             Quản lý

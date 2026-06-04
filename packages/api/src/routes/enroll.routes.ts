@@ -7,12 +7,12 @@ import { isAuthenticated, isAuthorized } from '../middleware/auth.middleware';
 const router = Router();
 
 router.get('/enroll/my-enrollments', isAuthenticated, isAuthorized([Role.STUDENT]), getMyEnrollmentsController);
-router.get('/enroll/courses/:courseId/content', isAuthenticated, isAuthorized([Role.STUDENT]), getCourseContentController);
+router.get('/enroll/courses/:courseId/content', isAuthenticated, isAuthorized([Role.STUDENT, Role.TEACHER, Role.ADMIN]), getCourseContentController);
 router.post('/enroll/checkout/:courseId', isAuthenticated, isAuthorized([Role.STUDENT]), checkoutCourseController);
 router.post('/enroll/trial/:courseId', isAuthenticated, isAuthorized([Role.STUDENT]), trialEnrollController);
 // DEV ONLY — disabled in production
 if (process.env.NODE_ENV !== 'production') {
-    router.post('/enroll/confirm/:courseId', isAuthenticated, isAuthorized([Role.ADMIN]), confirmEnrollmentController);
+    router.post('/enroll/confirm/:courseId', isAuthenticated, isAuthorized([Role.STUDENT]), confirmEnrollmentController);
 }
 router.post('/stripe-webhook', stripeWebhookController);
 

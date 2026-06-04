@@ -25,6 +25,19 @@ type AdminCourse = {
         email?: string;
     };
     category: { name: string };
+    modules?: Array<{
+        id: number;
+        title: string;
+        order: number;
+        contents: Array<{
+            id: number;
+            title: string;
+            order: number;
+            contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
+            durationInSeconds?: number | null;
+            timeLimitInMinutes?: number | null;
+        }>;
+    }>;
     _count: { modules: number; enrollments: number };
 };
 
@@ -61,6 +74,14 @@ function formatDate(value: string | null) {
         return value;
     }
 }
+
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+    VIDEO: 'Video',
+    DOCUMENT: 'Tài liệu',
+    QUIZ: 'Bài kiểm tra',
+    PRACTICE: 'Thực hành',
+    ASSIGNMENT: 'Bài tập',
+};
 
 export default function ReviewCourses() {
     const navigate = useNavigate();
@@ -136,27 +157,27 @@ export default function ReviewCourses() {
         tab === 'pending' ? pendingQuery.isLoading : allQuery.isLoading;
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-8">
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-4 sm:p-6 lg:p-8">
             <div className="container mx-auto max-w-6xl">
                 <Button
                     variant="ghost"
                     onClick={() => navigate('/admin')}
-                    className="mb-4"
+                    className="mb-3 sm:mb-4"
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Quay lại Admin
                 </Button>
 
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
                     Duyệt khoá học
                 </h1>
 
                 {/* Tabs */}
-                <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="mb-4 sm:mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
                     <button
                         type="button"
                         onClick={() => setTab('pending')}
-                        className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                        className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
                             tab === 'pending'
                                 ? 'border-red-600 text-red-600'
                                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -172,7 +193,7 @@ export default function ReviewCourses() {
                     <button
                         type="button"
                         onClick={() => setTab('all')}
-                        className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+                        className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
                             tab === 'all'
                                 ? 'border-red-600 text-red-600'
                                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -195,18 +216,18 @@ export default function ReviewCourses() {
                         </p>
                     </Card>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3 sm:gap-4">
                         {courses.map((course) => (
-                            <Card key={course.id} className="p-6">
-                                <div className="flex flex-wrap items-start justify-between gap-4">
+                            <Card key={course.id} className="p-4 sm:p-6">
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                        <div className="flex items-start gap-2 mb-2 flex-wrap">
+                                            <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white break-words min-w-0">
                                                 {course.title}
                                             </h3>
                                             <StatusBadge status={course.status} />
                                         </div>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
+                                        <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-2 break-words">
                                             Giảng viên:{' '}
                                             <span className="font-medium">
                                                 {course.teacher.firstName ?? ''}{' '}
@@ -214,10 +235,10 @@ export default function ReviewCourses() {
                                             </span>{' '}
                                             ({course.teacher.username})
                                             {course.teacher.email && (
-                                                <> • {course.teacher.email}</>
+                                                <> • <span className="break-all">{course.teacher.email}</span></>
                                             )}
                                         </p>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                        <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
                                             Danh mục: {course.category?.name ?? '-'} •{' '}
                                             {course._count.modules} chương •{' '}
                                             {course._count.enrollments} học viên
@@ -232,18 +253,54 @@ export default function ReviewCourses() {
                                                 <strong>Lý do từ chối:</strong> {course.rejectionReason}
                                             </div>
                                         )}
+                                        <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                                            <p className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                                Xem trước nội dung
+                                            </p>
+                                            {course.modules && course.modules.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {course.modules.map((module) => (
+                                                        <div key={module.id}>
+                                                            <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                                Chương {module.order}: {module.title}
+                                                            </p>
+                                                            {module.contents.length > 0 ? (
+                                                                <ul className="mt-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                                                    {module.contents.map((content) => (
+                                                                        <li key={content.id}>
+                                                                            {content.order}. {content.title}{' '}
+                                                                            <span className="text-xs text-zinc-500">
+                                                                                ({CONTENT_TYPE_LABELS[content.contentType] ?? content.contentType})
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ) : (
+                                                                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                                                                    Chưa có bài học trong chương này.
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                                                    Khóa học chưa có chương/nội dung.
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {course.status === 'PENDING_REVIEW' && (
-                                        <div className="flex flex-col items-end gap-2">
-                                            <div className="flex gap-2">
+                                        <div className="flex flex-col gap-2 lg:items-end">
+                                            <div className="flex flex-col sm:flex-row gap-2 lg:flex-row">
                                                 <Button
                                                     onClick={() => approveMutation.mutate(course.id)}
                                                     disabled={
                                                         approveMutation.isPending &&
                                                         approveMutation.variables === course.id
                                                     }
-                                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                                    className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                                                 >
                                                     <Check className="h-4 w-4 mr-2" />
                                                     Duyệt
@@ -256,7 +313,7 @@ export default function ReviewCourses() {
                                                         setRejectReason('');
                                                     }}
                                                     variant="outline"
-                                                    className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                                    className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 w-full sm:w-auto"
                                                 >
                                                     <X className="h-4 w-4 mr-2" />
                                                     Từ chối
@@ -267,7 +324,7 @@ export default function ReviewCourses() {
                                 </div>
 
                                 {rejectingId === course.id && (
-                                    <div className="mt-4 rounded-md border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+                                    <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3 sm:p-4 dark:border-zinc-700 dark:bg-zinc-800">
                                         <label className="mb-2 block text-sm font-medium text-zinc-800 dark:text-zinc-200">
                                             Lý do từ chối
                                         </label>
@@ -278,20 +335,21 @@ export default function ReviewCourses() {
                                             placeholder="Nhập lý do từ chối khoá học..."
                                             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
                                         />
-                                        <div className="mt-3 flex justify-end gap-2">
+                                        <div className="mt-3 flex flex-col sm:flex-row sm:justify-end gap-2">
                                             <Button
                                                 variant="ghost"
                                                 onClick={() => {
                                                     setRejectingId(null);
                                                     setRejectReason('');
                                                 }}
+                                                className="w-full sm:w-auto"
                                             >
                                                 Huỷ
                                             </Button>
                                             <Button
                                                 onClick={() => handleReject(course.id)}
                                                 disabled={rejectMutation.isPending}
-                                                className="bg-red-600 hover:bg-red-700 text-white"
+                                                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                                             >
                                                 {rejectMutation.isPending ? (
                                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

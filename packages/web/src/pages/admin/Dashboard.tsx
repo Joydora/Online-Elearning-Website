@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign } from 'lucide-react';
+import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/card';
 type AdminStats = {
     totalUsers: number;
     totalCourses: number;
+    pendingCourses: number;
     totalEnrollments: number;
     totalCategories: number;
     usersByRole: {
@@ -43,114 +44,114 @@ export default function AdminDashboard() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
+                <div className="mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
                         Admin Dashboard
                     </h1>
-                    <p className="text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
                         Quản lý toàn bộ hệ thống E-Learning
                     </p>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng người dùng</p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng người dùng</p>
+                                <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalUsers || 0}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600">
-                                <Users className="h-6 w-6 text-white" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-blue-600 shrink-0">
+                                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng khóa học</p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng khóa học</p>
+                                <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalCourses || 0}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600">
-                                <BookOpen className="h-6 w-6 text-white" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-green-600 shrink-0">
+                                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng đăng ký</p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng đăng ký</p>
+                                <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalEnrollments || 0}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600">
-                                <GraduationCap className="h-6 w-6 text-white" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-purple-600 shrink-0">
+                                <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">Danh mục</p>
-                                <p className="text-3xl font-bold text-zinc-900 dark:text-white">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Danh mục</p>
+                                <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalCategories || 0}
                                 </p>
                             </div>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600">
-                                <FolderTree className="h-6 w-6 text-white" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-yellow-600 shrink-0">
+                                <FolderTree className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                             </div>
                         </div>
                     </Card>
                 </div>
 
                 {/* Users by Role */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                                <UserCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 shrink-0">
+                                <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">Học viên</p>
-                                <p className="text-2xl font-bold text-zinc-900 dark:text-white">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Học viên</p>
+                                <p className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.usersByRole?.STUDENT || 0}
                                 </p>
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30">
-                                <UserCog className="h-6 w-6 text-green-600 dark:text-green-400" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30 shrink-0">
+                                <UserCog className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                             </div>
                             <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">Giảng viên</p>
-                                <p className="text-2xl font-bold text-zinc-900 dark:text-white">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Giảng viên</p>
+                                <p className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.usersByRole?.TEACHER || 0}
                                 </p>
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-6 border-zinc-200 dark:border-zinc-800">
+                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
-                                <TrendingUp className="h-6 w-6 text-red-600 dark:text-red-400" />
+                            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 shrink-0">
+                                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                             </div>
                             <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">Quản trị viên</p>
-                                <p className="text-2xl font-bold text-zinc-900 dark:text-white">
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Quản trị viên</p>
+                                <p className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.usersByRole?.ADMIN || 0}
                                 </p>
                             </div>
@@ -159,46 +160,60 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4 mb-6 sm:mb-8">
                     <Link to="/admin/users">
-                        <Button className="w-full h-20 bg-blue-600 hover:bg-blue-700 text-white">
-                            <Users className="mr-2 h-5 w-5" />
-                            Quản lý người dùng
+                        <Button className="w-full h-16 sm:h-20 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <Users className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Quản lý người dùng</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/courses">
-                        <Button className="w-full h-20 bg-green-600 hover:bg-green-700 text-white">
-                            <BookOpen className="mr-2 h-5 w-5" />
-                            Quản lý khóa học
+                        <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <BookOpen className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Quản lý khóa học</span>
+                        </Button>
+                    </Link>
+
+                    <Link to="/admin/courses/review">
+                        <Button className="w-full h-16 sm:h-20 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <ClipboardCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Duyệt khóa học{stats?.pendingCourses ? ` (${stats.pendingCourses})` : ''}</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/categories">
-                        <Button className="w-full h-20 bg-purple-600 hover:bg-purple-700 text-white">
-                            <FolderTree className="mr-2 h-5 w-5" />
-                            Quản lý danh mục
+                        <Button className="w-full h-16 sm:h-20 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <FolderTree className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Quản lý danh mục</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/promotions">
-                        <Button className="w-full h-20 bg-red-600 hover:bg-red-700 text-white">
-                            <Tag className="mr-2 h-5 w-5" />
-                            Mã khuyến mãi
+                        <Button className="w-full h-16 sm:h-20 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <Tag className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Mã khuyến mãi</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/revenue">
-                        <Button className="w-full h-20 bg-green-600 hover:bg-green-700 text-white">
-                            <DollarSign className="mr-2 h-5 w-5" />
-                            Doanh thu
+                        <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <DollarSign className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Doanh thu</span>
+                        </Button>
+                    </Link>
+
+                    <Link to="/admin/audit-logs">
+                        <Button className="w-full h-16 sm:h-20 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm whitespace-normal">
+                            <ShieldCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                            <span>Audit logs</span>
                         </Button>
                     </Link>
                 </div>
 
                 {/* Recent Users */}
-                <Card className="p-6 border-zinc-200 dark:border-zinc-800">
-                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-4">
+                <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                    <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
                         Người dùng mới nhất
                     </h2>
                     <div className="overflow-x-auto">

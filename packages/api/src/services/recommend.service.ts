@@ -41,6 +41,7 @@ export async function recommendLearningPath(options: {
 
     // Get all courses with their details
     const allCourses = await prisma.course.findMany({
+        where: { status: 'PUBLISHED' },
         select: {
             id: true,
             title: true,
@@ -111,18 +112,47 @@ export async function recommendLearningPath(options: {
             }),
     );
 
-    // Sort by score descending, group by level
-    const sorted = scored
-        .filter((c) => c.score > 0.1)
-        .sort((a, b) => {
-            // Primary: level order (beginner first)
-            const aLevel = a.level ? LEVEL_ORDER[a.level] : 1;
-            const bLevel = b.level ? LEVEL_ORDER[b.level] : 1;
-            if (aLevel !== bLevel) return aLevel - bLevel;
-            // Secondary: score descending
-            return b.score - a.score;
-        })
-        .slice(0, 10);
+    const filtered = scored.filter((c) => c.score > 0.1);
 
-    return { courses: sorted };
+    // Build sequence that respects prerequisites as much as possible.
+    // We prioritize available courses by level first, then recommendation score.
+    const remaining = new Map(filtered.map((course) => [course.id, course]));
+    const selected = new Set<number>();
+    const sequence: typeof filtered = [];
+
+    while (remaining.size > 0 && sequence.length < 10) {
+        const available = Array.from(remaining.values())
+            .filter((course) => {
+                const prerequisiteIds = course.prerequisites.map((p) => p.id);
+                return prerequisiteIds.every((id) => !remaining.has(id) || selected.has(id));
+            })
+            .sort((a, b) => {
+                const aLevel = a.level ? LEVEL_ORDER[a.level] : 1;
+                const bLevel = b.level ? LEVEL_ORDER[b.level] : 1;
+                if (aLevel !== bLevel) return aLevel - bLevel;
+                return b.score - a.score;
+            });
+
+        if (available.length === 0) {
+            // Cycle or unsatisfied external prerequisite: fallback by level + score.
+            const fallback = Array.from(remaining.values()).sort((a, b) => {
+                const aLevel = a.level ? LEVEL_ORDER[a.level] : 1;
+                const bLevel = b.level ? LEVEL_ORDER[b.level] : 1;
+                if (aLevel !== bLevel) return aLevel - bLevel;
+                return b.score - a.score;
+            })[0];
+
+            sequence.push(fallback);
+            selected.add(fallback.id);
+            remaining.delete(fallback.id);
+            continue;
+        }
+
+        const nextCourse = available[0];
+        sequence.push(nextCourse);
+        selected.add(nextCourse.id);
+        remaining.delete(nextCourse.id);
+    }
+
+    return { courses: sequence };
 }
