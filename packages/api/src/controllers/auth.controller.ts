@@ -32,6 +32,7 @@ export async function registerController(req: Request, res: Response): Promise<R
         });
     } catch (error) {
         const message = (error as Error).message;
+        console.error('[register] error:', message);
 
         if (message === 'Email or username already in use') {
             return res.status(409).json({ error: message });
