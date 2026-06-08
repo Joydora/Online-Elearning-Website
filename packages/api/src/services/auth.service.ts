@@ -108,10 +108,10 @@ export async function login(emailOrUsername: string, password: string): Promise<
         throw new Error('Invalid email/username or password');
     }
 
-    // Check if email is verified (skip in production demo)
-    // if (!user.isVerified) {
-    //     throw new Error('EMAIL_NOT_VERIFIED');
-    // }
+    // Check if email is verified
+    if (!user.isVerified) {
+        throw new Error('EMAIL_NOT_VERIFIED');
+    }
 
     const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), {
         expiresIn: '7d',
