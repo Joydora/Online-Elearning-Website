@@ -1,24 +1,40 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+const FROM_NAME = process.env.FROM_NAME || 'E-Learning Platform';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || FROM_EMAIL;
+
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+// Nodemailer fallback for local dev
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@elearning.vn';
-const FROM_NAME = process.env.FROM_NAME || 'E-Learning Platform';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || FROM_EMAIL; // Email nhận feedback
 
-// Create transporter
 const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
-    auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-    },
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
 });
+
+async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
+    const from = `"${FROM_NAME}" <${FROM_EMAIL}>`;
+    if (resend) {
+        const { error } = await resend.emails.send({ from, to, subject, html, text });
+        if (error) {
+            console.error('❌ Resend error:', error.message);
+            return false;
+        }
+        return true;
+    }
+    await transporter.sendMail({ from, to, subject, html, text });
+    return true;
+}
 
 // Verify connection (optional, for debugging)
 export async function verifyEmailConnection(): Promise<boolean> {
@@ -141,15 +157,10 @@ E-Learning Platform
     `;
 
     try {
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to,
-            subject: '🔐 Xác thực địa chỉ email - E-Learning',
-            text: textContent,
-            html: htmlContent,
-        });
-        console.log(`✅ Verification email sent to ${to}`);
-        return true;
+        const ok = await sendEmail(to, '🔐 Xác thực địa chỉ email - E-Learning', htmlContent, textContent);
+        if (ok) console.log(`✅ Verification email sent to ${to}`);
+        else console.error('❌ Failed to send verification email');
+        return ok;
     } catch (error) {
         console.error('❌ Failed to send verification email:', (error as Error).message);
         return false;
@@ -207,14 +218,7 @@ export async function sendPasswordResetEmail(
     `;
 
     try {
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to,
-            subject: '🔑 Đặt lại mật khẩu - E-Learning',
-            text: `Đặt lại mật khẩu: ${resetUrl}`,
-            html: htmlContent,
-        });
-        return true;
+        return await sendEmail(to, '🔑 Đặt lại mật khẩu - E-Learning', htmlContent, `Đặt lại mật khẩu: ${resetUrl}`);
     } catch (error) {
         console.error('Failed to send password reset email:', error);
         return false;
@@ -314,14 +318,7 @@ E-Learning Platform
 
     try {
         // Send to admin
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to: ADMIN_EMAIL,
-            replyTo: email, // Allow admin to reply directly to user
-            subject: `[Hỗ trợ] ${subject} - ${name}`,
-            text: textContent,
-            html: htmlContent,
-        });
+        await sendEmail(ADMIN_EMAIL, `[Hỗ trợ] ${subject} - ${name}`, htmlContent, textContent);
 
         // Send confirmation to user
         const confirmationHtml = `
@@ -368,13 +365,7 @@ E-Learning Platform
 </html>
         `;
 
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to: email,
-            subject: `[E-Learning] Xác nhận yêu cầu hỗ trợ: ${subject}`,
-            text: `Cảm ơn bạn đã liên hệ! Chúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ.`,
-            html: confirmationHtml,
-        });
+        await sendEmail(email, `[E-Learning] Xác nhận yêu cầu hỗ trợ: ${subject}`, confirmationHtml, `Cảm ơn bạn đã liên hệ! Chúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ.`);
 
         console.log(`✅ Contact email sent from ${email} to ${ADMIN_EMAIL}`);
         return true;
@@ -464,15 +455,9 @@ Vui lòng chỉnh sửa và gửi lại.
 E-Learning Platform`;
 
     try {
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to,
-            subject: `[E-Learning] Khoá học "${courseTitle}" bị từ chối`,
-            text: textContent,
-            html: htmlContent,
-        });
-        console.log(`✅ Rejection email sent to ${to}`);
-        return true;
+        const ok = await sendEmail(to, `[E-Learning] Khoá học "${courseTitle}" bị từ chối`, htmlContent, textContent);
+        if (ok) console.log(`✅ Rejection email sent to ${to}`);
+        return ok;
     } catch (error) {
         console.error('❌ Failed to send rejection email:', (error as Error).message);
         return false;
@@ -507,13 +492,7 @@ export async function sendEnrollmentExpiryReminder(
 </body>
 </html>`;
 
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to,
-            subject: `[E-Learning] Khoá học "${courseTitle}" hết hạn sau ${daysLeft} ngày`,
-            html,
-        });
-        return true;
+        return await sendEmail(to, `[E-Learning] Khoá học "${courseTitle}" hết hạn sau ${daysLeft} ngày`, html, '');
     } catch {
         return false;
     }
@@ -549,14 +528,7 @@ export async function sendNotificationEmail(
 </html>`;
 
     try {
-        await transporter.sendMail({
-            from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-            to,
-            subject: `[E-Learning] ${title}`,
-            text: `${title}\n\n${message}\n\nXem chi tiết: ${actionLink}`,
-            html,
-        });
-        return true;
+        return await sendEmail(to, `[E-Learning] ${title}`, html, `${title}\n\n${message}\n\nXem chi tiết: ${actionLink}`);
     } catch (error) {
         console.error('❌ Failed to send notification email:', (error as Error).message);
         return false;
