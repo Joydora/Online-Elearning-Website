@@ -41,6 +41,7 @@ type Content = {
     fileType?: string;
     timeLimitInMinutes?: number;
     isFreePreview?: boolean;
+    moduleId?: number;
 };
 
 type Module = {
@@ -98,6 +99,9 @@ export default function ManageCourse() {
     const [isAddingModule, setIsAddingModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState('');
     const [addingContentToModule, setAddingContentToModule] = useState<number | null>(null);
+    const [editingModuleId, setEditingModuleId] = useState<number | null>(null);
+    const [editingModuleTitle, setEditingModuleTitle] = useState('');
+    const [editingContent, setEditingContent] = useState<Content | null>(null);
 
     // Fetch course detail with modules and contents
     const { data: course, isLoading } = useQuery<CourseDetail>({
@@ -128,6 +132,29 @@ export default function ManageCourse() {
             showErrorAlert('Lỗi tạo chương', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
+
+    // Update module mutation
+    const updateModuleMutation = useMutation({
+        mutationFn: async ({ moduleId, title }: { moduleId: number; title: string }) => {
+            const { data } = await apiClient.put(`/modules/${moduleId}`, { title });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
+            setEditingModuleId(null);
+            setEditingModuleTitle('');
+            showSuccessAlert('Cập nhật chương thành công!', 'Tiêu đề chương học đã được thay đổi.');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi cập nhật chương', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
+    });
+
+    const handleSaveModuleTitle = (moduleId: number) => {
+        if (editingModuleTitle.trim()) {
+            updateModuleMutation.mutate({ moduleId, title: editingModuleTitle.trim() });
+        }
+    };
 
     // Delete module mutation
     const deleteModuleMutation = useMutation({
@@ -514,36 +541,90 @@ export default function ManageCourse() {
                             <Card key={module.id} className="overflow-hidden border-zinc-200 dark:border-zinc-800">
                                 {/* Module Header */}
                                 <div className="p-3 sm:p-4 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => toggleModule(module.id)}
-                                            className="p-0 h-8 w-8 shrink-0"
-                                        >
-                                            {expandedModules.has(module.id) ? (
-                                                <ChevronDown className="h-5 w-5" />
-                                            ) : (
-                                                <ChevronRight className="h-5 w-5" />
-                                            )}
-                                        </Button>
-                                        <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white break-words min-w-0">
-                                            {module.title}
-                                        </h3>
-                                        <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
-                                            ({module.contents.length} bài)
-                                        </span>
-                                    </div>
-                                    <div className="flex gap-2 shrink-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:text-red-400"
-                                            onClick={() => handleDeleteModule(module.id, module.title)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                    {editingModuleId === module.id ? (
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <Input
+                                                value={editingModuleTitle}
+                                                onChange={(e) => setEditingModuleTitle(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveModuleTitle(module.id);
+                                                    if (e.key === 'Escape') {
+                                                        setEditingModuleId(null);
+                                                        setEditingModuleTitle('');
+                                                    }
+                                                }}
+                                                autoFocus
+                                                className="h-8 max-w-md"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                className="h-8 bg-green-600 hover:bg-green-700 text-white"
+                                                onClick={() => handleSaveModuleTitle(module.id)}
+                                                disabled={updateModuleMutation.isPending || !editingModuleTitle.trim()}
+                                            >
+                                                {updateModuleMutation.isPending ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <Save className="h-3 w-3" />
+                                                )}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8"
+                                                onClick={() => {
+                                                    setEditingModuleId(null);
+                                                    setEditingModuleTitle('');
+                                                }}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => toggleModule(module.id)}
+                                                className="p-0 h-8 w-8 shrink-0"
+                                            >
+                                                {expandedModules.has(module.id) ? (
+                                                    <ChevronDown className="h-5 w-5" />
+                                                ) : (
+                                                    <ChevronRight className="h-5 w-5" />
+                                                )}
+                                            </Button>
+                                            <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white break-words min-w-0">
+                                                {module.title}
+                                            </h3>
+                                            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
+                                                ({module.contents.length} bài)
+                                            </span>
+                                        </div>
+                                    )}
+                                    {editingModuleId !== module.id && (
+                                        <div className="flex gap-2 shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:text-zinc-400"
+                                                onClick={() => {
+                                                    setEditingModuleId(module.id);
+                                                    setEditingModuleTitle(module.title);
+                                                }}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:text-red-400"
+                                                onClick={() => handleDeleteModule(module.id, module.title)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Module Contents */}
@@ -615,6 +696,15 @@ export default function ManageCourse() {
                                                                 </Button>
                                                             )}
                                                             <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:text-zinc-300 text-xs"
+                                                                onClick={() => setEditingContent({ ...content, moduleId: module.id })}
+                                                            >
+                                                                <Edit className="h-4 w-4 mr-1" />
+                                                                Sửa
+                                                            </Button>
+                                                            <Button
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 dark:text-red-400"
@@ -640,6 +730,16 @@ export default function ManageCourse() {
                         moduleId={addingContentToModule}
                         courseId={id!}
                         onClose={() => setAddingContentToModule(null)}
+                    />
+                )}
+
+                {/* Edit Content Modal */}
+                {editingContent && (
+                    <AddContentModal
+                        moduleId={editingContent.moduleId!}
+                        courseId={id!}
+                        initialData={editingContent}
+                        onClose={() => setEditingContent(null)}
                     />
                 )}
             </div>

@@ -14,6 +14,8 @@ import {
     getFreePreviewContent,
     updateContentPreviewForTeacher,
     updateCourseForTeacher,
+    updateModuleForTeacher,
+    updateContentForTeacher,
 } from '../services/course.service';
 import { submitForReview } from '../services/courseReview.service';
 import { AuthenticatedUser } from '../types/auth';
@@ -739,6 +741,134 @@ export async function deleteContentController(req: Request, res: Response): Prom
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to delete content',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function updateModuleController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const moduleId = Number.parseInt(req.params.id, 10);
+        const { title } = authReq.body ?? {};
+
+        if (Number.isNaN(moduleId)) {
+            return res.status(400).json({ error: 'Module id must be a number' });
+        }
+
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ error: 'Title is required' });
+        }
+
+        try {
+            const updated = await updateModuleForTeacher(
+                moduleId,
+                teacherId,
+                title.trim(),
+                authReq.user?.role
+            );
+            return res.status(200).json(updated);
+        } catch (error) {
+            const message = (error as Error).message;
+            if (message === 'MODULE_NOT_FOUND') {
+                return res.status(404).json({ error: 'Module not found' });
+            }
+            if (message === 'COURSE_FORBIDDEN') {
+                return res.status(403).json({ error: 'You are not the owner of this course' });
+            }
+            throw error;
+        }
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to update module',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function updateContentController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const contentId = Number.parseInt(req.params.id, 10);
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'Content id must be a number' });
+        }
+
+        const {
+            title,
+            videoUrl,
+            durationInSeconds,
+            documentUrl,
+            fileType,
+            timeLimitInMinutes,
+            isFreePreview,
+            practicePrompt,
+            starterCode,
+            expectedOutput,
+            rubric,
+            language,
+        } = authReq.body ?? {};
+
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ error: 'Title is required' });
+        }
+
+        const numericDuration =
+            durationInSeconds !== undefined && durationInSeconds !== null && durationInSeconds !== ''
+                ? Number(durationInSeconds)
+                : undefined;
+
+        const numericTimeLimit =
+            timeLimitInMinutes !== undefined && timeLimitInMinutes !== null && timeLimitInMinutes !== ''
+                ? Number(timeLimitInMinutes)
+                : undefined;
+
+        try {
+            const updated = await updateContentForTeacher(
+                contentId,
+                teacherId,
+                {
+                    title: title.trim(),
+                    videoUrl,
+                    durationInSeconds: numericDuration,
+                    documentUrl,
+                    fileType,
+                    timeLimitInMinutes: numericTimeLimit,
+                    isFreePreview: isFreePreview !== undefined ? Boolean(isFreePreview) : undefined,
+                    practicePrompt,
+                    starterCode,
+                    expectedOutput,
+                    rubric,
+                    language,
+                },
+                authReq.user?.role
+            );
+            return res.status(200).json(updated);
+        } catch (error) {
+            const message = (error as Error).message;
+            if (message === 'CONTENT_NOT_FOUND') {
+                return res.status(404).json({ error: 'Content not found' });
+            }
+            if (message === 'COURSE_FORBIDDEN') {
+                return res.status(403).json({ error: 'You are not the owner of this course' });
+            }
+            throw error;
+        }
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to update content',
             details: (error as Error).message,
         });
     }

@@ -4,7 +4,7 @@ import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
 const ollama = new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';  // User configured with gemma2:2b
 
 const SYSTEM_PROMPT = `You are a curriculum designer. Given a course syllabus text, extract and structure it into chapters and lessons.
 Return ONLY valid JSON in this exact format (no markdown, no explanation):

@@ -12,23 +12,24 @@ type Props = {
     moduleId: number;
     courseId: string;
     onClose: () => void;
+    initialData?: any;
 };
 
-export function AddContentModal({ moduleId, courseId, onClose }: Props) {
+export function AddContentModal({ moduleId, courseId, onClose, initialData }: Props) {
     const queryClient = useQueryClient();
-    const [contentType, setContentType] = useState<ContentType>('VIDEO');
-    const [title, setTitle] = useState('');
-    const [videoUrl, setVideoUrl] = useState('');
-    const [durationInSeconds, setDurationInSeconds] = useState('');
-    const [documentUrl, setDocumentUrl] = useState('');
-    const [fileType, setFileType] = useState('application/pdf');
-    const [timeLimitInMinutes, setTimeLimitInMinutes] = useState('');
-    const [practicePrompt, setPracticePrompt] = useState('');
-    const [starterCode, setStarterCode] = useState('');
-    const [expectedOutput, setExpectedOutput] = useState('');
-    const [rubric, setRubric] = useState('');
-    const [language, setLanguage] = useState('javascript');
-    const [isFreePreview, setIsFreePreview] = useState(false);
+    const [contentType, setContentType] = useState<ContentType>(initialData?.contentType || 'VIDEO');
+    const [title, setTitle] = useState(initialData?.title || '');
+    const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || '');
+    const [durationInSeconds, setDurationInSeconds] = useState(initialData?.durationInSeconds ? String(initialData.durationInSeconds) : '');
+    const [documentUrl, setDocumentUrl] = useState(initialData?.documentUrl || '');
+    const [fileType, setFileType] = useState(initialData?.fileType || 'application/pdf');
+    const [timeLimitInMinutes, setTimeLimitInMinutes] = useState(initialData?.timeLimitInMinutes ? String(initialData.timeLimitInMinutes) : '');
+    const [practicePrompt, setPracticePrompt] = useState(initialData?.practice?.prompt || '');
+    const [starterCode, setStarterCode] = useState(initialData?.practice?.starterCode || '');
+    const [expectedOutput, setExpectedOutput] = useState(initialData?.practice?.expectedOutput || '');
+    const [rubric, setRubric] = useState(initialData?.practice?.rubric || '');
+    const [language, setLanguage] = useState(initialData?.practice?.language || 'javascript');
+    const [isFreePreview, setIsFreePreview] = useState(initialData?.isFreePreview || false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 
@@ -44,6 +45,21 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
         },
         onError: (error: any) => {
             showErrorAlert('Lỗi tạo nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
+    });
+
+    const updateContentMutation = useMutation({
+        mutationFn: async (data: any) => {
+            const { data: response } = await apiClient.put(`/content/${initialData.id}`, data);
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', courseId] });
+            showSuccessAlert('Cập nhật thành công!', 'Nội dung bài học đã được cập nhật.');
+            onClose();
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi cập nhật bài học', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
 
@@ -96,7 +112,11 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
             data.language = language || 'javascript';
         }
 
-        createContentMutation.mutate(data);
+        if (initialData) {
+            updateContentMutation.mutate(data);
+        } else {
+            createContentMutation.mutate(data);
+        }
     };
 
     const handleFileUpload = async (file: File, type: 'video' | 'document') => {
@@ -138,7 +158,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
                     <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                        Thêm nội dung mới
+                        {initialData ? 'Chỉnh sửa nội dung' : 'Thêm nội dung mới'}
                     </h2>
                     <Button
                         variant="ghost"
@@ -160,7 +180,8 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                         <select
                             value={contentType}
                             onChange={(e) => setContentType(e.target.value as ContentType)}
-                            className="w-full h-12 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
+                            disabled={!!initialData}
+                            className="w-full h-12 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <option value="VIDEO">Video</option>
                             <option value="DOCUMENT">Tài liệu</option>
@@ -481,25 +502,25 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             type="button"
                             variant="outline"
                             onClick={onClose}
-                            disabled={createContentMutation.isPending || isUploading}
+                            disabled={createContentMutation.isPending || updateContentMutation.isPending || isUploading}
                             className="flex-1 h-12"
                         >
                             Hủy
                         </Button>
                         <Button
                             type="submit"
-                            disabled={createContentMutation.isPending || isUploading}
+                            disabled={createContentMutation.isPending || updateContentMutation.isPending || isUploading}
                             className="flex-1 h-12 bg-red-600 hover:bg-red-700"
                         >
-                            {createContentMutation.isPending ? (
+                            {createContentMutation.isPending || updateContentMutation.isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Đang tạo...
+                                    {initialData ? 'Đang lưu...' : 'Đang tạo...'}
                                 </>
                             ) : (
                                 <>
                                     <Save className="mr-2 h-5 w-5" />
-                                    Tạo nội dung
+                                    {initialData ? 'Lưu thay đổi' : 'Tạo nội dung'}
                                 </>
                             )}
                         </Button>

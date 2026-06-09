@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DollarSign, Download, CheckSquare } from 'lucide-react';
 import { apiClient } from '../../lib/api';
@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { showErrorAlert, showSuccessAlert } from '../../lib/sweetalert';
+import { Pagination } from '../../components/ui/Pagination';
 
 type LedgerEntry = {
     id: number;
@@ -62,9 +63,15 @@ export default function AdminRevenue() {
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [page, setPage] = useState(1);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setPage(1);
+    }, [statusFilter, teacherId, courseId, from, to]);
 
     const { data, isLoading } = useQuery<RevenueResponse>({
-        queryKey: ['admin-revenue', statusFilter, teacherId, courseId, from, to],
+        queryKey: ['admin-revenue', statusFilter, teacherId, courseId, from, to, page],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (statusFilter !== 'ALL') params.set('payoutStatus', statusFilter);
@@ -72,6 +79,8 @@ export default function AdminRevenue() {
             if (courseId) params.set('courseId', courseId);
             if (from) params.set('from', from);
             if (to) params.set('to', to);
+            params.set('page', String(page));
+            params.set('limit', '20');
 
             const { data } = await apiClient.get(`/admin/revenue?${params.toString()}`);
             return data;
@@ -252,64 +261,73 @@ export default function AdminRevenue() {
             {isLoading ? (
                 <div className="text-center py-12 text-zinc-500">Đang tải...</div>
             ) : (
-                <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-                    <table className="w-full text-sm">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                            <tr>
-                                <th className="py-3 px-4 text-left w-8"></th>
-                                <th className="py-3 px-4 text-left">Khóa học</th>
-                                <th className="py-3 px-4 text-left">Giảng viên</th>
-                                <th className="py-3 px-4 text-right">Nền tảng</th>
-                                <th className="py-3 px-4 text-right">Giảng viên</th>
-                                <th className="py-3 px-4 text-center">Trạng thái</th>
-                                <th className="py-3 px-4 text-left">Ngày</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            {(data?.rows ?? []).map(entry => {
-                                const teacherName = [entry.teacher.firstName, entry.teacher.lastName]
-                                    .filter(Boolean)
-                                    .join(' ') || entry.teacher.username;
-
-                                return (
-                                <tr key={entry.id} className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                    <td className="py-3 px-4">
-                                        {entry.payoutStatus === 'HELD' && (
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIds.includes(entry.id)}
-                                                onChange={() => toggleSelect(entry.id)}
-                                                className="rounded"
-                                            />
-                                        )}
-                                    </td>
-                                    <td className="py-3 px-4 font-medium text-zinc-900 dark:text-white max-w-xs truncate">
-                                        {entry.course.title}
-                                    </td>
-                                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
-                                        <div>{teacherName}</div>
-                                        <div className="text-xs text-zinc-400">{entry.teacher.email}</div>
-                                    </td>
-                                    <td className="py-3 px-4 text-right text-blue-600 font-medium">{fmt(entry.platformFee)}</td>
-                                    <td className="py-3 px-4 text-right text-green-600 font-medium">{fmt(entry.teacherShare)}</td>
-                                    <td className="py-3 px-4 text-center">
-                                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${entry.payoutStatus === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                                            {entry.payoutStatus === 'PAID' ? 'Đã TT' : 'Đang giữ'}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4 text-zinc-500 dark:text-zinc-400 text-xs">
-                                        {new Date(entry.createdAt).toLocaleDateString('vi-VN')}
-                                    </td>
-                                </tr>
-                            )})}
-                            {(data?.rows ?? []).length === 0 && (
+                <>
+                    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <table className="w-full text-sm">
+                            <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                                 <tr>
-                                    <td colSpan={7} className="py-12 text-center text-zinc-500">Chưa có dữ liệu doanh thu</td>
+                                    <th className="py-3 px-4 text-left w-8"></th>
+                                    <th className="py-3 px-4 text-left">Khóa học</th>
+                                    <th className="py-3 px-4 text-left">Giảng viên</th>
+                                    <th className="py-3 px-4 text-right">Nền tảng</th>
+                                    <th className="py-3 px-4 text-right">Giảng viên</th>
+                                    <th className="py-3 px-4 text-center">Trạng thái</th>
+                                    <th className="py-3 px-4 text-left">Ngày</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                {(data?.rows ?? []).map(entry => {
+                                    const teacherName = [entry.teacher.firstName, entry.teacher.lastName]
+                                        .filter(Boolean)
+                                        .join(' ') || entry.teacher.username;
+
+                                    return (
+                                    <tr key={entry.id} className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                                        <td className="py-3 px-4">
+                                            {entry.payoutStatus === 'HELD' && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.includes(entry.id)}
+                                                    onChange={() => toggleSelect(entry.id)}
+                                                    className="rounded"
+                                                />
+                                            )}
+                                        </td>
+                                        <td className="py-3 px-4 font-medium text-zinc-900 dark:text-white max-w-xs truncate">
+                                            {entry.course.title}
+                                        </td>
+                                        <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
+                                            <div>{teacherName}</div>
+                                            <div className="text-xs text-zinc-400">{entry.teacher.email}</div>
+                                        </td>
+                                        <td className="py-3 px-4 text-right text-blue-600 font-medium">{fmt(entry.platformFee)}</td>
+                                        <td className="py-3 px-4 text-right text-green-600 font-medium">{fmt(entry.teacherShare)}</td>
+                                        <td className="py-3 px-4 text-center">
+                                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${entry.payoutStatus === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                                                {entry.payoutStatus === 'PAID' ? 'Đã TT' : 'Đang giữ'}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-zinc-500 dark:text-zinc-400 text-xs">
+                                            {new Date(entry.createdAt).toLocaleDateString('vi-VN')}
+                                        </td>
+                                    </tr>
+                                )})}
+                                {(data?.rows ?? []).length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="py-12 text-center text-zinc-500">Chưa có dữ liệu doanh thu</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    {data && data.totalPages > 1 && (
+                        <Pagination
+                            currentPage={data.page}
+                            totalPages={data.totalPages}
+                            onPageChange={setPage}
+                        />
+                    )}
+                </>
             )}
         </div>
     );

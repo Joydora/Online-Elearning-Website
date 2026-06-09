@@ -7,6 +7,9 @@ import { CourseCard, type Course } from '../components/CourseCard';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Pagination } from '../components/ui/Pagination';
+
+const ITEMS_PER_PAGE = 9;
 
 type Category = {
     id: number;
@@ -22,6 +25,12 @@ export default function Courses() {
     );
     const [priceFilter, setPriceFilter] = useState<'all' | 'free' | 'paid'>('all');
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Reset current page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, selectedCategory, priceFilter]);
 
     // Update URL when filters change
     useEffect(() => {
@@ -71,6 +80,12 @@ export default function Courses() {
 
         return matchesSearch && matchesCategory && matchesPrice;
     });
+
+    const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE);
+    const paginatedCourses = filteredCourses.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const clearFilters = () => {
         setSearchQuery('');
@@ -284,14 +299,21 @@ export default function Courses() {
                                 </div>
                             </Card>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-                                {filteredCourses.map((course) => (
-                                    <CourseCard
-                                        key={course.courseId || course.id}
-                                        course={course}
-                                    />
-                                ))}
-                            </div>
+                            <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                                    {paginatedCourses.map((course) => (
+                                        <CourseCard
+                                            key={course.courseId || course.id}
+                                            course={course}
+                                        />
+                                    ))}
+                                </div>
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </>
                         )}
                     </main>
                 </div>

@@ -5,6 +5,7 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
+import { Pagination } from '../../components/ui/Pagination';
 
 type AuditRow = {
     id: number;
@@ -33,15 +34,16 @@ export default function AdminAuditLogs() {
     const navigate = useNavigate();
     const [resource, setResource] = useState('');
     const [action, setAction] = useState('');
+    const [page, setPage] = useState(1);
 
     const { data, isLoading } = useQuery<AuditResponse>({
-        queryKey: ['admin-audit-logs', resource, action],
+        queryKey: ['admin-audit-logs', resource, action, page],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (resource) params.set('resource', resource);
             if (action) params.set('action', action);
-            params.set('page', '1');
-            params.set('limit', '100');
+            params.set('page', String(page));
+            params.set('limit', '20');
             const { data } = await apiClient.get(`/admin/audit-logs?${params.toString()}`);
             return data;
         },
@@ -69,7 +71,10 @@ export default function AdminAuditLogs() {
                     <div className="grid sm:grid-cols-2 gap-3">
                         <select
                             value={resource}
-                            onChange={(e) => setResource(e.target.value)}
+                            onChange={(e) => {
+                                setResource(e.target.value);
+                                setPage(1);
+                            }}
                             className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
                         >
                             <option value="">Tất cả resource</option>
@@ -81,7 +86,10 @@ export default function AdminAuditLogs() {
 
                         <select
                             value={action}
-                            onChange={(e) => setAction(e.target.value)}
+                            onChange={(e) => {
+                                setAction(e.target.value);
+                                setPage(1);
+                            }}
                             className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
                         >
                             <option value="">Tất cả action</option>
@@ -128,6 +136,13 @@ export default function AdminAuditLogs() {
                                 </tbody>
                             </table>
                         </div>
+                    )}
+                    {data && data.totalPages > 1 && (
+                        <Pagination
+                            currentPage={data.page}
+                            totalPages={data.totalPages}
+                            onPageChange={setPage}
+                        />
                     )}
                 </Card>
             </div>
