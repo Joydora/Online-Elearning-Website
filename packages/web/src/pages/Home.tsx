@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Award, BookOpen, ArrowRight, Sparkles, Target, Zap } from 'lucide-react';
+import { Search, Award, BookOpen, ArrowRight, Sparkles, Target, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { CourseCard, type Course } from '../components/CourseCard';
 import { Button } from '../components/ui/button';
@@ -20,6 +20,8 @@ type Category = {
 export default function Home() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentCategoryPage, setCurrentCategoryPage] = useState(1);
+    const categoriesPerPage = 6;
 
     const {
         data: courses = [],
@@ -55,6 +57,12 @@ export default function Home() {
             handleSearch();
         }
     };
+
+    const totalCategoryPages = Math.ceil(categories.length / categoriesPerPage);
+    const paginatedCategories = categories.slice(
+        (currentCategoryPage - 1) * categoriesPerPage,
+        currentCategoryPage * categoriesPerPage
+    );
 
     return (
         <div className="min-h-screen">
@@ -154,25 +162,71 @@ export default function Home() {
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                            {categories.map((category) => (
-                                <Link
-                                    key={category.id || category.categoryId}
-                                    to={`/courses?category=${category.id || category.categoryId}`}
+                        <div className="relative flex items-center">
+                            {totalCategoryPages > 1 && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCurrentCategoryPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentCategoryPage === 1}
+                                    className="absolute -left-4 sm:-left-6 z-10 h-10 w-10 rounded-full p-0 shadow-md border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 text-zinc-700 dark:text-zinc-300 disabled:opacity-0 disabled:pointer-events-none transition-opacity duration-200"
                                 >
-                                    <Card
-                                        className="p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-200 cursor-pointer group border-zinc-200 dark:border-zinc-800 h-full"
+                                    <ChevronLeft className="h-5 w-5" />
+                                </Button>
+                            )}
+
+                            <div className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                                {paginatedCategories.map((category) => (
+                                    <Link
+                                        key={category.id || category.categoryId}
+                                        to={`/courses?category=${category.id || category.categoryId}`}
+                                        className="h-full"
                                     >
-                                        <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
-                                            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                                        </div>
-                                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors break-words">
-                                            {category.name}
-                                        </h3>
-                                    </Card>
-                                </Link>
-                            ))}
+                                        <Card
+                                            className="p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-200 cursor-pointer group border-zinc-200 dark:border-zinc-800 h-full flex flex-col justify-center"
+                                        >
+                                            <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-red-600 group-hover:scale-105 transition-transform">
+                                                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                                            </div>
+                                            <h3 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors break-words">
+                                                {category.name}
+                                            </h3>
+                                        </Card>
+                                    </Link>
+                                ))}
+                            </div>
+
+                            {totalCategoryPages > 1 && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setCurrentCategoryPage(prev => Math.min(prev + 1, totalCategoryPages))}
+                                    disabled={currentCategoryPage === totalCategoryPages}
+                                    className="absolute -right-4 sm:-right-6 z-10 h-10 w-10 rounded-full p-0 shadow-md border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 text-zinc-700 dark:text-zinc-300 disabled:opacity-0 disabled:pointer-events-none transition-opacity duration-200"
+                                >
+                                    <ChevronRight className="h-5 w-5" />
+                                </Button>
+                            )}
                         </div>
+
+                        {/* Category Pagination Dots */}
+                        {totalCategoryPages > 1 && (
+                            <div className="flex justify-center items-center gap-1.5 mt-6">
+                                {[...Array(totalCategoryPages)].map((_, index) => {
+                                    const pageNum = index + 1;
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentCategoryPage(pageNum)}
+                                            className={`h-2 rounded-full transition-all duration-300 ${
+                                                currentCategoryPage === pageNum
+                                                    ? 'w-6 bg-red-600'
+                                                    : 'w-2 bg-zinc-300 dark:bg-zinc-700 hover:bg-zinc-400 dark:hover:bg-zinc-600'
+                                            }`}
+                                            aria-label={`Go to page ${pageNum}`}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </section>
             )}
