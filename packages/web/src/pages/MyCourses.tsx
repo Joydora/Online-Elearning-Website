@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { BookOpen, Play, Clock, CheckCircle, Trophy } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Pagination } from '../components/ui/Pagination';
 
 type EnrolledCourse = {
     enrollmentId: number;
@@ -28,6 +30,10 @@ type EnrolledCourse = {
 };
 
 export default function MyCourses() {
+    const [inProgressPage, setInProgressPage] = useState(1);
+    const [completedPage, setCompletedPage] = useState(1);
+    const coursesPerPage = 6;
+
     const { data: enrollments = [], isLoading } = useQuery<EnrolledCourse[]>({
         queryKey: ['my-enrollments'],
         queryFn: async () => {
@@ -38,6 +44,18 @@ export default function MyCourses() {
 
     const completedCourses = enrollments.filter(e => e.completionDate);
     const inProgressCourses = enrollments.filter(e => !e.completionDate);
+
+    const totalInProgressPages = Math.ceil(inProgressCourses.length / coursesPerPage);
+    const paginatedInProgress = inProgressCourses.slice(
+        (inProgressPage - 1) * coursesPerPage,
+        inProgressPage * coursesPerPage
+    );
+
+    const totalCompletedPages = Math.ceil(completedCourses.length / coursesPerPage);
+    const paginatedCompleted = completedCourses.slice(
+        (completedPage - 1) * coursesPerPage,
+        completedPage * coursesPerPage
+    );
 
     if (isLoading) {
         return (
@@ -119,10 +137,15 @@ export default function MyCourses() {
                                     Đang học ({inProgressCourses.length})
                                 </h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                    {inProgressCourses.map((enrollment) => (
+                                    {paginatedInProgress.map((enrollment) => (
                                         <CourseCard key={enrollment.enrollmentId} enrollment={enrollment} />
                                     ))}
                                 </div>
+                                <Pagination
+                                    currentPage={inProgressPage}
+                                    totalPages={totalInProgressPages}
+                                    onPageChange={(page) => setInProgressPage(page)}
+                                />
                             </div>
                         )}
 
@@ -134,10 +157,15 @@ export default function MyCourses() {
                                     Đã hoàn thành ({completedCourses.length})
                                 </h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                                    {completedCourses.map((enrollment) => (
+                                    {paginatedCompleted.map((enrollment) => (
                                         <CourseCard key={enrollment.enrollmentId} enrollment={enrollment} completed />
                                     ))}
                                 </div>
+                                <Pagination
+                                    currentPage={completedPage}
+                                    totalPages={totalCompletedPages}
+                                    onPageChange={(page) => setCompletedPage(page)}
+                                />
                             </div>
                         )}
                     </div>

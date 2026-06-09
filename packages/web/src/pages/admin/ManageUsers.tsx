@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2 } from 'lucide-react';
@@ -5,10 +6,13 @@ import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { showConfirmAlert, showSuccessAlert, showErrorAlert } from '../../lib/sweetalert';
+import { Pagination } from '../../components/ui/Pagination';
 
 export default function ManageUsers() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [currentPage, setCurrentPage] = useState(1);
+    const usersPerPage = 10;
 
     const { data: users = [] } = useQuery({
         queryKey: ['admin-users'],
@@ -17,6 +21,9 @@ export default function ManageUsers() {
             return data;
         },
     });
+
+    const totalPages = Math.ceil(users.length / usersPerPage);
+    const paginatedUsers = users.slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage);
 
     const deleteMutation = useMutation({
         mutationFn: async (userId: number) => {
@@ -65,7 +72,7 @@ export default function ManageUsers() {
 
                 {/* Mobile card view */}
                 <div className="md:hidden space-y-3">
-                    {users.map((user: any) => (
+                    {paginatedUsers.map((user: any) => (
                         <Card key={user.id} className="p-4">
                             <div className="flex items-start justify-between gap-3 mb-3">
                                 <div className="min-w-0 flex-1">
@@ -119,7 +126,7 @@ export default function ManageUsers() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {users.map((user: any) => (
+                                {paginatedUsers.map((user: any) => (
                                     <tr key={user.id} className="border-b">
                                         <td className="py-3 px-4">{user.username}</td>
                                         <td className="py-3 px-4">{user.email}</td>
@@ -159,6 +166,11 @@ export default function ManageUsers() {
                         </table>
                     </div>
                 </Card>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => setCurrentPage(page)}
+                />
             </div>
         </div>
     );

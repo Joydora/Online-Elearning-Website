@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -16,6 +17,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '../../lib/api';
+import { Pagination } from '../../components/ui/Pagination';
 
 type EnrolledStudent = {
     enrollmentId: number;
@@ -49,6 +51,8 @@ type EnrollmentStats = {
 export default function EnrolledStudents() {
     const { id } = useParams<{ id: string }>();
     const courseId = parseInt(id || '0', 10);
+    const [currentPage, setCurrentPage] = useState(1);
+    const studentsPerPage = 10;
 
     // Fetch enrolled students
     const { data: students, isLoading: isLoadingStudents } = useQuery<EnrolledStudent[]>({
@@ -59,6 +63,12 @@ export default function EnrolledStudents() {
         },
         enabled: !!courseId,
     });
+
+    const totalPages = Math.ceil((students?.length || 0) / studentsPerPage);
+    const paginatedStudents = (students || []).slice(
+        (currentPage - 1) * studentsPerPage,
+        currentPage * studentsPerPage
+    );
 
     // Fetch enrollment stats
     const { data: stats, isLoading: isLoadingStats } = useQuery<EnrollmentStats>({
@@ -209,7 +219,7 @@ export default function EnrolledStudents() {
                         <>
                         {/* Mobile cards */}
                         <div className="lg:hidden divide-y divide-zinc-200 dark:divide-zinc-800">
-                            {students.map((enrollment) => (
+                            {paginatedStudents.map((enrollment) => (
                                 <div key={enrollment.enrollmentId} className="p-4 space-y-3">
                                     <div className="flex items-start gap-3">
                                         <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold shrink-0">
@@ -305,7 +315,7 @@ export default function EnrolledStudents() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
-                                    {students.map((enrollment) => (
+                                    {paginatedStudents.map((enrollment) => (
                                         <tr key={enrollment.enrollmentId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-3">
@@ -395,6 +405,11 @@ export default function EnrolledStudents() {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={(page) => setCurrentPage(page)}
+                        />
                         </>
                     )}
                 </Card>

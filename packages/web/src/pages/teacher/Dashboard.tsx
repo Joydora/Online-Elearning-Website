@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, BookOpen, Users, FileText, Edit, Trash2, UserCheck, UserCircle, Wallet } from 'lucide-react';
@@ -6,6 +7,7 @@ import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { type Course } from '../../components/CourseCard';
+import { Pagination } from '../../components/ui/Pagination';
 import Swal from 'sweetalert2';
 
 type TeacherCourse = Course & {
@@ -24,6 +26,8 @@ type TeacherCourse = Course & {
 export default function Dashboard() {
     const user = useAuthStore((state) => state.user);
     const queryClient = useQueryClient();
+    const [currentPage, setCurrentPage] = useState(1);
+    const coursesPerPage = 5;
 
     // Fetch teacher's courses
     const {
@@ -37,6 +41,9 @@ export default function Dashboard() {
         },
         enabled: !!user,
     });
+
+    const totalPages = Math.ceil(courses.length / coursesPerPage);
+    const paginatedCourses = courses.slice((currentPage - 1) * coursesPerPage, currentPage * coursesPerPage);
 
     // Delete course mutation
     const deleteMutation = useMutation({
@@ -214,7 +221,7 @@ export default function Dashboard() {
                     <div className="space-y-6">
                         {/* List View */}
                         <div className="space-y-4">
-                            {courses.map((course) => (
+                            {paginatedCourses.map((course) => (
                                 <Card key={course.courseId || course.id} className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                                     <div className="flex flex-col md:flex-row items-stretch md:items-start gap-4 md:gap-6">
                                         {/* Thumbnail */}
@@ -295,6 +302,11 @@ export default function Dashboard() {
                                 </Card>
                             ))}
                         </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={(page) => setCurrentPage(page)}
+                        />
                     </div>
                 )}
             </div>

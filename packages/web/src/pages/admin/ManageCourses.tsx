@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Trash2, Edit, FolderOpen, Plus, ClipboardCheck } from 'lucide-react';
@@ -5,6 +6,7 @@ import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { showConfirmAlert, showSuccessAlert, showErrorAlert } from '../../lib/sweetalert';
+import { Pagination } from '../../components/ui/Pagination';
 
 type CourseStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
 
@@ -27,6 +29,8 @@ const STATUS_COLORS: Record<CourseStatus, string> = {
 export default function ManageCourses() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [currentPage, setCurrentPage] = useState(1);
+    const coursesPerPage = 10;
 
     const { data: courses = [] } = useQuery({
         queryKey: ['admin-courses'],
@@ -35,6 +39,9 @@ export default function ManageCourses() {
             return data;
         },
     });
+
+    const totalPages = Math.ceil(courses.length / coursesPerPage);
+    const paginatedCourses = courses.slice((currentPage - 1) * coursesPerPage, currentPage * coursesPerPage);
 
     const deleteMutation = useMutation({
         mutationFn: async (courseId: number) => {
@@ -91,8 +98,8 @@ export default function ManageCourses() {
                         </Button>
                     </div>
                 </div>
-                <div className="grid gap-3 sm:gap-4">
-                    {courses.map((course: any) => (
+                <div className="grid gap-3 sm:gap-4 mb-6">
+                    {paginatedCourses.map((course: any) => (
                         <Card key={course.id} className="p-4 sm:p-6">
                             <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start">
                                 <div className="flex-1 min-w-0">
@@ -146,6 +153,11 @@ export default function ManageCourses() {
                         </Card>
                     ))}
                 </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => setCurrentPage(page)}
+                />
             </div>
         </div>
     );
