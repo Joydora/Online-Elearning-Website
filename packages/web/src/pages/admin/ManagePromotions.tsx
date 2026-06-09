@@ -46,23 +46,23 @@ export default function ManagePromotions() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['promotions'] });
-            showSuccessAlert('Xóa thành công!', 'Mã khuyến mãi đã được xóa.');
+            showSuccessAlert('Deleted successfully!', 'The promotion code has been deleted.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi!', error.response?.data?.error || 'Không thể xóa mã khuyến mãi.');
+            showErrorAlert('Error!', error.response?.data?.error || 'Could not delete promotion code.');
         },
     });
 
     const handleDelete = async (promotion: Promotion) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa?',
-            html: `Bạn có chắc muốn xóa mã khuyến mãi <strong>"${promotion.code}"</strong>?`,
+            title: 'Confirm Delete?',
+            html: `Are you sure you want to delete the promotion code <strong>"${promotion.code}"</strong>?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -71,7 +71,7 @@ export default function ManagePromotions() {
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -91,9 +91,9 @@ export default function ManagePromotions() {
         if (promotion.discountType === 'PERCENTAGE') {
             return `${promotion.discountValue}%`;
         }
-        return new Intl.NumberFormat('vi-VN', {
+        return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'VND',
+            currency: 'USD',
         }).format(promotion.discountValue);
     };
 
@@ -102,7 +102,7 @@ export default function ManagePromotions() {
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
                 </div>
             </div>
         );
@@ -115,10 +115,10 @@ export default function ManagePromotions() {
                 <div className="mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-2">
-                            Quản lý Mã khuyến mãi
+                            Manage Promotion Codes
                         </h1>
                         <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                            Tạo và quản lý các mã khuyến mãi cho khóa học
+                            Create and manage promotion codes for courses
                         </p>
                     </div>
                     <Button
@@ -129,7 +129,7 @@ export default function ManagePromotions() {
                         className="gap-2 bg-red-600 hover:bg-red-700 w-full sm:w-auto"
                     >
                         <Plus className="w-4 h-4" />
-                        Tạo mã khuyến mãi
+                        Create Promotion
                     </Button>
                 </div>
 
@@ -138,10 +138,10 @@ export default function ManagePromotions() {
                     <Card className="p-8 sm:p-12 text-center">
                         <Tag className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-4 text-zinc-400" />
                         <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
-                            Chưa có mã khuyến mãi
+                            No promotions found
                         </h3>
                         <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-4">
-                            Tạo mã khuyến mãi đầu tiên để bắt đầu.
+                            Create your first promotion code to get started.
                         </p>
                         <Button
                             onClick={() => {
@@ -151,7 +151,7 @@ export default function ManagePromotions() {
                             className="gap-2"
                         >
                             <Plus className="w-4 h-4" />
-                            Tạo mã khuyến mãi
+                            Create Promotion
                         </Button>
                     </Card>
                 ) : (
@@ -192,7 +192,7 @@ export default function ManagePromotions() {
                                         ) : (
                                             <DollarSign className="w-4 h-4 text-blue-600" />
                                         )}
-                                        <span className="text-zinc-600 dark:text-zinc-400">Giảm giá:</span>
+                                        <span className="text-zinc-600 dark:text-zinc-400">Discount:</span>
                                         <span className="font-bold text-zinc-900 dark:text-white">
                                             {formatDiscount(promotion)}
                                         </span>
@@ -200,11 +200,11 @@ export default function ManagePromotions() {
 
                                     {promotion.minPurchaseAmount && (
                                         <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                                            <span>Đơn tối thiểu:</span>
+                                            <span>Min Purchase:</span>
                                             <span className="font-medium">
-                                                {new Intl.NumberFormat('vi-VN', {
+                                                {new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: 'VND',
+                                                    currency: 'USD',
                                                 }).format(promotion.minPurchaseAmount)}
                                             </span>
                                         </div>
@@ -212,11 +212,11 @@ export default function ManagePromotions() {
 
                                     {promotion.maxDiscountAmount && (
                                         <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                                            <span>Giảm tối đa:</span>
+                                            <span>Max Discount:</span>
                                             <span className="font-medium">
-                                                {new Intl.NumberFormat('vi-VN', {
+                                                {new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: 'VND',
+                                                    currency: 'USD',
                                                 }).format(promotion.maxDiscountAmount)}
                                             </span>
                                         </div>
@@ -225,7 +225,7 @@ export default function ManagePromotions() {
                                     <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                                         <Users className="w-4 h-4" />
                                         <span>
-                                            Đã dùng: {promotion.usedCount}
+                                            Used: {promotion.usedCount}
                                             {promotion.usageLimit ? ` / ${promotion.usageLimit}` : ' / ∞'}
                                         </span>
                                     </div>
@@ -247,7 +247,7 @@ export default function ManagePromotions() {
                                         }}
                                     >
                                         <Edit className="w-4 h-4" />
-                                        Sửa
+                                        Edit
                                     </Button>
                                     <Button
                                         variant="outline"

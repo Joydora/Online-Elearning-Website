@@ -18,7 +18,7 @@ export function Chatbot() {
         {
             id: '1',
             role: 'assistant',
-            content: 'Xin chào! Tôi là trợ lý AI của E-Learning Platform. Tôi có thể giúp bạn tìm hiểu về các khóa học, giảng viên, và nội dung học tập. Bạn muốn hỏi gì?',
+            content: 'Hello! I am the AI Assistant of the E-Learning Platform. I can help you learn about courses, instructors, and learning content. What would you like to ask?',
             timestamp: new Date(),
         },
     ]);
@@ -73,7 +73,7 @@ export function Chatbot() {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
+                content: 'Sorry, an error occurred. Please try again later.',
                 timestamp: new Date(),
             };
             setMessages((prev) => [...prev, errorMessage]);
@@ -112,7 +112,7 @@ export function Chatbot() {
                             </div>
                             <div>
                                 <h3 className="font-semibold">AI Assistant</h3>
-                                <p className="text-xs text-red-100">Trợ lý E-Learning</p>
+                                <p className="text-xs text-red-100">E-Learning Assistant</p>
                             </div>
                         </div>
                         <button
@@ -161,7 +161,7 @@ export function Chatbot() {
                                         </p>
                                     </div>
                                     <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 px-2">
-                                        {message.timestamp.toLocaleTimeString('vi-VN', {
+                                        {message.timestamp.toLocaleTimeString('en-US', {
                                             hour: '2-digit',
                                             minute: '2-digit',
                                         })}
@@ -179,7 +179,7 @@ export function Chatbot() {
                                 <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
                                     <Loader2 className="h-4 w-4 animate-spin text-red-600" />
                                     <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                        Đang suy nghĩ...
+                                        Thinking...
                                     </span>
                                 </div>
                             </div>
@@ -196,7 +196,7 @@ export function Chatbot() {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={handleKeyPress}
-                                placeholder="Nhập câu hỏi của bạn..."
+                                placeholder="Type your question..."
                                 disabled={isLoading}
                                 className="flex-1 bg-zinc-50 dark:bg-zinc-950"
                             />

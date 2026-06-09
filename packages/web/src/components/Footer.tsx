@@ -23,7 +23,7 @@ export function Footer() {
                             </span>
                         </Link>
                         <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Nền tảng học trực tuyến hàng đầu Việt Nam. Nơi tri thức không giới hạn, học tập không ngừng nghỉ.
+                            Vietnam's leading online learning platform. Where knowledge is limitless and learning never stops.
                         </p>
                         <div className="flex gap-2">
                             <a
@@ -65,7 +65,7 @@ export function Footer() {
                     <div className="space-y-4">
                         <h3 className="text-sm font-semibold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <div className="h-1 w-6 bg-red-600 dark:bg-red-500 rounded-full"></div>
-                            Liên kết nhanh
+                            Quick Links
                         </h3>
                         <ul className="space-y-2">
                             <li>
@@ -74,7 +74,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Trang chủ
+                                    Home
                                 </Link>
                             </li>
                             <li>
@@ -83,7 +83,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Khóa học
+                                    Courses
                                 </Link>
                             </li>
                             <li>
@@ -92,7 +92,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Về chúng tôi
+                                    About Us
                                 </Link>
                             </li>
                             <li>
@@ -101,7 +101,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Liên hệ
+                                    Contact
                                 </Link>
                             </li>
                         </ul>
@@ -111,7 +111,7 @@ export function Footer() {
                     <div className="space-y-4">
                         <h3 className="text-sm font-semibold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <div className="h-1 w-6 bg-red-600 dark:bg-red-500 rounded-full"></div>
-                            Hỗ trợ
+                            Support
                         </h3>
                         <ul className="space-y-2">
                             <li>
@@ -120,7 +120,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Trung tâm hỗ trợ
+                                    Support Center
                                 </Link>
                             </li>
                             <li>
@@ -129,7 +129,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Câu hỏi thường gặp
+                                    FAQ
                                 </Link>
                             </li>
                             <li>
@@ -138,7 +138,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Điều khoản dịch vụ
+                                    Terms of Service
                                 </Link>
                             </li>
                             <li>
@@ -147,7 +147,7 @@ export function Footer() {
                                     className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-2 group"
                                 >
                                     <span className="h-1 w-1 rounded-full bg-red-600 dark:bg-red-500 group-hover:w-3 transition-all"></span>
-                                    Chính sách bảo mật
+                                    Privacy Policy
                                 </Link>
                             </li>
                         </ul>
@@ -157,7 +157,7 @@ export function Footer() {
                     <div className="space-y-4">
                         <h3 className="text-sm font-semibold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <div className="h-1 w-6 bg-red-600 dark:bg-red-500 rounded-full"></div>
-                            Liên hệ
+                            Contact
                         </h3>
                         <ul className="space-y-3">
                             <li className="flex items-start gap-3 group">
@@ -175,8 +175,8 @@ export function Footer() {
                             <li className="flex items-start gap-3 group">
                                 <MapPin className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 group-hover:scale-110 transition-transform" />
                                 <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                                    123 Đường ABC, Quận 1<br />
-                                    TP. Hồ Chí Minh, Việt Nam
+                                    123 ABC Street, District 1<br />
+                                    Ho Chi Minh City, Vietnam
                                 </div>
                             </li>
                         </ul>
@@ -196,14 +196,14 @@ export function Footer() {
                                 to="/terms"
                                 className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             >
-                                Điều khoản
+                                Terms
                             </Link>
                             <span className="text-zinc-300 dark:text-zinc-700 hidden sm:inline">|</span>
                             <Link
                                 to="/privacy"
                                 className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             >
-                                Bảo mật
+                                Privacy
                             </Link>
                             <span className="text-zinc-300 dark:text-zinc-700 hidden sm:inline">|</span>
                             <Link

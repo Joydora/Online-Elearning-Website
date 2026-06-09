@@ -46,7 +46,7 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
     const save = async () => {
         const g = Number(grade);
         if (grade !== '' && (!Number.isFinite(g) || g < 0 || g > 10)) {
-            showErrorAlert('Lỗi', 'Điểm phải là số từ 0 đến 10');
+            showErrorAlert('Error', 'Grade must be a number between 0 and 10');
             return;
         }
         setSaving(true);
@@ -55,11 +55,11 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
                 feedback: feedback || undefined,
                 grade: grade !== '' ? g : undefined,
             });
-            await showSuccessAlert('Đã lưu', 'Đã lưu đánh giá thành công.');
+            await showSuccessAlert('Saved', 'Evaluation saved successfully.');
             onSaved();
             onClose();
         } catch {
-            showErrorAlert('Lỗi', 'Không thể lưu đánh giá.');
+            showErrorAlert('Error', 'Failed to save evaluation.');
         } finally {
             setSaving(false);
         }
@@ -69,7 +69,7 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
             <Card className="w-full max-w-lg p-4 sm:p-6 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
                 <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4 break-words">
-                    Đánh giá: {submission.student.firstName || submission.student.username}
+                    Evaluation: {submission.student.firstName || submission.student.username}
                 </h3>
                 <div className="space-y-3 sm:space-y-4">
                     <div>
@@ -91,7 +91,7 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
                                     <div key={c.sha} className="flex items-center gap-2 text-xs bg-zinc-50 dark:bg-zinc-800 rounded px-2 py-1.5">
                                         <code className="text-red-600 font-mono">{c.sha}</code>
                                         <span className="flex-1 truncate text-zinc-600 dark:text-zinc-400">{c.message}</span>
-                                        <span className="text-zinc-400">{new Date(c.date).toLocaleDateString('vi-VN')}</span>
+                                        <span className="text-zinc-400">{new Date(c.date).toLocaleDateString('en-US')}</span>
                                     </div>
                                 ))}
                             </div>
@@ -99,7 +99,7 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
                     )}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Điểm (0–10)
+                            Grade (0–10)
                         </label>
                         <Input
                             type="number"
@@ -108,25 +108,25 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
                             step={0.5}
                             value={grade}
                             onChange={e => setGrade(e.target.value)}
-                            placeholder="Nhập điểm..."
+                            placeholder="Enter grade..."
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Nhận xét
+                            Feedback
                         </label>
                         <textarea
                             className="w-full h-28 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
                             value={feedback}
                             onChange={e => setFeedback(e.target.value)}
-                            placeholder="Nhận xét cho sinh viên..."
+                            placeholder="Comments for student..."
                         />
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                        <Button variant="outline" onClick={onClose} disabled={saving} className="w-full sm:w-auto">Hủy</Button>
+                        <Button variant="outline" onClick={onClose} disabled={saving} className="w-full sm:w-auto">Cancel</Button>
                         <Button onClick={save} disabled={saving} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Lưu đánh giá
+                            Save Evaluation
                         </Button>
                     </div>
                 </div>
@@ -171,11 +171,11 @@ export default function ManageProjects() {
             }
         },
         onSuccess: async () => {
-            await showSuccessAlert('Đã lưu', 'Dự án đã được lưu thành công.');
+            await showSuccessAlert('Saved', 'Project saved successfully.');
             resetForm();
             queryClient.invalidateQueries({ queryKey: ['teacher-projects', courseId] });
         },
-        onError: () => showErrorAlert('Lỗi', 'Không thể lưu dự án.'),
+        onError: () => showErrorAlert('Error', 'Failed to save project.'),
     });
 
     const deleteMutation = useMutation({
@@ -185,18 +185,18 @@ export default function ManageProjects() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['teacher-projects', courseId] });
         },
-        onError: () => showErrorAlert('Lỗi', 'Không thể xóa dự án.'),
+        onError: () => showErrorAlert('Error', 'Failed to delete project.'),
     });
 
     const handleDelete = async (project: Project) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa',
-            text: `Bạn có chắc chắn muốn xóa dự án "${project.title}"?`,
+            title: 'Confirm Delete',
+            text: `Are you sure you want to delete the project "${project.title}"?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
-            cancelButtonText: 'Hủy',
-            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Cancel',
+            confirmButtonText: 'Delete',
         });
         if (result.isConfirmed) deleteMutation.mutate(project.id);
     };
@@ -223,11 +223,11 @@ export default function ManageProjects() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                     <Github className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" />
-                    Quản lý dự án
+                    Manage Projects
                 </h1>
                 <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
                     <Plus className="w-4 h-4" />
-                    Thêm dự án
+                    Add Project
                 </Button>
             </div>
 
@@ -235,44 +235,44 @@ export default function ManageProjects() {
             {showForm && (
                 <Card className="p-4 sm:p-6 mb-5 sm:mb-6">
                     <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-                        {editingProject ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
+                        {editingProject ? 'Edit Project' : 'Create New Project'}
                     </h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tên dự án *</label>
-                            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Tên dự án..." />
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Project Name *</label>
+                            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Project name..." />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Mô tả *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Description *</label>
                             <textarea
                                 className="w-full h-24 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
                                 value={form.description}
                                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                placeholder="Mô tả dự án..."
+                                placeholder="Project description..."
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Yêu cầu *</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Requirements *</label>
                             <textarea
                                 className="w-full h-32 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none font-mono"
                                 value={form.requirements}
                                 onChange={e => setForm(f => ({ ...f, requirements: e.target.value }))}
-                                placeholder="Liệt kê yêu cầu dự án..."
+                                placeholder="List project requirements..."
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Hạn nộp (tùy chọn)</label>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Deadline (optional)</label>
                             <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                            <Button variant="outline" onClick={resetForm} disabled={saveMutation.isPending} className="w-full sm:w-auto">Hủy</Button>
+                            <Button variant="outline" onClick={resetForm} disabled={saveMutation.isPending} className="w-full sm:w-auto">Cancel</Button>
                             <Button
                                 onClick={() => saveMutation.mutate()}
                                 disabled={saveMutation.isPending || !form.title || !form.description || !form.requirements}
                                 className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto"
                             >
                                 {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {editingProject ? 'Cập nhật' : 'Tạo dự án'}
+                                {editingProject ? 'Update' : 'Create Project'}
                             </Button>
                         </div>
                     </div>
@@ -281,9 +281,9 @@ export default function ManageProjects() {
 
             {/* Project list */}
             {isLoading ? (
-                <div className="text-center py-12 text-zinc-500">Đang tải...</div>
+                <div className="text-center py-12 text-zinc-500">Loading...</div>
             ) : (projects ?? []).length === 0 ? (
-                <Card className="p-12 text-center text-zinc-500">Chưa có dự án nào. Hãy tạo dự án đầu tiên!</Card>
+                <Card className="p-12 text-center text-zinc-500">No projects yet. Create the first project!</Card>
             ) : (
                 <div className="space-y-3 sm:space-y-4">
                     {(projects ?? []).map(project => (
@@ -294,9 +294,9 @@ export default function ManageProjects() {
                                         <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white break-words">{project.title}</h3>
                                         <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 break-words">{project.description}</p>
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-400">
-                                            <span>{project._count?.submissions ?? 0} bài nộp</span>
+                                            <span>{project._count?.submissions ?? 0} submissions</span>
                                             {project.deadline && (
-                                                <span>Hạn: {new Date(project.deadline).toLocaleDateString('vi-VN')}</span>
+                                                <span>Deadline: {new Date(project.deadline).toLocaleDateString('en-US')}</span>
                                             )}
                                         </div>
                                     </div>
@@ -314,7 +314,7 @@ export default function ManageProjects() {
                                             className="gap-1"
                                         >
                                             {expandedProject === project.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                            Bài nộp
+                                            Submissions
                                         </Button>
                                     </div>
                                 </div>
@@ -325,7 +325,7 @@ export default function ManageProjects() {
                                     {!submissions ? (
                                         <div className="text-center py-4 text-zinc-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
                                     ) : submissions.length === 0 ? (
-                                        <p className="text-sm text-zinc-500 text-center py-4">Chưa có bài nộp nào</p>
+                                        <p className="text-sm text-zinc-500 text-center py-4">No submissions yet</p>
                                     ) : (
                                         <div className="space-y-3">
                                             {submissions.map(sub => {
@@ -347,7 +347,7 @@ export default function ManageProjects() {
                                                                         {sub.grade}/10
                                                                     </p>
                                                                 ) : (
-                                                                    <p className="text-xs text-zinc-400">Chưa chấm</p>
+                                                                    <p className="text-xs text-zinc-400">Not graded</p>
                                                                 )}
                                                             </div>
                                                             <Button
@@ -356,7 +356,7 @@ export default function ManageProjects() {
                                                                 className="bg-red-600 hover:bg-red-700 gap-1 flex-shrink-0"
                                                             >
                                                                 <Star className="w-3.5 h-3.5" />
-                                                                Chấm điểm
+                                                                Grade
                                                             </Button>
                                                         </div>
                                                     </div>

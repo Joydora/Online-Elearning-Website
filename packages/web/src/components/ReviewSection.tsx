@@ -85,14 +85,14 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-reviews', courseId] });
             queryClient.invalidateQueries({ queryKey: ['user-review', courseId] });
-            showSuccessAlert('Thành công!', 'Đánh giá của bạn đã được gửi.');
+            showSuccessAlert('Success!', 'Your review has been submitted.');
             setShowForm(false);
             setComment('');
             setRating(5);
         },
         onError: (error: any) => {
-            const errorMessage = error.response?.data?.error || 'Không thể gửi đánh giá. Vui lòng thử lại.';
-            showErrorAlert('Lỗi', errorMessage);
+            const errorMessage = error.response?.data?.error || 'Could not submit review. Please try again.';
+            showErrorAlert('Error', errorMessage);
         },
     });
 
@@ -104,16 +104,16 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-reviews', courseId] });
             queryClient.invalidateQueries({ queryKey: ['user-review', courseId] });
-            showSuccessAlert('Thành công!', 'Đánh giá đã được xóa.');
+            showSuccessAlert('Success!', 'Review has been deleted.');
         },
         onError: (error: any) => {
-            const errorMessage = error.response?.data?.error || 'Không thể xóa đánh giá.';
-            showErrorAlert('Lỗi', errorMessage);
+            const errorMessage = error.response?.data?.error || 'Could not delete review.';
+            showErrorAlert('Error', errorMessage);
         },
     });
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -132,7 +132,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
         return (
             <div className="text-center py-8">
                 <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-zinc-600 dark:text-zinc-400">Đang tải đánh giá...</p>
+                <p className="text-zinc-600 dark:text-zinc-400">Loading reviews...</p>
             </div>
         );
     }
@@ -146,7 +146,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
             {/* Stats Section */}
             <Card className="p-4 sm:p-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
-                    Đánh giá và nhận xét
+                    Ratings and Reviews
                 </h2>
 
                 <div className="grid md:grid-cols-2 gap-6 md:gap-8">
@@ -167,7 +167,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                             ))}
                         </div>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Dựa trên {reviewData.totalReviews} đánh giá
+                            Based on {reviewData.totalReviews} reviews
                         </p>
                     </div>
 
@@ -209,7 +209,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
                                         <h3 className="font-semibold text-gray-900 dark:text-white">
-                                            Đánh giá của bạn
+                                            Your Review
                                         </h3>
                                         <div className="flex gap-1">
                                             {[1, 2, 3, 4, 5].map((star) => (
@@ -228,7 +228,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                             {userReview.comment}
                                         </p>
                                     )}
-                                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                                    <p className="text-sm text-gray-500 dark:text-gray-505">
                                         {formatDate(userReview.datePosted)}
                                     </p>
                                 </div>
@@ -240,13 +240,13 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                         className="text-blue-600 hover:text-blue-700"
                                     >
                                         <Edit2 className="w-4 h-4 mr-1" />
-                                        Sửa
+                                        Edit
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => {
-                                            if (confirm('Bạn có chắc muốn xóa đánh giá này?')) {
+                                            if (confirm('Are you sure you want to delete this review?')) {
                                                 deleteReviewMutation.mutate(userReview.id);
                                             }
                                         }}
@@ -254,7 +254,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                         disabled={deleteReviewMutation.isPending}
                                     >
                                         <Trash2 className="w-4 h-4 mr-1" />
-                                        Xóa
+                                        Delete
                                     </Button>
                                 </div>
                             </div>
@@ -262,13 +262,13 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                     ) : (showForm || !userReview) ? (
                         <div>
                             <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                                {userReview ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá'}
+                                {userReview ? 'Edit Review' : 'Write a Review'}
                             </h3>
                             <div className="space-y-4">
                                 {/* Star Rating */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Đánh giá
+                                        Rating
                                     </label>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map((star) => (
@@ -294,12 +294,12 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                 {/* Comment */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Nhận xét (tùy chọn)
+                                        Comment (optional)
                                     </label>
                                     <Textarea
                                         value={comment}
                                         onChange={(e) => setComment(e.target.value)}
-                                        placeholder="Chia sẻ trải nghiệm của bạn về khóa học này..."
+                                        placeholder="Share your experience with this course..."
                                         rows={4}
                                         className="resize-none"
                                     />
@@ -315,7 +315,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                         className="gap-2"
                                     >
                                         <Send className="w-4 h-4" />
-                                        {submitReviewMutation.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+                                        {submitReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
                                     </Button>
                                     {userReview && (
                                         <Button
@@ -327,7 +327,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                             }}
                                         >
                                             <X className="w-4 h-4 mr-1" />
-                                            Hủy
+                                            Cancel
                                         </Button>
                                     )}
                                 </div>
@@ -341,7 +341,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                 className="w-full"
                             >
                                 <Star className="w-4 h-4 mr-2" />
-                                Viết đánh giá
+                                Write a Review
                             </Button>
                         </div>
                     )}
@@ -353,10 +353,10 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                 <Card className="p-6 sm:p-8 text-center">
                     <Star className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                        Chưa có đánh giá nào
+                        No reviews yet
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400">
-                        Hãy là người đầu tiên đánh giá khóa học này!
+                        Be the first to review this course!
                     </p>
                 </Card>
             ) : (

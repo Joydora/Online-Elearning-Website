@@ -5,33 +5,34 @@ import NhanImage from '../Nhan.png';
 
 export default function About() {
     const stats = [
-        { label: 'Học viên', value: '50,000+', icon: Users },
-        { label: 'Khóa học', value: '500+', icon: BookOpen },
-        { label: 'Giảng viên', value: '200+', icon: Award },
-        { label: 'Tỷ lệ hài lòng', value: '98%', icon: Heart },
+        { label: 'Students', value: '50,000+', icon: Users },
+        { label: 'Courses', value: '500+', icon: BookOpen },
+        { label: 'Instructors', value: '200+', icon: Award },
+        { label: 'Satisfaction Rate', value: '98%', icon: Heart },
     ];
 
     const values = [
         {
             icon: Target,
-            title: 'Sứ mệnh',
-            description: 'Mang đến cơ hội học tập chất lượng cao cho mọi người, mọi nơi, mọi lúc với chi phí hợp lý nhất.',
+            title: 'Mission',
+            description: 'To provide high-quality learning opportunities for everyone, everywhere, at any time, with the most reasonable cost.',
         },
         {
             icon: Lightbulb,
-            title: 'Tầm nhìn',
-            description: 'Trở thành nền tảng học trực tuyến hàng đầu Việt Nam, kết nối tri thức và đam mê.',
+            title: 'Vision',
+            description: 'To become Vietnam\'s leading online learning platform, connecting knowledge and passion.',
         },
         {
             icon: Heart,
-            title: 'Giá trị cốt lõi',
-            description: 'Chất lượng - Sáng tạo - Tận tâm - Đổi mới liên tục để mang đến trải nghiệm học tập tốt nhất.',
+            title: 'Core Values',
+            description: 'Quality - Innovation - Dedication - Continuous improvement to deliver the best learning experience.',
         },
     ];
 
     const team = [
         { name: 'Nguyễn Hải Dương', role: 'Co-Founder & Developer', image: DuongImage },
         { name: 'Thái Bảo Nhân', role: 'Co-Founder & Developer', image: NhanImage },
+        { name: 'Nguyễn Hải Triều', role: 'Co-Founder & Developer', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300' },
     ];
 
     return (
@@ -41,10 +42,10 @@ export default function About() {
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')]"></div>
                 <div className="container mx-auto px-4 sm:px-6 relative z-10">
                     <div className="max-w-3xl mx-auto text-center text-white">
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">Về E-Learning</h1>
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">About E-Learning</h1>
                         <p className="text-base sm:text-xl text-red-100 leading-relaxed">
-                            Chúng tôi tin rằng giáo dục chất lượng cao nên được tiếp cận bởi tất cả mọi người.
-                            E-Learning ra đời với sứ mệnh kết nối người học với những giảng viên giỏi nhất Việt Nam.
+                            We believe that high-quality education should be accessible to everyone.
+                            E-Learning was born with the mission to connect learners with the best instructors in Vietnam.
                         </p>
                     </div>
                 </div>
@@ -70,23 +71,17 @@ export default function About() {
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-6 sm:mb-8 text-center">
-                            Câu chuyện của chúng tôi
+                            Our Story
                         </h2>
                         <div className="prose prose-lg dark:prose-invert mx-auto text-zinc-600 dark:text-zinc-400">
                             <p>
-                                E-Learning được thành lập vào năm 2020, giữa đại dịch COVID-19 khi nhu cầu học trực tuyến
-                                tăng cao. Xuất phát từ mong muốn tạo ra một nền tảng học tập chất lượng, dễ tiếp cận cho
-                                người Việt Nam, chúng tôi đã không ngừng nỗ lực phát triển.
+                                E-Learning was established in 2020, in the midst of the COVID-19 pandemic when the demand for online education surged. Driven by the desire to create a high-quality, easily accessible learning platform for Vietnamese learners, we have constantly strived to grow.
                             </p>
                             <p>
-                                Sau 4 năm hoạt động, E-Learning đã trở thành ngôi nhà chung của hơn 50,000 học viên và
-                                200+ giảng viên uy tín trong nhiều lĩnh vực từ công nghệ, kinh doanh, thiết kế đến
-                                phát triển cá nhân.
+                                After 4 years of operation, E-Learning has become a shared home for more than 50,000 students and 200+ prestigious instructors in fields ranging from technology, business, design, to personal development.
                             </p>
                             <p>
-                                Chúng tôi tự hào về chất lượng nội dung được biên soạn kỹ lưỡng, đội ngũ giảng viên
-                                chuyên nghiệp và hệ thống học tập hiện đại, giúp học viên đạt được mục tiêu của mình
-                                một cách hiệu quả nhất.
+                                We take pride in carefully compiled content, a professional network of instructors, and a modern learning system, helping students achieve their goals in the most effective way possible.
                             </p>
                         </div>
                     </div>
@@ -97,7 +92,7 @@ export default function About() {
             <section className="py-10 sm:py-16 bg-white dark:bg-zinc-900">
                 <div className="container mx-auto px-4 sm:px-6">
                     <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-8 sm:mb-12 text-center">
-                        Giá trị cốt lõi
+                        Core Values
                     </h2>
                     <div className="grid md:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
                         {values.map((value) => (
@@ -117,9 +112,9 @@ export default function About() {
             <section className="py-10 sm:py-16">
                 <div className="container mx-auto px-4 sm:px-6">
                     <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-8 sm:mb-12 text-center">
-                        Đội ngũ lãnh đạo
+                        Leadership Team
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
                         {team.map((member) => (
                             <div key={member.name} className="text-center">
                                 <img

@@ -46,10 +46,10 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
             return data;
         },
         onSuccess: async () => {
-            await showSuccessAlert('Nộp bài thành công!', 'Bài nộp của bạn đã được ghi lại.');
+            await showSuccessAlert('Submission successful!', 'Your submission has been recorded.');
             queryClient.invalidateQueries({ queryKey: ['student-projects', courseId] });
         },
-        onError: (e: any) => showErrorAlert('Lỗi', e.response?.data?.error || 'Không thể nộp bài.'),
+        onError: (e: any) => showErrorAlert('Error', e.response?.data?.error || 'Failed to submit.'),
     });
 
     const refreshMutation = useMutation({
@@ -59,10 +59,10 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
             return data;
         },
         onSuccess: async () => {
-            await showSuccessAlert('Cập nhật thành công!', 'Danh sách commit đã được làm mới.');
+            await showSuccessAlert('Updated successfully!', 'Commit list has been refreshed.');
             queryClient.invalidateQueries({ queryKey: ['student-projects', courseId] });
         },
-        onError: (e: any) => showErrorAlert('Lỗi', e.response?.data?.error || 'Không thể cập nhật commits.'),
+        onError: (e: any) => showErrorAlert('Error', e.response?.data?.error || 'Failed to refresh commits.'),
     });
 
     const isPastDeadline = project.deadline && new Date(project.deadline) < new Date();
@@ -76,8 +76,8 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                         <div className={`flex items-start gap-1 text-xs sm:text-sm mt-1 ${isPastDeadline ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
                             <Clock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                             <span>
-                                Hạn nộp: {new Date(project.deadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                {isPastDeadline && ' (Đã hết hạn)'}
+                                Deadline: {new Date(project.deadline).toLocaleDateString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {isPastDeadline && ' (Expired)'}
                             </span>
                         </div>
                     )}
@@ -87,7 +87,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                         <p className={`text-xl sm:text-2xl font-bold ${project.submission.grade >= 8 ? 'text-green-600' : project.submission.grade >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {project.submission.grade}/10
                         </p>
-                        <p className="text-xs text-zinc-500">Điểm số</p>
+                        <p className="text-xs text-zinc-500">Score</p>
                     </div>
                 )}
             </div>
@@ -99,7 +99,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                 onClick={() => setExpanded(!expanded)}
             >
                 {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {expanded ? 'Ẩn yêu cầu' : 'Xem yêu cầu chi tiết'}
+                {expanded ? 'Hide requirements' : 'View detailed requirements'}
             </button>
 
             {expanded && (
@@ -111,7 +111,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
             {/* Feedback */}
             {project.submission?.feedback && (
                 <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">Nhận xét từ giảng viên:</p>
+                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">Instructor's feedback:</p>
                     <p className="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-wrap">{project.submission.feedback}</p>
                 </div>
             )}
@@ -134,7 +134,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                         className="bg-red-600 hover:bg-red-700 gap-1 sm:shrink-0"
                     >
                         {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        {project.submission ? 'Cập nhật' : 'Nộp bài'}
+                        {project.submission ? 'Update' : 'Submit'}
                     </Button>
                 </div>
 
@@ -143,7 +143,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                         <div className="flex items-center gap-2 min-w-0">
                             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                             <span className="text-xs sm:text-sm text-green-600 dark:text-green-400 break-words">
-                                Đã nộp lúc {new Date(project.submission.submittedAt).toLocaleString('vi-VN')}
+                                Submitted at {new Date(project.submission.submittedAt).toLocaleString('en-US')}
                             </span>
                         </div>
                         <Button
@@ -154,7 +154,7 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                             className="sm:ml-auto gap-1 text-xs"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
-                            Làm mới commits
+                            Refresh commits
                         </Button>
                     </div>
                 )}
@@ -165,14 +165,14 @@ function ProjectCard({ project, courseId }: { project: Project; courseId: string
                 <div className="mt-4">
                     <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1">
                         <Github className="w-4 h-4" />
-                        Lịch sử commit ({project.submission.commitHistory.length})
+                        Commit history ({project.submission.commitHistory.length})
                     </h4>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto">
                         {project.submission.commitHistory.map((c) => (
                             <div key={c.sha} className="flex items-center gap-2 text-xs bg-zinc-50 dark:bg-zinc-800 rounded px-3 py-2">
                                 <code className="text-red-600 font-mono">{c.sha}</code>
                                 <span className="flex-1 truncate text-zinc-600 dark:text-zinc-400">{c.message}</span>
-                                <span className="text-zinc-400 flex-shrink-0">{new Date(c.date).toLocaleDateString('vi-VN')}</span>
+                                <span className="text-zinc-400 flex-shrink-0">{new Date(c.date).toLocaleDateString('en-US')}</span>
                                 <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-zinc-600">
                                     <ExternalLink className="w-3 h-3" />
                                 </a>
@@ -221,12 +221,12 @@ export default function Projects() {
         <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl">
             <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-5 sm:mb-6 flex items-center gap-2">
                 <Github className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                Dự án thực tế
+                Real-world Projects
             </h1>
 
             {!projects || projects.length === 0 ? (
                 <Card className="p-8 sm:p-12 text-center text-zinc-500 dark:text-zinc-400">
-                    Chưa có dự án nào được giao cho khóa học này.
+                    No projects have been assigned to this course yet.
                 </Card>
             ) : (
                 <div className="space-y-4 sm:space-y-6">

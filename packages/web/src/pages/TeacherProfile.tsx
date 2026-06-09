@@ -56,7 +56,7 @@ export default function TeacherProfile() {
     });
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -64,10 +64,10 @@ export default function TeacherProfile() {
     };
 
     const formatPrice = (price: number) => {
-        if (price === 0) return 'Miễn phí';
-        return new Intl.NumberFormat('vi-VN', {
+        if (price === 0) return 'Free';
+        return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'VND',
+            currency: 'USD',
         }).format(price);
     };
 
@@ -76,7 +76,7 @@ export default function TeacherProfile() {
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải thông tin giảng viên...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading instructor profile...</p>
                 </div>
             </div>
         );
@@ -90,15 +90,15 @@ export default function TeacherProfile() {
                         <User className="w-8 h-8 text-red-600" />
                     </div>
                     <h1 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                        Không tìm thấy giảng viên
+                        Instructor not found
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                        Giảng viên này không tồn tại hoặc đã bị xóa.
+                        This instructor does not exist or has been deleted.
                     </p>
                     <Link to="/courses">
                         <Button variant="outline" className="gap-2">
                             <ArrowLeft className="w-4 h-4" />
-                            Quay lại khóa học
+                            Back to courses
                         </Button>
                     </Link>
                 </div>
@@ -115,7 +115,7 @@ export default function TeacherProfile() {
                 <div className="container mx-auto px-4 sm:px-6 relative z-10">
                     <Link to="/courses" className="inline-flex items-center gap-2 text-red-200 hover:text-white mb-4 sm:mb-6 transition-colors text-sm">
                         <ArrowLeft className="w-4 h-4" />
-                        Quay lại khóa học
+                        Back to courses
                     </Link>
 
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-8">
@@ -130,7 +130,7 @@ export default function TeacherProfile() {
                         <div className="text-center md:text-left text-white flex-1 min-w-0">
                             <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                                 <Award className="w-5 h-5 text-yellow-400" />
-                                <span className="text-red-200 text-sm font-medium">Giảng viên</span>
+                                <span className="text-red-200 text-sm font-medium">Instructor</span>
                             </div>
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{teacher.fullName}</h1>
                             <p className="text-red-200 mb-4 break-all">@{teacher.username}</p>
@@ -139,7 +139,7 @@ export default function TeacherProfile() {
                                 <div className="flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-red-300" />
                                     <span className="text-red-100">
-                                        Tham gia: {formatDate(teacher.joinedAt)}
+                                        Joined: {formatDate(teacher.joinedAt)}
                                     </span>
                                 </div>
                             </div>
@@ -157,21 +157,21 @@ export default function TeacherProfile() {
                             <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                 {teacher.stats.totalCourses}
                             </div>
-                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Khóa học</div>
+                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Courses</div>
                         </Card>
                         <Card className="p-4 sm:p-6 text-center bg-white dark:bg-zinc-900 shadow-xl">
                             <Users className="w-7 h-7 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
                             <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                 {teacher.stats.totalStudents}
                             </div>
-                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Học viên</div>
+                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Students</div>
                         </Card>
                         <Card className="p-4 sm:p-6 text-center bg-white dark:bg-zinc-900 shadow-xl col-span-2 md:col-span-1">
                             <GraduationCap className="w-7 h-7 sm:w-8 sm:h-8 mx-auto mb-2 text-green-600" />
                             <div className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                 {teacher.courses.reduce((sum, c) => sum + c.totalModules, 0)}
                             </div>
-                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Bài giảng</div>
+                            <div className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Lessons</div>
                         </Card>
                     </div>
                 </div>
@@ -181,17 +181,17 @@ export default function TeacherProfile() {
             <section className="py-10 sm:py-12">
                 <div className="container mx-auto px-4 sm:px-6">
                     <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-6 sm:mb-8 text-center break-words">
-                        Khóa học của {teacher.fullName}
+                        Courses by {teacher.fullName}
                     </h2>
 
                     {teacher.courses.length === 0 ? (
                         <Card className="max-w-md mx-auto p-6 sm:p-8 text-center">
                             <BookOpen className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
                             <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
-                                Chưa có khóa học
+                                No courses yet
                             </h3>
                             <p className="text-zinc-600 dark:text-zinc-400">
-                                Giảng viên này chưa tạo khóa học nào.
+                                This instructor has not created any courses yet.
                             </p>
                         </Card>
                     ) : (
@@ -231,11 +231,11 @@ export default function TeacherProfile() {
                                             <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400 mb-4">
                                                 <span className="flex items-center gap-1">
                                                     <Users className="w-4 h-4" />
-                                                    {course.totalStudents} học viên
+                                                    {course.totalStudents} students
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <BookOpen className="w-4 h-4" />
-                                                    {course.totalModules} chương
+                                                    {course.totalModules} modules
                                                 </span>
                                             </div>
 
@@ -244,7 +244,7 @@ export default function TeacherProfile() {
                                                     {formatPrice(course.price)}
                                                 </span>
                                                 <Button size="sm" variant="outline" className="group-hover:bg-red-600 group-hover:text-white group-hover:border-red-600 transition-colors">
-                                                    Xem chi tiết
+                                                    View details
                                                 </Button>
                                             </div>
                                         </div>

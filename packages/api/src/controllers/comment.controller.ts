@@ -53,7 +53,7 @@ export async function postCommentController(req: Request, res: Response): Promis
             }
 
             if (message === 'ENROLLMENT_REQUIRED') {
-                return res.status(403).json({ error: 'Bạn phải đăng ký khóa học để bình luận' });
+                return res.status(403).json({ error: 'You must enroll in the course to comment' });
             }
 
             throw error;

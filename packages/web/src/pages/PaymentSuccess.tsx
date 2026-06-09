@@ -23,7 +23,7 @@ export default function PaymentSuccess() {
                     // Ignore if already enrolled
                     if (err.response?.status !== 409) {
                         console.error('Failed to confirm enrollment:', err);
-                        setError('Không thể xác nhận đăng ký. Vui lòng liên hệ hỗ trợ.');
+                        setError('Could not confirm enrollment. Please contact support.');
                     }
                 }
             }
@@ -46,7 +46,7 @@ export default function PaymentSuccess() {
                 <Card className="max-w-md w-full p-8 text-center shadow-2xl">
                     <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
                     <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
-                        Đang xác nhận đăng ký...
+                        Confirming enrollment...
                     </h1>
                 </Card>
             </div>
@@ -61,10 +61,10 @@ export default function PaymentSuccess() {
                         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Thanh toán thành công!
+                        Payment Successful!
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        {error || 'Chúc mừng bạn đã đăng ký khóa học thành công. Bạn có thể bắt đầu học ngay bây giờ.'}
+                        {error || 'Congratulations! You have successfully enrolled in the course. You can start learning now.'}
                     </p>
                 </div>
 
@@ -72,19 +72,19 @@ export default function PaymentSuccess() {
                     <Link to="/my-courses" className="block">
                         <Button className="w-full gap-2 bg-red-600 hover:bg-red-700">
                             <BookOpen className="w-4 h-4" />
-                            Đi đến khóa học của tôi
+                            Go to My Courses
                         </Button>
                     </Link>
                     <Link to="/courses" className="block">
                         <Button variant="outline" className="w-full gap-2">
-                            Khám phá thêm khóa học
+                            Explore More Courses
                             <ArrowRight className="w-4 h-4" />
                         </Button>
                     </Link>
                 </div>
 
                 <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-6">
-                    Tự động chuyển hướng sau 10 giây...
+                    Redirecting automatically in 10 seconds...
                 </p>
             </Card>
         </div>

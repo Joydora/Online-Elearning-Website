@@ -303,14 +303,14 @@ export default function CoursePlayer() {
             queryClient.invalidateQueries({ queryKey: ['completed-contents', courseId] });
             queryClient.invalidateQueries({ queryKey: ['enrolled-course-content', courseId] });
             if (data.isCompleted) {
-                showSuccessAlert('Chúc mừng!', 'Bạn đã hoàn thành khóa học này! Chứng chỉ đã sẵn sàng trong trang Tiến độ.');
+                showSuccessAlert('Congratulations!', 'You have completed this course! Your certificate is ready in the Progress tab.');
             }
         },
         onError: (error: any) => {
             const backendError = error?.response?.data?.error;
             const backendDetails = error?.response?.data?.details;
             showErrorAlert(
-                backendError || 'Không thể đánh dấu hoàn thành. Vui lòng thử lại.',
+                backendError || 'Could not mark as completed. Please try again.',
                 backendDetails
             );
         },
@@ -365,7 +365,7 @@ export default function CoursePlayer() {
                 setPracticeData(data);
                 setPracticeCode(data.starterCode || '');
             })
-            .catch(() => { if (!cancelled) showErrorAlert('Không thể tải bài thực hành.'); })
+            .catch(() => { if (!cancelled) showErrorAlert('Could not load practice exercise.'); })
             .finally(() => { if (!cancelled) setPracticeLoading(false); });
         return () => { cancelled = true; };
     }, [currentContent, currentContentId, enrollment?.type]);
@@ -380,7 +380,7 @@ export default function CoursePlayer() {
                 markCompleteMutation.mutate(currentContentId);
             }
         } catch {
-            showErrorAlert('Không thể nộp bài thực hành. Vui lòng thử lại.');
+            showErrorAlert('Could not submit practice exercise. Please try again.');
         } finally {
             setPracticeSubmitting(false);
         }
@@ -442,7 +442,7 @@ export default function CoursePlayer() {
             setSelectedAnswers({});
             setQuizResult(null);
         } catch (error) {
-            showErrorAlert('Không thể tải bài kiểm tra. Vui lòng thử lại.');
+            showErrorAlert('Could not load quiz. Please try again.');
         } finally {
             setQuizLoading(false);
         }
@@ -464,7 +464,7 @@ export default function CoursePlayer() {
         }));
 
         if (answers.length === 0) {
-            showErrorAlert('Vui lòng chọn ít nhất một câu trả lời');
+            showErrorAlert('Please select at least one answer');
             return;
         }
 
@@ -477,7 +477,7 @@ export default function CoursePlayer() {
                 markCompleteMutation.mutate(currentContentId);
             }
         } catch (error) {
-            showErrorAlert('Không thể nộp bài. Vui lòng thử lại.');
+            showErrorAlert('Could not submit quiz. Please try again.');
         } finally {
             setQuizLoading(false);
         }
@@ -504,7 +504,7 @@ export default function CoursePlayer() {
 
     const submitMarkerAnswer = async () => {
         if (!activeMarker || markerSelectedAnswer === null) {
-            showErrorAlert('Vui lòng chọn một câu trả lời');
+            showErrorAlert('Please select an answer');
             return;
         }
 
@@ -525,7 +525,7 @@ export default function CoursePlayer() {
                 queryClient.invalidateQueries({ queryKey: ['enrolled-course-content', courseId] });
             }
         } catch (error) {
-            showErrorAlert('Không thể nộp câu trả lời trong video. Vui lòng thử lại.');
+            showErrorAlert('Could not submit video quiz answer. Please try again.');
         } finally {
             setMarkerSubmitting(false);
         }
@@ -562,7 +562,7 @@ export default function CoursePlayer() {
                 ...prev,
                 {
                     role: 'assistant',
-                    content: 'Không thể kết nối AI Teaching Assistant. Vui lòng thử lại sau.',
+                    content: 'Could not connect to AI Teaching Assistant. Please try again later.',
                 },
             ]);
         } finally {
@@ -590,7 +590,7 @@ export default function CoursePlayer() {
                 ...prev,
                 {
                     role: 'assistant',
-                    content: 'Không thể tạo câu hỏi gợi ý lúc này. Vui lòng thử lại sau.',
+                    content: 'Could not generate suggestions at this time. Please try again later.',
                 },
             ]);
         } finally {
@@ -699,7 +699,7 @@ export default function CoursePlayer() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải khóa học...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading course...</p>
                 </div>
             </div>
         );
@@ -713,13 +713,13 @@ export default function CoursePlayer() {
                 <div className="text-center">
                     <p className="text-red-400 mb-4">
                         {isExpired
-                            ? 'Quyền truy cập khóa học của bạn đã hết hạn'
+                            ? 'Your access to this course has expired'
                             : isNotEnrolled
-                            ? 'Bạn chưa đăng ký khóa học này'
-                            : 'Không tìm thấy khóa học hoặc có lỗi xảy ra'}
+                                ? 'You are not enrolled in this course'
+                                : 'Course not found or an error occurred'}
                     </p>
                     <Button onClick={() => navigate(`/courses/${courseId}`)}>
-                        {isExpired ? 'Gia hạn hoặc mua lại khóa học' : 'Quay lại trang khóa học'}
+                        {isExpired ? 'Renew or repurchase the course' : 'Back to Course Page'}
                     </Button>
                 </div>
             </div>
@@ -731,8 +731,8 @@ export default function CoursePlayer() {
         if (!enrollment?.expiresAt) return null;
         const msLeft = new Date(enrollment.expiresAt).getTime() - Date.now();
         const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
-        if (!enrollment.isActive) return { text: 'Quyền truy cập của bạn đã hết hạn.', color: 'bg-red-700', daysLeft: 0 };
-        if (daysLeft <= 7) return { text: `Còn ${daysLeft} ngày truy cập khóa học.`, color: daysLeft <= 2 ? 'bg-red-600' : 'bg-yellow-600', daysLeft };
+        if (!enrollment.isActive) return { text: 'Your access has expired.', color: 'bg-red-700', daysLeft: 0 };
+        if (daysLeft <= 7) return { text: `${daysLeft} days of access left.`, color: daysLeft <= 2 ? 'bg-red-600' : 'bg-yellow-600', daysLeft };
         return null;
     })();
 
@@ -746,7 +746,7 @@ export default function CoursePlayer() {
                         <span>{expiryBanner.text}</span>
                         {expiryBanner.daysLeft > 0 && (
                             <a href={`/courses/${courseId}`} className="underline font-semibold hover:opacity-80">
-                                Gia hạn ngay
+                                Renew Now
                             </a>
                         )}
                     </div>
@@ -776,19 +776,19 @@ export default function CoursePlayer() {
                             <Link to={`/learning/${courseId}/progress`}>
                                 <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
                                     <BarChart2 className="h-4 w-4" />
-                                    Tiến độ
+                                    Progress
                                 </Button>
                             </Link>
                             <Link to={`/learning/${courseId}/projects`}>
                                 <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
                                     <Github className="h-4 w-4" />
-                                    Dự án
+                                    Projects
                                 </Button>
                             </Link>
                             <Link to={`/learning/${courseId}/discussions`}>
                                 <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white gap-1 text-xs">
                                     <MessageCircle className="h-4 w-4" />
-                                    Thảo luận
+                                    Discussions
                                 </Button>
                             </Link>
                             <span className="text-xs sm:text-sm text-zinc-400">
@@ -810,13 +810,13 @@ export default function CoursePlayer() {
                         <Card className="max-w-md p-6 sm:p-8 mx-3 bg-white dark:bg-zinc-800 text-center">
                             <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
                             <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
-                                Chưa có bài preview
+                                No preview lessons
                             </h2>
                             <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                Khóa học thử này chưa có bài nào được mở preview. Vui lòng mua khóa học để xem toàn bộ nội dung.
+                                This trial course does not have any preview lessons. Please purchase the course to view the full content.
                             </p>
                             <Button onClick={() => navigate(`/courses/${courseId}`)} className="bg-red-600 hover:bg-red-700">
-                                Quay lại trang khóa học
+                                Back to Course Page
                             </Button>
                         </Card>
                     )}
@@ -827,13 +827,13 @@ export default function CoursePlayer() {
                                     <Card className="max-w-md p-6 sm:p-8 bg-white dark:bg-zinc-800 text-center">
                                         <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
                                         <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
-                                            Bài học đang khóa
+                                            Lesson Locked
                                         </h2>
                                         <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                            Tài khoản học thử chỉ xem được các bài được giảng viên hoặc quản trị viên mở preview.
+                                            Trial accounts can only view lessons that have been set to preview by the instructor or administrator.
                                         </p>
                                         <Button onClick={() => navigate(`/courses/${courseId}`)} className="bg-red-600 hover:bg-red-700">
-                                            Mua khóa học để xem tiếp
+                                            Purchase course to continue
                                         </Button>
                                     </Card>
                                 </div>
@@ -861,7 +861,7 @@ export default function CoursePlayer() {
                                                 onTimeUpdate={handleVideoTimeUpdate}
                                                 onEnded={markCurrentContentComplete}
                                             >
-                                                Trình duyệt của bạn không hỗ trợ video.
+                                                Your browser does not support the video tag.
                                             </video>
                                         )}
                                         {activeMarker && (
@@ -869,7 +869,7 @@ export default function CoursePlayer() {
                                                 <Card className="w-full max-w-2xl p-4 sm:p-6 bg-white dark:bg-zinc-800 my-auto">
                                                     <div className="mb-4">
                                                         <p className="text-sm text-red-500 font-medium mb-1">
-                                                            Quiz trong video - {activeMarker.quizTitle}
+                                                            In-Video Quiz - {activeMarker.quizTitle}
                                                         </p>
                                                         <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
                                                             {activeMarker.question.questionText}
@@ -906,15 +906,15 @@ export default function CoursePlayer() {
                                                             : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
                                                             }`}>
                                                             {markerResult.score === 100
-                                                                ? 'Chính xác! Kết quả đã được lưu.'
-                                                                : 'Chưa chính xác. Kết quả đã được lưu.'}
+                                                                ? 'Correct! Your result has been saved.'
+                                                                : 'Incorrect. Your result has been saved.'}
                                                         </div>
                                                     )}
 
                                                     <div className="flex justify-end gap-3 mt-6">
                                                         {activeMarker.blockingMode === 'non-blocking' && !markerResult && (
                                                             <Button variant="outline" onClick={closeMarkerQuiz}>
-                                                                Để sau
+                                                                Later
                                                             </Button>
                                                         )}
                                                         {!markerResult ? (
@@ -923,7 +923,7 @@ export default function CoursePlayer() {
                                                                 disabled={markerSubmitting || markerSelectedAnswer === null}
                                                                 className="bg-red-600 hover:bg-red-700"
                                                             >
-                                                                {markerSubmitting ? 'Đang nộp...' : 'Nộp câu trả lời'}
+                                                                {markerSubmitting ? 'Submitting...' : 'Submit Answer'}
                                                             </Button>
                                                         ) : (
                                                             <Button
@@ -933,7 +933,7 @@ export default function CoursePlayer() {
                                                                 }}
                                                                 className="bg-red-600 hover:bg-red-700"
                                                             >
-                                                                Tiếp tục video
+                                                                Resume Video
                                                             </Button>
                                                         )}
                                                     </div>
@@ -955,12 +955,12 @@ export default function CoursePlayer() {
                                             {completedContentIds.includes(currentContent.contentId) ? (
                                                 <>
                                                     <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Đã hoàn thành
+                                                    Completed
                                                 </>
                                             ) : (
                                                 <>
                                                     <Circle className="w-4 h-4 mr-2" />
-                                                    Đánh dấu hoàn thành
+                                                    Mark as Completed
                                                 </>
                                             )}
                                         </Button>
@@ -983,7 +983,7 @@ export default function CoursePlayer() {
                                                 {/* Auto-complete countdown */}
                                                 {!completedContentIds.includes(currentContent.contentId) && documentReadTime < 20 && (
                                                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                                                        Tự động hoàn thành sau {20 - documentReadTime}s
+                                                        Auto completes in {20 - documentReadTime}s
                                                     </span>
                                                 )}
                                                 <Button
@@ -997,12 +997,12 @@ export default function CoursePlayer() {
                                                     {completedContentIds.includes(currentContent.contentId) ? (
                                                         <>
                                                             <CheckCircle className="w-4 h-4 mr-2" />
-                                                            Đã hoàn thành
+                                                            Completed
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Circle className="w-4 h-4 mr-2" />
-                                                            Đánh dấu hoàn thành
+                                                            Mark as Completed
                                                         </>
                                                     )}
                                                 </Button>
@@ -1012,14 +1012,14 @@ export default function CoursePlayer() {
                                                     rel="noopener noreferrer"
                                                     className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm"
                                                 >
-                                                    Mở trong tab mới
+                                                    Open in new tab
                                                 </a>
                                                 <a
                                                     href={getDownloadUrl(docUrl)}
                                                     download
                                                     className="px-3 sm:px-4 py-2 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
                                                 >
-                                                    Tải xuống
+                                                    Download
                                                 </a>
                                             </div>
                                         </div>
@@ -1039,7 +1039,7 @@ export default function CoursePlayer() {
                                                                 {currentContent.title}
                                                             </h3>
                                                             <p className="text-zinc-500 mb-4">
-                                                                Không thể hiển thị PDF trực tiếp. Vui lòng mở trong tab mới hoặc tải xuống.
+                                                                Cannot display PDF directly. Please open in a new tab or download.
                                                             </p>
                                                             <div className="flex gap-2 justify-center">
                                                                 <a
@@ -1049,7 +1049,7 @@ export default function CoursePlayer() {
                                                                     className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                                                                 >
                                                                     <FileText className="w-4 h-4" />
-                                                                    Mở trong tab mới
+                                                                    Open in new tab
                                                                 </a>
                                                                 <a
                                                                     href={getDownloadUrl(docUrl)}
@@ -1057,7 +1057,7 @@ export default function CoursePlayer() {
                                                                     className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 transition-colors"
                                                                 >
                                                                     <FileText className="w-4 h-4" />
-                                                                    Tải xuống
+                                                                    Download
                                                                 </a>
                                                             </div>
                                                         </Card>
@@ -1071,7 +1071,7 @@ export default function CoursePlayer() {
                                                             {currentContent.title}
                                                         </h3>
                                                         <p className="text-zinc-500 mb-4">
-                                                            Loại tài liệu này cần tải xuống để xem
+                                                            This type of document needs to be downloaded to view
                                                         </p>
                                                         <a
                                                             href={getDownloadUrl(docUrl)}
@@ -1079,7 +1079,7 @@ export default function CoursePlayer() {
                                                             className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                                                         >
                                                             <FileText className="w-4 h-4" />
-                                                            Tải xuống tài liệu
+                                                            Download Document
                                                         </a>
                                                     </Card>
                                                 </div>
@@ -1095,10 +1095,10 @@ export default function CoursePlayer() {
                                     {!isQuizStarted && !quizResult && (
                                         <Card className="w-full max-w-2xl p-5 sm:p-8 bg-white dark:bg-zinc-800">
                                             <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-zinc-900 dark:text-white break-words">
-                                                Bài kiểm tra: {currentContent.title}
+                                                Quiz: {currentContent.title}
                                             </h2>
                                             <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                                Nhấn nút bên dưới để bắt đầu làm bài kiểm tra
+                                                Click the button below to start the quiz
                                             </p>
 
                                             {/* Previous Attempts */}
@@ -1108,7 +1108,7 @@ export default function CoursePlayer() {
                                                         <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                                                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                                         </svg>
-                                                        Lịch sử làm bài ({quizAttempts.length} lần)
+                                                        Attempt History ({quizAttempts.length} attempts)
                                                     </h3>
                                                     <div className="space-y-2 max-h-48 overflow-y-auto">
                                                         {quizAttempts.slice(0, 5).map((attempt, index) => (
@@ -1117,7 +1117,7 @@ export default function CoursePlayer() {
                                                                 className="flex items-center justify-between p-2 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700"
                                                             >
                                                                 <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                                                    Lần {quizAttempts.length - index} - {new Date(attempt.endTime).toLocaleDateString('vi-VN', {
+                                                                    Attempt {quizAttempts.length - index} - {new Date(attempt.endTime).toLocaleDateString('en-US', {
                                                                         day: '2-digit',
                                                                         month: '2-digit',
                                                                         hour: '2-digit',
@@ -1134,13 +1134,13 @@ export default function CoursePlayer() {
                                                     </div>
                                                     <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
                                                         <div className="flex justify-between text-sm">
-                                                            <span className="text-zinc-600 dark:text-zinc-400">Điểm cao nhất:</span>
+                                                            <span className="text-zinc-600 dark:text-zinc-400">Highest Score:</span>
                                                             <span className="font-bold text-green-500">
                                                                 {quizAttempts.length > 0 ? Math.max(...quizAttempts.map(a => a.score)) : 0}%
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between text-sm mt-1">
-                                                            <span className="text-zinc-600 dark:text-zinc-400">Điểm trung bình:</span>
+                                                            <span className="text-zinc-600 dark:text-zinc-400">Average Score:</span>
                                                             <span className="font-semibold text-red-500">
                                                                 {(quizAttempts.reduce((sum, a) => sum + a.score, 0) / quizAttempts.length).toFixed(1)}%
                                                             </span>
@@ -1154,7 +1154,7 @@ export default function CoursePlayer() {
                                                 disabled={quizLoading}
                                                 className="bg-red-600 hover:bg-red-700"
                                             >
-                                                {quizLoading ? 'Đang tải...' : quizAttempts.length > 0 ? 'Làm lại bài kiểm tra' : 'Bắt đầu làm bài'}
+                                                {quizLoading ? 'Loading...' : quizAttempts.length > 0 ? 'Retake Quiz' : 'Start Quiz'}
                                             </Button>
                                         </Card>
                                     )}
@@ -1167,18 +1167,18 @@ export default function CoursePlayer() {
                                             </h2>
                                             {quizData.timeLimitInMinutes && (
                                                 <p className="text-sm text-orange-500 mb-4">
-                                                    Thời gian: {quizData.timeLimitInMinutes} phút
+                                                    Time limit: {quizData.timeLimitInMinutes} minutes
                                                 </p>
                                             )}
                                             <p className="text-zinc-500 mb-6">
-                                                {quizData.questions.length} câu hỏi
+                                                {quizData.questions.length} questions
                                             </p>
 
                                             <div className="space-y-6">
                                                 {quizData.questions.map((question, qIndex) => (
                                                     <div key={question.id} className="border-b border-zinc-200 dark:border-zinc-700 pb-6 last:border-0">
                                                         <h3 className="font-medium text-zinc-900 dark:text-white mb-4">
-                                                            Câu {qIndex + 1}: {question.questionText}
+                                                            Question {qIndex + 1}: {question.questionText}
                                                         </h3>
                                                         <div className="space-y-2">
                                                             {question.options.map((option) => (
@@ -1213,14 +1213,14 @@ export default function CoursePlayer() {
                                                     onClick={() => setIsQuizStarted(false)}
                                                     className="flex-1 sm:flex-initial"
                                                 >
-                                                    Hủy
+                                                    Cancel
                                                 </Button>
                                                 <Button
                                                     onClick={submitQuiz}
                                                     disabled={quizLoading || Object.keys(selectedAnswers).length === 0}
                                                     className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700"
                                                 >
-                                                    {quizLoading ? 'Đang nộp...' : 'Nộp bài'}
+                                                    {quizLoading ? 'Submitting...' : 'Submit'}
                                                 </Button>
                                             </div>
                                         </Card>
@@ -1246,27 +1246,27 @@ export default function CoursePlayer() {
                                             </div>
                                             <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">
                                                 {quizResult.score >= 80
-                                                    ? 'Xuất sắc!'
+                                                    ? 'Excellent!'
                                                     : quizResult.score >= 50
-                                                        ? 'Tốt lắm!'
-                                                        : 'Cần cố gắng thêm'}
+                                                        ? 'Good job!'
+                                                        : 'Need more practice'}
                                             </h2>
                                             <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                                Bạn đã trả lời đúng {quizResult.correctCount}/{quizResult.totalQuestions} câu hỏi
+                                                You answered {quizResult.correctCount}/{quizResult.totalQuestions} questions correctly
                                             </p>
                                             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                                                 <Button
                                                     variant="outline"
                                                     onClick={retryQuiz}
                                                 >
-                                                    Làm lại
+                                                    Retake
                                                 </Button>
                                                 <Button
                                                     onClick={handleNext}
                                                     disabled={!getNextContent()}
                                                     className="bg-red-600 hover:bg-red-700"
                                                 >
-                                                    Bài tiếp theo
+                                                    Next Lesson
                                                 </Button>
                                             </div>
                                         </Card>
@@ -1285,7 +1285,7 @@ export default function CoursePlayer() {
                                         <div className="grid h-full min-h-[640px] gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                                             <div className="flex flex-col rounded-lg border border-zinc-700 bg-zinc-950 p-4 sm:p-5">
                                                 <p className="mb-2 text-xs font-semibold uppercase text-red-400">
-                                                    {currentContent.contentType === 'ASSIGNMENT' ? 'Bài tập' : 'Bài thực hành'}
+                                                    {currentContent.contentType === 'ASSIGNMENT' ? 'Assignment' : 'Practice'}
                                                 </p>
                                                 <h2 className="text-lg sm:text-xl font-bold text-white break-words">{practiceData.title}</h2>
                                                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
@@ -1300,7 +1300,7 @@ export default function CoursePlayer() {
                                                                 <Circle className="w-5 h-5 text-yellow-400" />
                                                             )}
                                                             <span className={`font-bold ${practiceResult.passed ? 'text-green-400' : 'text-yellow-400'}`}>
-                                                                {practiceResult.passed ? 'Đạt' : 'Chưa đạt'} — {practiceResult.score}/100 điểm
+                                                                {practiceResult.passed ? 'Passed' : 'Failed'} — {practiceResult.score}/100 points
                                                             </span>
                                                         </div>
                                                         <p className="text-zinc-300 text-sm whitespace-pre-wrap">{practiceResult.aiFeedback}</p>
@@ -1313,7 +1313,7 @@ export default function CoursePlayer() {
                                                     <span className="text-xs sm:text-sm font-medium text-zinc-200 break-words">
                                                         Monaco Editor ({practiceData.language})
                                                     </span>
-                                                    <span className="text-xs text-zinc-500">Feedback xuất hiện ngay sau khi nộp</span>
+                                                    <span className="text-xs text-zinc-500">Feedback will appear immediately after submission</span>
                                                 </div>
                                                 <div className="min-h-[320px] sm:min-h-[420px] flex-1">
                                                     <Editor
@@ -1337,14 +1337,14 @@ export default function CoursePlayer() {
                                                         className="bg-red-600 hover:bg-red-700"
                                                     >
                                                         {practiceSubmitting ? (
-                                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang chấm bài...</>
+                                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Grading...</>
                                                         ) : (
-                                                            <><Send className="w-4 h-4 mr-2" />Nộp bài</>
+                                                            <><Send className="w-4 h-4 mr-2" />Submit</>
                                                         )}
                                                     </Button>
                                                     {practiceResult && (
                                                         <Button variant="outline" onClick={() => setPracticeResult(null)}>
-                                                            Làm lại
+                                                            Retake
                                                         </Button>
                                                     )}
                                                 </div>
@@ -1352,7 +1352,7 @@ export default function CoursePlayer() {
                                         </div>
                                     ) : (
                                         <div className="flex items-center justify-center h-full text-zinc-500">
-                                            Không tìm thấy bài thực hành
+                                            Practice exercise not found
                                         </div>
                                     )}
                                 </div>
@@ -1372,7 +1372,7 @@ export default function CoursePlayer() {
                             size="sm"
                         >
                             <ChevronLeft className="h-4 w-4" />
-                            <span className="hidden sm:inline">Bài trước</span>
+                            <span className="hidden sm:inline">Previous</span>
                         </Button>
 
                         <div className="text-center min-w-0 flex-1">
@@ -1386,7 +1386,7 @@ export default function CoursePlayer() {
                             className="gap-1 sm:gap-2 bg-red-600 hover:bg-red-700 shrink-0"
                             size="sm"
                         >
-                            <span className="hidden sm:inline">Bài tiếp</span>
+                            <span className="hidden sm:inline">Next</span>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -1406,7 +1406,7 @@ export default function CoursePlayer() {
                 <div className="fixed inset-y-0 right-0 w-[88vw] max-w-sm bg-zinc-800 border-l border-zinc-700 overflow-y-auto z-50 lg:static lg:w-96 lg:max-w-none lg:flex-shrink-0">
                     <div className="p-4 sm:p-6">
                         <h2 className="text-lg font-semibold text-white mb-4">
-                            Nội dung khóa học
+                            Course Syllabus
                         </h2>
 
                         <div className="space-y-2">
@@ -1432,9 +1432,9 @@ export default function CoursePlayer() {
                                                         ? 'bg-red-600 text-white'
                                                         : isLocked
                                                             ? 'text-zinc-500 cursor-not-allowed opacity-70'
-                                                        : isCompleted
-                                                            ? 'text-green-400 hover:bg-zinc-700'
-                                                            : 'text-zinc-300 hover:bg-zinc-700'
+                                                            : isCompleted
+                                                                ? 'text-green-400 hover:bg-zinc-700'
+                                                                : 'text-zinc-300 hover:bg-zinc-700'
                                                         }`}
                                                 >
                                                     <div className={isCompleted ? 'text-green-400' : 'text-zinc-400'}>
@@ -1469,13 +1469,13 @@ export default function CoursePlayer() {
                                 <h3 className="text-white font-semibold">AI Teaching Assistant</h3>
                             </div>
                             <p className="text-xs text-zinc-400 mb-3">
-                                Hỏi AI theo syllabus khóa học và bài đang xem.
+                                Ask AI questions about the course syllabus and current lesson.
                             </p>
 
                             <div className="space-y-3 max-h-80 overflow-y-auto mb-3 pr-1">
                                 {taMessages.length === 0 ? (
                                     <div className="text-xs text-zinc-500 bg-zinc-900/60 rounded-lg p-3">
-                                        Ví dụ: "Bài này cần nhớ ý chính nào?" hoặc bấm tạo câu hỏi quiz gợi ý.
+                                        e.g., "What are the main key points of this lesson?" or click suggest quiz questions.
                                     </div>
                                 ) : (
                                     taMessages.map((message, index) => (
@@ -1493,7 +1493,7 @@ export default function CoursePlayer() {
                                 {(taLoading || taQuizLoading) && (
                                     <div className="flex items-center gap-2 text-sm text-zinc-400">
                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                        AI đang suy nghĩ...
+                                        AI is thinking...
                                     </div>
                                 )}
                             </div>
@@ -1508,7 +1508,7 @@ export default function CoursePlayer() {
                                             askTeachingAssistant();
                                         }
                                     }}
-                                    placeholder="Hỏi về bài này..."
+                                    placeholder="Ask about this lesson..."
                                     className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500"
                                     disabled={taLoading}
                                 />
@@ -1534,7 +1534,7 @@ export default function CoursePlayer() {
                                 ) : (
                                     <Sparkles className="h-4 w-4" />
                                 )}
-                                Gợi ý câu hỏi quiz từ bài này
+                                Suggest quiz questions from this lesson
                             </Button>
                         </div>
                     </div>

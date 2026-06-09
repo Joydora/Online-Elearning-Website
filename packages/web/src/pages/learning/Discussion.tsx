@@ -36,8 +36,8 @@ function displayName(author: DiscussionNode['author']): string {
 
 function roleBadge(role: DiscussionNode['author']['role']): string {
     if (role === 'ADMIN') return 'Admin';
-    if (role === 'TEACHER') return 'Giảng viên';
-    return 'Học viên';
+    if (role === 'TEACHER') return 'Teacher';
+    return 'Student';
 }
 
 function Thread({
@@ -58,7 +58,7 @@ function Thread({
                             {displayName(node.author)}
                         </p>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {roleBadge(node.author.role)} - {new Date(node.createdAt).toLocaleString('vi-VN')}
+                            {roleBadge(node.author.role)} - {new Date(node.createdAt).toLocaleString('en-US')}
                         </p>
                     </div>
                     <Button
@@ -68,7 +68,7 @@ function Thread({
                         className="text-xs sm:text-sm h-8 px-2 sm:px-3"
                     >
                         <Reply className="h-3.5 w-3.5 mr-1" />
-                        Trả lời
+                        Reply
                     </Button>
                 </div>
                 <p className="mt-2 text-sm sm:text-base whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
@@ -130,7 +130,7 @@ export default function Discussion() {
             queryClient.invalidateQueries({ queryKey: ['course-discussions', courseId] });
         },
         onError: (error: any) => {
-            showErrorAlert(error?.response?.data?.error || 'Không thể gửi bình luận');
+            showErrorAlert(error?.response?.data?.error || 'Could not send comment');
         },
     });
 
@@ -147,14 +147,14 @@ export default function Discussion() {
                     <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                             <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
-                            Thảo luận khóa học
+                            Course Discussion
                         </h1>
                         <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400">
-                            {course?.title ?? `Khóa học #${courseId}`}
+                            {course?.title ?? `Course #${courseId}`}
                         </p>
                     </div>
                     <Link to={`/courses/${courseId}`}>
-                        <Button variant="outline" className="w-full sm:w-auto">Xem khóa học</Button>
+                        <Button variant="outline" className="w-full sm:w-auto">View Course</Button>
                     </Link>
                 </div>
 
@@ -162,20 +162,20 @@ export default function Discussion() {
                     <form onSubmit={handleSubmit} className="space-y-3">
                         {replyTo && (
                             <div className="flex items-center justify-between rounded-md bg-zinc-100 dark:bg-zinc-800 px-3 py-2 text-xs sm:text-sm">
-                                <span>Đang trả lời: <strong>{replyingToName ?? `#${replyTo}`}</strong></span>
+                                <span>Replying to: <strong>{replyingToName ?? `#${replyTo}`}</strong></span>
                                 <button
                                     type="button"
                                     className="text-red-500"
                                     onClick={() => setReplyTo(null)}
                                 >
-                                    Hủy
+                                    Cancel
                                 </button>
                             </div>
                         )}
                         <Textarea
                             value={text}
                             onChange={(e) => setText(e.target.value)}
-                            placeholder="Viết bình luận hoặc câu hỏi của bạn..."
+                            placeholder="Write your comment or question..."
                             rows={4}
                             className="text-sm sm:text-base"
                         />
@@ -186,7 +186,7 @@ export default function Discussion() {
                                 disabled={createMutation.isPending || !text.trim()}
                             >
                                 <Send className="h-4 w-4 mr-2" />
-                                {createMutation.isPending ? 'Đang gửi...' : 'Đăng bình luận'}
+                                {createMutation.isPending ? 'Sending...' : 'Post Comment'}
                             </Button>
                         </div>
                     </form>
@@ -194,10 +194,10 @@ export default function Discussion() {
 
                 <div className="space-y-3">
                     {isLoading ? (
-                        <Card className="p-4 text-sm text-zinc-500">Đang tải thảo luận...</Card>
+                        <Card className="p-4 text-sm text-zinc-500">Loading discussions...</Card>
                     ) : threads.length === 0 ? (
                         <Card className="p-4 text-sm sm:text-base text-zinc-500">
-                            Chưa có thảo luận nào. Hãy là người mở đầu!
+                            No discussions yet. Be the first to start a conversation!
                         </Card>
                     ) : (
                         threads.map((thread) => (

@@ -36,10 +36,10 @@ type ProgressDetail = {
 
 const TYPE_LABEL: Record<string, string> = {
     VIDEO: 'Video',
-    DOCUMENT: 'Tài liệu',
-    QUIZ: 'Kiểm tra',
-    PRACTICE: 'Thực hành',
-    ASSIGNMENT: 'Bài tập',
+    DOCUMENT: 'Document',
+    QUIZ: 'Quiz',
+    PRACTICE: 'Practice',
+    ASSIGNMENT: 'Assignment',
 };
 
 function fmtSeconds(s: number): string {
@@ -68,7 +68,7 @@ export default function Progress() {
             return data.summary;
         },
         onSuccess: (s) => setAiSummary(s),
-        onError: () => showErrorAlert('Lỗi', 'Không thể tải tóm tắt AI'),
+        onError: () => showErrorAlert('Error', 'Could not load AI summary'),
     });
 
     const toggleModule = (id: number) => setExpandedModules(prev => ({ ...prev, [id]: !prev[id] }));
@@ -84,8 +84,8 @@ export default function Progress() {
     if (!detail) {
         return (
             <div className="container mx-auto px-4 py-12 text-center">
-                <p className="text-red-500 mb-4">Không tìm thấy thông tin tiến độ</p>
-                <Link to="/my-courses"><Button>Về khóa học của tôi</Button></Link>
+                <p className="text-red-500 mb-4">Progress information not found</p>
+                <Link to="/my-courses"><Button>Back to My Courses</Button></Link>
             </div>
         );
     }
@@ -100,47 +100,47 @@ export default function Progress() {
                 <Link to={`/learning/${courseId}`} className="self-start">
                     <Button variant="ghost" size="sm" className="gap-1">
                         <ChevronLeft className="w-4 h-4" />
-                        Quay lại học
+                        Back to Learning
                     </Button>
                 </Link>
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Tiến độ học tập</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Learning Progress</h1>
             </div>
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 <Card className="p-3 sm:p-4 text-center">
                     <p className="text-2xl sm:text-3xl font-bold text-red-600">{detail.progress}%</p>
-                    <p className="text-xs text-zinc-500 mt-1">Tiến độ tổng</p>
+                    <p className="text-xs text-zinc-500 mt-1">Overall Progress</p>
                 </Card>
                 <Card className="p-3 sm:p-4 text-center">
                     <p className="text-2xl sm:text-3xl font-bold text-blue-600">{completedCount}/{totalCount}</p>
-                    <p className="text-xs text-zinc-500 mt-1">Bài hoàn thành</p>
+                    <p className="text-xs text-zinc-500 mt-1">Lessons Completed</p>
                 </Card>
                 <Card className="p-3 sm:p-4 text-center">
                     <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 capitalize">
-                        {detail.type === 'TRIAL' ? 'Học thử' : detail.type === 'PAID' ? 'Đã mua' : 'Miễn phí'}
+                        {detail.type === 'TRIAL' ? 'Trial' : detail.type === 'PAID' ? 'Purchased' : 'Free'}
                     </p>
-                    <p className="text-xs text-zinc-500 mt-1">Loại đăng ký</p>
+                    <p className="text-xs text-zinc-500 mt-1">Subscription Type</p>
                 </Card>
                 <Card className="p-3 sm:p-4 text-center">
                     {detail.completionDate ? (
                         <>
                             <p className="text-sm font-semibold text-green-600">
-                                {new Date(detail.completionDate).toLocaleDateString('vi-VN')}
+                                {new Date(detail.completionDate).toLocaleDateString('en-US')}
                             </p>
-                            <p className="text-xs text-zinc-500 mt-1">Ngày hoàn thành</p>
+                            <p className="text-xs text-zinc-500 mt-1">Completion Date</p>
                         </>
                     ) : detail.expiresAt ? (
                         <>
                             <p className="text-sm font-semibold text-yellow-600">
-                                {new Date(detail.expiresAt).toLocaleDateString('vi-VN')}
+                                {new Date(detail.expiresAt).toLocaleDateString('en-US')}
                             </p>
-                            <p className="text-xs text-zinc-500 mt-1">Hết hạn</p>
+                            <p className="text-xs text-zinc-500 mt-1">Expiration</p>
                         </>
                     ) : (
                         <>
                             <p className="text-sm font-semibold text-zinc-500">—</p>
-                            <p className="text-xs text-zinc-500 mt-1">Không giới hạn</p>
+                            <p className="text-xs text-zinc-500 mt-1">Unlimited</p>
                         </>
                     )}
                 </Card>
@@ -149,7 +149,7 @@ export default function Progress() {
             {/* Progress bar */}
             <div className="mb-6">
                 <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400 mb-1.5">
-                    <span>Tiến độ hoàn thành</span>
+                    <span>Completion Progress</span>
                     <span>{detail.progress}%</span>
                 </div>
                 <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
@@ -168,17 +168,17 @@ export default function Progress() {
                             <Award className="mt-0.5 h-6 w-6 text-green-600 shrink-0" />
                             <div>
                                 <h2 className="font-semibold text-green-900 dark:text-green-200">
-                                    Chứng chỉ đã sẵn sàng
+                                    Certificate is ready
                                 </h2>
                                 <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                                    Bạn đã hoàn thành khóa học. Hệ thống đã tự động cấp chứng chỉ hoàn thành.
+                                    You have completed the course. The system has automatically issued your certificate of completion.
                                 </p>
                             </div>
                         </div>
                         <Link to={`/learning/${courseId}/certificate`} className="md:shrink-0">
                             <Button className="bg-green-600 hover:bg-green-700 gap-2 w-full md:w-auto">
                                 <Award className="h-4 w-4" />
-                                Xem chứng chỉ
+                                View Certificate
                             </Button>
                         </Link>
                     </div>
@@ -190,7 +190,7 @@ export default function Progress() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-red-500" />
-                        <h2 className="font-semibold text-zinc-900 dark:text-white">Nhận xét AI</h2>
+                        <h2 className="font-semibold text-zinc-900 dark:text-white">AI Review</h2>
                     </div>
                     <Button
                         size="sm"
@@ -200,16 +200,16 @@ export default function Progress() {
                         className="gap-1 text-xs w-full sm:w-auto"
                     >
                         {summaryMutation.isPending ? (
-                            <><Loader2 className="w-3 h-3 animate-spin" />Đang phân tích...</>
+                            <><Loader2 className="w-3 h-3 animate-spin" />Analyzing...</>
                         ) : (
-                            <><Sparkles className="w-3 h-3" />{aiSummary ? 'Cập nhật' : 'Nhận nhận xét'}</>
+                            <><Sparkles className="w-3 h-3" />{aiSummary ? 'Update' : 'Get Review'}</>
                         )}
                     </Button>
                 </div>
                 {aiSummary ? (
                     <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{aiSummary}</p>
                 ) : (
-                    <p className="text-sm text-zinc-500">Nhấn nút để AI phân tích điểm mạnh và điểm cần cải thiện của bạn.</p>
+                    <p className="text-sm text-zinc-500">Click the button to have AI analyze your strengths and areas for improvement.</p>
                 )}
             </Card>
 
@@ -217,7 +217,7 @@ export default function Progress() {
             <div className="space-y-3">
                 <h2 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-red-600" />
-                    Chi tiết theo chương
+                    Syllabus Breakdown
                 </h2>
                 {detail.modules.map(mod => {
                     const modCompleted = mod.contents.filter(c => c.completed).length;
@@ -269,12 +269,12 @@ export default function Progress() {
                                                     {content.practiceScore && (
                                                         <span className={`text-xs font-medium ${content.practiceScore.passed ? 'text-green-500' : 'text-yellow-500'}`}>
                                                             <Target className="w-3 h-3 inline mr-0.5" />
-                                                            {content.practiceScore.passed ? 'Đạt' : 'Chưa đạt'} ({content.practiceScore.score})
+                                                            {content.practiceScore.passed ? 'Passed' : 'Failed'} ({content.practiceScore.score})
                                                         </span>
                                                     )}
                                                     {content.completedAt && (
                                                         <span className="text-xs text-zinc-400">
-                                                            {new Date(content.completedAt).toLocaleDateString('vi-VN')}
+                                                            {new Date(content.completedAt).toLocaleDateString('en-US')}
                                                         </span>
                                                     )}
                                                 </div>

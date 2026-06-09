@@ -75,7 +75,7 @@ Evaluate the code objectively and return JSON with this exact structure:
 {
   "score": <number 0-100>,
   "passed": <boolean, true if score >= 60>,
-  "feedback": "<concise feedback in Vietnamese explaining what is correct and what needs improvement>"
+  "feedback": "<concise feedback in English explaining what is correct and what needs improvement>"
 }`;
 
         const userPrompt = `Practice Task: ${practice.prompt}
@@ -109,7 +109,7 @@ Grade this submission and return only valid JSON.`;
     } catch {
         score = 0;
         passed = false;
-        aiFeedback = 'AI grading không khả dụng. Code của bạn đã được ghi nhận, hãy thử lại sau để nhận phản hồi chi tiết.';
+        aiFeedback = 'AI grading is currently unavailable. Your code has been saved, please try again later for detailed feedback.';
     }
 
     const submission = await prisma.practiceSubmission.create({

@@ -58,12 +58,12 @@ export default function Certificate() {
         return (
             <div className="container mx-auto max-w-2xl px-4 py-12 text-center">
                 <Award className="mx-auto mb-4 h-12 w-12 text-zinc-400" />
-                <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Chưa có chứng chỉ</h1>
+                <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">No Certificate Yet</h1>
                 <p className="mb-6 text-zinc-500 dark:text-zinc-400">
-                    Bạn cần hoàn thành 100% khóa học để hệ thống tự động cấp chứng chỉ.
+                    You need to complete 100% of the course for the system to automatically issue a certificate.
                 </p>
                 <Link to={`/learning/${courseId}/progress`}>
-                    <Button>Quay lại tiến độ</Button>
+                    <Button>Back to Progress</Button>
                 </Link>
             </div>
         );
@@ -79,12 +79,12 @@ export default function Certificate() {
                 <Link to={`/learning/${courseId}/progress`} className="self-start sm:self-auto">
                     <Button variant="ghost" size="sm" className="gap-1">
                         <ChevronLeft className="h-4 w-4" />
-                        Quay lại tiến độ
+                        Back to Progress
                     </Button>
                 </Link>
                 <Button onClick={() => window.print()} className="gap-2 bg-red-600 hover:bg-red-700 w-full sm:w-auto">
                     <Download className="h-4 w-4" />
-                    In / Lưu PDF
+                    Print / Save PDF
                 </Button>
             </div>
 
@@ -98,30 +98,30 @@ export default function Certificate() {
                     Certificate of Completion
                 </p>
                 <h1 className="mt-3 sm:mt-4 text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-900 dark:text-white">
-                    Chứng nhận hoàn thành khóa học
+                    Certificate of Course Completion
                 </h1>
 
-                <p className="mt-6 sm:mt-8 text-zinc-500 dark:text-zinc-400">Chứng nhận rằng</p>
+                <p className="mt-6 sm:mt-8 text-zinc-500 dark:text-zinc-400">This is to certify that</p>
                 <p className="mt-2 sm:mt-3 text-2xl sm:text-3xl lg:text-4xl font-bold text-zinc-900 dark:text-white break-words">{studentName}</p>
                 <p className="mx-auto mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed text-zinc-600 dark:text-zinc-300">
-                    đã hoàn thành xuất sắc khóa học
+                    has successfully completed the course
                     <span className="font-semibold text-zinc-900 dark:text-white"> {certificate.course.title}</span>
-                    {' '}với tiến độ {certificate.enrollment.progress}%.
+                    {' '}with progress of {certificate.enrollment.progress}%.
                 </p>
 
                 <div className="mt-8 sm:mt-10 grid gap-4 sm:gap-6 border-t border-zinc-200 pt-6 sm:pt-8 text-left sm:grid-cols-3 dark:border-zinc-800">
                     <div>
-                        <p className="text-xs uppercase text-zinc-400">Ngày hoàn thành</p>
+                        <p className="text-xs uppercase text-zinc-400">Completion Date</p>
                         <p className="mt-1 font-semibold text-zinc-900 dark:text-white">
-                            {new Date(completedAt).toLocaleDateString('vi-VN')}
+                            {new Date(completedAt).toLocaleDateString('en-US')}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs uppercase text-zinc-400">Giảng viên</p>
+                        <p className="text-xs uppercase text-zinc-400">Instructor</p>
                         <p className="mt-1 font-semibold text-zinc-900 dark:text-white break-words">{teacherName}</p>
                     </div>
                     <div>
-                        <p className="text-xs uppercase text-zinc-400">Mã chứng chỉ</p>
+                        <p className="text-xs uppercase text-zinc-400">Certificate Code</p>
                         <p className="mt-1 font-mono text-sm font-semibold text-zinc-900 dark:text-white break-all">
                             {certificate.certificateCode}
                         </p>
@@ -130,7 +130,7 @@ export default function Certificate() {
 
                 <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 break-all">
                     <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />
-                    <span>Có thể xác thực tại API: /api/certificates/verify/{certificate.certificateCode}</span>
+                    <span>Can be verified at API: /api/certificates/verify/{certificate.certificateCode}</span>
                 </div>
             </Card>
         </div>

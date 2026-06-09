@@ -34,10 +34,10 @@ type ParsedChapter = {
 
 const LESSON_TYPE_LABELS: Record<LessonType, string> = {
     VIDEO: 'Video',
-    DOCUMENT: 'Tài liệu',
-    QUIZ: 'Bài kiểm tra',
-    PRACTICE: 'Bài thực hành',
-    ASSIGNMENT: 'Bài tập',
+    DOCUMENT: 'Document',
+    QUIZ: 'Quiz',
+    PRACTICE: 'Practice',
+    ASSIGNMENT: 'Assignment',
 };
 
 const LESSON_TYPES: LessonType[] = ['VIDEO', 'DOCUMENT', 'QUIZ', 'PRACTICE', 'ASSIGNMENT'];
@@ -90,14 +90,14 @@ export default function SyllabusImport() {
             }));
             setChapters(cleaned);
             showSuccessAlert(
-                'Phân tích thành công',
-                `Đã trích xuất ${cleaned.length} chương. Bạn có thể chỉnh sửa trước khi lưu.`,
+                'Parsed successfully',
+                `Extracted ${cleaned.length} chapters. You can edit before saving.`,
             );
         },
         onError: (error: any) => {
             showErrorAlert(
-                'Lỗi phân tích',
-                error.response?.data?.error || 'Không thể phân tích đề cương. Hãy thử lại.',
+                'Parsing Error',
+                error.response?.data?.error || 'Unable to parse syllabus. Please try again.',
             );
         },
     });
@@ -112,26 +112,26 @@ export default function SyllabusImport() {
         },
         onSuccess: (data: { created: number }) => {
             showSuccessAlert(
-                'Đã lưu',
-                `Đã tạo ${data.created} chương vào khoá học.`,
+                'Saved',
+                `Successfully created ${data.created} chapters in the course.`,
             );
             navigate(managePath);
         },
         onError: (error: any) => {
             showErrorAlert(
-                'Lỗi lưu cấu trúc',
-                error.response?.data?.error || 'Không thể lưu cấu trúc. Hãy thử lại.',
+                'Error Saving Structure',
+                error.response?.data?.error || 'Unable to save course structure. Please try again.',
             );
         },
     });
 
     const handleParse = () => {
         if (mode === 'paste' && !text.trim()) {
-            showErrorAlert('Thiếu nội dung', 'Vui lòng dán nội dung đề cương.');
+            showErrorAlert('Missing Content', 'Please paste the syllabus content.');
             return;
         }
         if (mode === 'upload' && !file) {
-            showErrorAlert('Chưa chọn tệp', 'Vui lòng chọn tệp PDF, DOCX, MD hoặc TXT.');
+            showErrorAlert('No File Chosen', 'Please choose a PDF, DOCX, MD or TXT file.');
             return;
         }
         parseMutation.mutate();
@@ -139,7 +139,7 @@ export default function SyllabusImport() {
 
     const handleCommit = () => {
         if (chapters.length === 0) {
-            showErrorAlert('Trống', 'Không có chương nào để lưu.');
+            showErrorAlert('Empty', 'No chapters to save.');
             return;
         }
         commitMutation.mutate();
@@ -168,7 +168,7 @@ export default function SyllabusImport() {
     const addChapter = () => {
         setChapters((prev) => [
             ...prev,
-            { title: 'Chương mới', lessons: [] },
+            { title: 'New Chapter', lessons: [] },
         ]);
     };
 
@@ -237,7 +237,7 @@ export default function SyllabusImport() {
                           ...c,
                           lessons: [
                               ...c.lessons,
-                              { title: 'Bài học mới', type: 'VIDEO', description: '' },
+                              { title: 'New Lesson', type: 'VIDEO', description: '' },
                           ],
                       },
             ),
@@ -266,18 +266,18 @@ export default function SyllabusImport() {
                     className="mb-3 sm:mb-4"
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại quản lý khoá học
+                    Back to Course Management
                 </Button>
 
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                     <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-red-600 shrink-0" />
                     <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
-                        Tạo cấu trúc khoá học bằng AI
+                        AI Syllabus Builder
                     </h1>
                 </div>
                 <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-5 sm:mb-6">
-                    Dán đề cương hoặc tải tệp PDF/DOCX/MD/TXT. AI sẽ trích xuất các chương và bài học.
-                    Bạn có thể chỉnh sửa, sắp xếp lại trước khi lưu.
+                    Paste your syllabus or upload a PDF/DOCX/MD/TXT file. AI will extract chapters and lessons.
+                    You can edit and reorder them before saving.
                 </p>
 
                 {/* Input mode tabs */}
@@ -292,7 +292,7 @@ export default function SyllabusImport() {
                                     : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                             }`}
                         >
-                            Dán nội dung
+                            Paste Content
                         </button>
                         <button
                             type="button"
@@ -303,7 +303,7 @@ export default function SyllabusImport() {
                                     : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                             }`}
                         >
-                            Tải tệp lên
+                            Upload File
                         </button>
                     </div>
 
@@ -312,7 +312,7 @@ export default function SyllabusImport() {
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             rows={10}
-                            placeholder="Dán nội dung đề cương ở đây... (VD: Chương 1: ..., Bài 1.1: ...)"
+                            placeholder="Paste syllabus content here... (e.g. Chapter 1: ..., Lesson 1.1: ...)"
                             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
                         />
                     ) : (
@@ -337,7 +337,7 @@ export default function SyllabusImport() {
                                             {file.name} ({Math.round(file.size / 1024)} KB)
                                         </span>
                                     ) : (
-                                        'Nhấn để chọn tệp PDF, DOCX, MD hoặc TXT (tối đa 5MB)'
+                                        'Click to select PDF, DOCX, MD or TXT file (max 5MB)'
                                     )}
                                 </p>
                             </button>
@@ -355,7 +355,7 @@ export default function SyllabusImport() {
                             ) : (
                                 <Sparkles className="h-4 w-4" />
                             )}
-                            Phân tích bằng AI
+                            Parse with AI
                         </Button>
                     </div>
                 </Card>
@@ -365,7 +365,7 @@ export default function SyllabusImport() {
                     <Card className="p-4 sm:p-6">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                             <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white">
-                                Cấu trúc đã trích xuất ({chapters.length} chương)
+                                Extracted Structure ({chapters.length} chapters)
                             </h2>
                             <Button
                                 onClick={handleCommit}
@@ -374,14 +374,14 @@ export default function SyllabusImport() {
                             >
                                 {commitMutation.isPending ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
+                               ) : (
                                     <Save className="h-4 w-4" />
                                 )}
-                                Lưu vào khoá học
+                                Save to Course
                             </Button>
                         </div>
                         <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
-                            Có thể kéo thả chương/bài học để sắp xếp, hoặc dùng nút lên/xuống để chỉnh thứ tự.
+                            You can drag and drop chapters/lessons to rearrange, or use the up/down buttons to reorder.
                         </p>
 
                         <div className="space-y-4">
@@ -410,7 +410,7 @@ export default function SyllabusImport() {
                                             onChange={(e) =>
                                                 updateChapterTitle(ci, e.target.value)
                                             }
-                                            placeholder="Tên chương"
+                                            placeholder="Chapter Title"
                                             className="flex-1 min-w-[160px]"
                                         />
                                         <div className="flex items-center gap-1 ml-auto">
@@ -472,7 +472,7 @@ export default function SyllabusImport() {
                                                             title: e.target.value,
                                                         })
                                                     }
-                                                    placeholder="Tên bài học"
+                                                    placeholder="Lesson Title"
                                                     className="flex-1 min-w-[140px]"
                                                 />
                                                 <select
@@ -525,7 +525,7 @@ export default function SyllabusImport() {
                                             className="gap-2 border-dashed"
                                         >
                                             <Plus className="h-4 w-4" />
-                                            Thêm bài học
+                                            Add Lesson
                                         </Button>
                                     </div>
                                 </div>
@@ -537,7 +537,7 @@ export default function SyllabusImport() {
                                 className="w-full gap-2 border-dashed"
                             >
                                 <Plus className="h-4 w-4" />
-                                Thêm chương
+                                Add Chapter
                             </Button>
                         </div>
                     </Card>

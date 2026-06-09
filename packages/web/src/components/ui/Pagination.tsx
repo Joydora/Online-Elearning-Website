@@ -69,17 +69,17 @@ export function Pagination({
                     disabled={currentPage === 1}
                     className="relative inline-flex items-center rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                    Trước
+                    Previous
                 </button>
                 <span className="text-sm text-zinc-700 dark:text-zinc-300 flex items-center">
-                    Trang {currentPage} / {totalPages}
+                    Page {currentPage} of {totalPages}
                 </span>
                 <button
                     onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
                     disabled={currentPage === totalPages}
                     className="relative ml-3 inline-flex items-center rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                    Sau
+                    Next
                 </button>
             </div>
 
@@ -87,8 +87,8 @@ export function Pagination({
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <div>
                     <p className="text-sm text-zinc-700 dark:text-zinc-400">
-                        Hiển thị trang <span className="font-semibold text-zinc-900 dark:text-white">{currentPage}</span> trong tổng số{' '}
-                        <span className="font-semibold text-zinc-900 dark:text-white">{totalPages}</span> trang
+                        Showing page <span className="font-semibold text-zinc-900 dark:text-white">{currentPage}</span> of{' '}
+                        <span className="font-semibold text-zinc-900 dark:text-white">{totalPages}</span> pages
                     </p>
                 </div>
                 <div>
@@ -98,9 +98,9 @@ export function Pagination({
                             onClick={() => onPageChange(1)}
                             disabled={currentPage === 1}
                             className="relative inline-flex items-center rounded-l-md px-2 py-2 text-zinc-400 dark:text-zinc-500 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-                            title="Trang đầu"
+                            title="First Page"
                         >
-                            <span className="sr-only">Trang đầu</span>
+                            <span className="sr-only">First Page</span>
                             <ChevronsLeft className="h-4 w-4" aria-hidden="true" />
                         </button>
 
@@ -109,9 +109,9 @@ export function Pagination({
                             onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
                             disabled={currentPage === 1}
                             className="relative inline-flex items-center px-2 py-2 text-zinc-400 dark:text-zinc-500 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-                            title="Trang trước"
+                            title="Previous Page"
                         >
-                            <span className="sr-only">Trang trước</span>
+                            <span className="sr-only">Previous Page</span>
                             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                         </button>
 
@@ -150,9 +150,9 @@ export function Pagination({
                             onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
                             disabled={currentPage === totalPages}
                             className="relative inline-flex items-center px-2 py-2 text-zinc-400 dark:text-zinc-500 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-                            title="Trang sau"
+                            title="Next Page"
                         >
-                            <span className="sr-only">Trang sau</span>
+                            <span className="sr-only">Next Page</span>
                             <ChevronRight className="h-4 w-4" aria-hidden="true" />
                         </button>
 
@@ -161,9 +161,9 @@ export function Pagination({
                             onClick={() => onPageChange(totalPages)}
                             disabled={currentPage === totalPages}
                             className="relative inline-flex items-center rounded-r-md px-2 py-2 text-zinc-400 dark:text-zinc-500 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-                            title="Trang cuối"
+                            title="Last Page"
                         >
-                            <span className="sr-only">Trang cuối</span>
+                            <span className="sr-only">Last Page</span>
                             <ChevronsRight className="h-4 w-4" aria-hidden="true" />
                         </button>
                     </nav>

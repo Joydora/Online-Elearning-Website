@@ -40,11 +40,11 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', courseId] });
-            showSuccessAlert('Thêm nội dung thành công!', 'Nội dung mới đã được tạo.');
+            showSuccessAlert('Content added successfully!', 'The new content has been created.');
             onClose();
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi tạo nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error creating content', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -55,11 +55,11 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', courseId] });
-            showSuccessAlert('Cập nhật thành công!', 'Nội dung bài học đã được cập nhật.');
+            showSuccessAlert('Update successful!', 'The lesson content has been updated.');
             onClose();
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi cập nhật bài học', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error updating lesson', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -67,7 +67,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
         e.preventDefault();
 
         if (!title.trim()) {
-            showErrorAlert('Lỗi', 'Vui lòng nhập tiêu đề');
+            showErrorAlert('Error', 'Please enter a title');
             return;
         }
 
@@ -82,7 +82,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
 
         if (contentType === 'VIDEO') {
             if (!videoUrl.trim()) {
-                showErrorAlert('Lỗi', 'Vui lòng nhập URL video');
+                showErrorAlert('Error', 'Please enter a video URL');
                 return;
             }
             data.videoUrl = videoUrl.trim();
@@ -91,7 +91,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
             }
         } else if (contentType === 'DOCUMENT') {
             if (!documentUrl.trim()) {
-                showErrorAlert('Lỗi', 'Vui lòng nhập URL tài liệu');
+                showErrorAlert('Error', 'Please enter a document URL');
                 return;
             }
             data.documentUrl = documentUrl.trim();
@@ -102,7 +102,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
             }
         } else if (contentType === 'PRACTICE' || contentType === 'ASSIGNMENT') {
             if (!practicePrompt.trim()) {
-                showErrorAlert('Lỗi', 'Vui lòng nhập yêu cầu bài thực hành/bài tập');
+                showErrorAlert('Error', 'Please enter exercise/practice instructions');
                 return;
             }
             data.practicePrompt = practicePrompt.trim();
@@ -121,7 +121,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
 
     const handleFileUpload = async (file: File, type: 'video' | 'document') => {
         setIsUploading(true);
-        setUploadProgress('Đang upload...');
+        setUploadProgress('Uploading...');
 
         try {
             const formData = new FormData();
@@ -137,15 +137,15 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
 
             if (type === 'video') {
                 setVideoUrl(uploadedUrl);
-                setUploadProgress('Upload video thành công!');
+                setUploadProgress('Video uploaded successfully!');
             } else {
                 setDocumentUrl(uploadedUrl);
-                setUploadProgress('Upload tài liệu thành công!');
+                setUploadProgress('Document uploaded successfully!');
             }
 
             setTimeout(() => setUploadProgress(''), 3000);
         } catch (error: any) {
-            showErrorAlert('Lỗi upload', error.response?.data?.error || 'Không thể upload file');
+            showErrorAlert('Upload error', error.response?.data?.error || 'Could not upload file');
             setUploadProgress('');
         } finally {
             setIsUploading(false);
@@ -158,7 +158,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
                     <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                        {initialData ? 'Chỉnh sửa nội dung' : 'Thêm nội dung mới'}
+                        {initialData ? 'Edit Content' : 'Add New Content'}
                     </h2>
                     <Button
                         variant="ghost"
@@ -175,7 +175,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                     {/* Content Type */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Loại nội dung <span className="text-red-500">*</span>
+                            Content Type <span className="text-red-500">*</span>
                         </label>
                         <select
                             value={contentType}
@@ -184,22 +184,22 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                             className="w-full h-12 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <option value="VIDEO">Video</option>
-                            <option value="DOCUMENT">Tài liệu</option>
-                            <option value="QUIZ">Bài kiểm tra</option>
-                            <option value="PRACTICE">Bài thực hành</option>
-                            <option value="ASSIGNMENT">Bài tập</option>
+                            <option value="DOCUMENT">Document</option>
+                            <option value="QUIZ">Quiz</option>
+                            <option value="PRACTICE">Practice</option>
+                            <option value="ASSIGNMENT">Assignment</option>
                         </select>
                     </div>
 
                     {/* Title */}
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Tiêu đề <span className="text-red-500">*</span>
+                            Title <span className="text-red-500">*</span>
                         </label>
                         <Input
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder="VD: Bài 1: Giới thiệu về TypeScript"
+                            placeholder="e.g. Lesson 1: Introduction to TypeScript"
                             className="h-12"
                         />
                     </div>
@@ -214,10 +214,10 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                         />
                         <span>
                             <span className="block font-medium text-green-800 dark:text-green-300">
-                                Cho phép xem miễn phí
+                                Enable Free Preview
                             </span>
                             <span className="text-green-700 dark:text-green-400">
-                                Học viên chưa mua/chưa học thử vẫn có thể mở bài này trên trang chi tiết khóa học.
+                                Students who have not purchased or started a trial can still access this lesson on the course details page.
                             </span>
                         </span>
                     </label>
@@ -251,12 +251,12 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                         {isUploading ? (
                                             <>
                                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                Đang upload...
+                                                Uploading...
                                             </>
                                         ) : (
                                             <>
                                                 <Save className="h-4 w-4 mr-2" />
-                                                Upload video từ máy
+                                                Upload video from device
                                             </>
                                         )}
                                     </label>
@@ -273,7 +273,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                         <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
                                     </div>
                                     <div className="relative flex justify-center text-sm">
-                                        <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">hoặc nhập URL</span>
+                                        <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">or enter URL</span>
                                     </div>
                                 </div>
 
@@ -287,12 +287,12 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                     disabled={isUploading}
                                 />
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    Link video từ YouTube, Vimeo, hoặc URL trực tiếp
+                                    Video link from YouTube, Vimeo, or direct URL
                                 </p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Thời lượng (giây)
+                                    Duration (seconds)
                                 </label>
                                 <Input
                                     value={durationInSeconds}
@@ -303,7 +303,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                     min="0"
                                 />
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    VD: 900 giây = 15 phút
+                                    e.g. 900 seconds = 15 minutes
                                 </p>
                             </div>
                         </>
@@ -313,7 +313,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                         <>
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Tài liệu <span className="text-red-500">*</span>
+                                    Document <span className="text-red-500">*</span>
                                 </label>
 
                                 {/* File Upload Button */}
@@ -343,12 +343,12 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                         {isUploading ? (
                                             <>
                                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                Đang upload...
+                                                Uploading...
                                             </>
                                         ) : (
                                             <>
                                                 <Save className="h-4 w-4 mr-2" />
-                                                Upload tài liệu từ máy
+                                                Upload document from device
                                             </>
                                         )}
                                     </label>
@@ -365,7 +365,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                         <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
                                     </div>
                                     <div className="relative flex justify-center text-sm">
-                                        <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">hoặc nhập URL</span>
+                                        <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">or enter URL</span>
                                     </div>
                                 </div>
 
@@ -379,12 +379,12 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                     disabled={isUploading}
                                 />
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    Link tài liệu PDF, DOCX, PPT từ Google Drive hoặc URL trực tiếp
+                                    PDF, DOCX, PPT document link from Google Drive or direct URL
                                 </p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Loại file
+                                    File Type
                                 </label>
                                 <select
                                     value={fileType}
@@ -404,7 +404,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                         <>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Giới hạn thời gian (phút)
+                                    Time Limit (minutes)
                                 </label>
                                 <Input
                                     value={timeLimitInMinutes}
@@ -415,12 +415,12 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                     min="1"
                                 />
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    Để trống nếu không giới hạn thời gian
+                                    Leave empty for no time limit
                                 </p>
                             </div>
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                                    <strong>Lưu ý:</strong> Sau khi tạo bài kiểm tra, bạn cần vào quản lý để thêm câu hỏi và đáp án.
+                                    <strong>Note:</strong> After creating a quiz, you need to go to management to add questions and answers.
                                 </p>
                             </div>
                         </>
@@ -430,19 +430,19 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                         <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-900/50 dark:bg-purple-950/30">
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Yêu cầu bài {contentType === 'PRACTICE' ? 'thực hành' : 'tập'} <span className="text-red-500">*</span>
+                                    {contentType === 'PRACTICE' ? 'Practice' : 'Assignment'} Requirements <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     value={practicePrompt}
                                     onChange={(e) => setPracticePrompt(e.target.value)}
-                                    placeholder="Mô tả yêu cầu, input/output, ràng buộc..."
+                                    placeholder="Description of requirements, inputs/outputs, constraints..."
                                     rows={4}
                                     className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Starter code
+                                    Starter Code
                                 </label>
                                 <textarea
                                     value={starterCode}
@@ -455,7 +455,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Ngôn ngữ
+                                        Language
                                     </label>
                                     <select
                                         value={language}
@@ -471,24 +471,24 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Expected output
+                                        Expected Output
                                     </label>
                                     <Input
                                         value={expectedOutput}
                                         onChange={(e) => setExpectedOutput(e.target.value)}
-                                        placeholder="Kết quả mong đợi"
+                                        placeholder="Expected result"
                                         className="h-12"
                                     />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Rubric chấm điểm
+                                    Grading Rubric
                                 </label>
                                 <textarea
                                     value={rubric}
                                     onChange={(e) => setRubric(e.target.value)}
-                                    placeholder="Tiêu chí đúng/sai, hiệu năng, style code..."
+                                    placeholder="Criteria for correct/incorrect, performance, code style..."
                                     rows={3}
                                     className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
                                 />
@@ -505,7 +505,7 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                             disabled={createContentMutation.isPending || updateContentMutation.isPending || isUploading}
                             className="flex-1 h-12"
                         >
-                            Hủy
+                            Cancel
                         </Button>
                         <Button
                             type="submit"
@@ -515,12 +515,12 @@ export function AddContentModal({ moduleId, courseId, onClose, initialData }: Pr
                             {createContentMutation.isPending || updateContentMutation.isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    {initialData ? 'Đang lưu...' : 'Đang tạo...'}
+                                    {initialData ? 'Saving...' : 'Creating...'}
                                 </>
                             ) : (
                                 <>
                                     <Save className="mr-2 h-5 w-5" />
-                                    {initialData ? 'Lưu thay đổi' : 'Tạo nội dung'}
+                                    {initialData ? 'Save Changes' : 'Create Content'}
                                 </>
                             )}
                         </Button>

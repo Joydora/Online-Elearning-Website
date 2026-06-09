@@ -79,11 +79,11 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
             await apiClient.post('/promotions', data);
         },
         onSuccess: () => {
-            showSuccessAlert('Thành công!', 'Mã khuyến mãi đã được tạo.');
+            showSuccessAlert('Success!', 'Promotion code has been created.');
             onSuccess();
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi!', error.response?.data?.error || 'Không thể tạo mã khuyến mãi.');
+            showErrorAlert('Error!', error.response?.data?.error || 'Could not create promotion code.');
         },
     });
 
@@ -92,11 +92,11 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
             await apiClient.put(`/promotions/${promotion!.id}`, data);
         },
         onSuccess: () => {
-            showSuccessAlert('Thành công!', 'Mã khuyến mãi đã được cập nhật.');
+            showSuccessAlert('Success!', 'Promotion code has been updated.');
             onSuccess();
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi!', error.response?.data?.error || 'Không thể cập nhật mã khuyến mãi.');
+            showErrorAlert('Error!', error.response?.data?.error || 'Could not update promotion code.');
         },
     });
 
@@ -129,7 +129,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                 <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 sm:p-6 flex items-center justify-between gap-3">
                     <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Tag className="w-5 h-5 sm:w-6 sm:h-6" />
-                        {isEditing ? 'Sửa mã khuyến mãi' : 'Tạo mã khuyến mãi'}
+                        {isEditing ? 'Edit Promotion Code' : 'Create Promotion Code'}
                     </h2>
                     <Button variant="ghost" size="sm" onClick={onClose} className="shrink-0">
                         <X className="w-5 h-5" />
@@ -140,13 +140,13 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     {/* Code */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Mã khuyến mãi *
+                            Promotion Code *
                         </label>
                         <Input
                             type="text"
                             value={formData.code}
                             onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                            placeholder="SUMMER2024"
+                            placeholder="SUMMER2026"
                             required
                             disabled={isEditing}
                             className="uppercase"
@@ -156,12 +156,12 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     {/* Description */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Mô tả
+                            Description
                         </label>
                         <Textarea
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Mô tả mã khuyến mãi..."
+                            placeholder="Promotion description..."
                             rows={3}
                         />
                     </div>
@@ -170,7 +170,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Loại giảm giá *
+                                Discount Type *
                             </label>
                             <select
                                 value={formData.discountType}
@@ -178,22 +178,22 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                                 required
                             >
-                                <option value="PERCENTAGE">Phần trăm (%)</option>
-                                <option value="FIXED">Số tiền cố định (VND)</option>
+                                <option value="PERCENTAGE">Percentage (%)</option>
+                                <option value="FIXED">Fixed Amount (USD)</option>
                             </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Giá trị giảm giá *
+                                Discount Value *
                             </label>
                             <Input
                                 type="number"
-                                step={formData.discountType === 'PERCENTAGE' ? '1' : '1000'}
+                                step={formData.discountType === 'PERCENTAGE' ? '1' : '0.01'}
                                 min="0"
                                 max={formData.discountType === 'PERCENTAGE' ? '100' : undefined}
                                 value={formData.discountValue}
                                 onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
-                                placeholder={formData.discountType === 'PERCENTAGE' ? '10' : '50000'}
+                                placeholder={formData.discountType === 'PERCENTAGE' ? '10' : '5.00'}
                                 required
                             />
                         </div>
@@ -203,28 +203,28 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Đơn tối thiểu (VND)
+                                Minimum Purchase (USD)
                             </label>
                             <Input
                                 type="number"
-                                step="1000"
+                                step="0.01"
                                 min="0"
                                 value={formData.minPurchaseAmount}
                                 onChange={(e) => setFormData({ ...formData, minPurchaseAmount: e.target.value })}
-                                placeholder="0"
+                                placeholder="0.00"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Giảm tối đa (VND) {formData.discountType === 'PERCENTAGE' && '(cho phần trăm)'}
+                                Maximum Discount (USD) {formData.discountType === 'PERCENTAGE' && '(for percentage)'}
                             </label>
                             <Input
                                 type="number"
-                                step="1000"
+                                step="0.01"
                                 min="0"
                                 value={formData.maxDiscountAmount}
                                 onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
-                                placeholder="0"
+                                placeholder="0.00"
                             />
                         </div>
                     </div>
@@ -232,7 +232,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     {/* Usage Limit */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Giới hạn sử dụng (để trống = không giới hạn)
+                            Usage Limit (leave empty = unlimited)
                         </label>
                         <Input
                             type="number"
@@ -248,7 +248,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Ngày bắt đầu *
+                                Start Date *
                             </label>
                             <Input
                                 type="datetime-local"
@@ -259,7 +259,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Ngày kết thúc *
+                                End Date *
                             </label>
                             <Input
                                 type="datetime-local"
@@ -280,7 +280,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                             className="w-4 h-4 text-red-600 border-zinc-300 rounded focus:ring-red-500"
                         />
                         <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Kích hoạt mã khuyến mãi
+                            Activate promotion code
                         </label>
                     </div>
 
@@ -292,7 +292,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                             onClick={onClose}
                             className="flex-1"
                         >
-                            Hủy
+                            Cancel
                         </Button>
                         <Button
                             type="submit"
@@ -300,10 +300,10 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                             disabled={createMutation.isPending || updateMutation.isPending}
                         >
                             {createMutation.isPending || updateMutation.isPending
-                                ? 'Đang xử lý...'
+                                ? 'Processing...'
                                 : isEditing
-                                    ? 'Cập nhật'
-                                    : 'Tạo'}
+                                    ? 'Update'
+                                    : 'Create'}
                         </Button>
                     </div>
                 </form>

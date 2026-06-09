@@ -103,10 +103,10 @@ export default function Courses() {
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="max-w-4xl mx-auto text-center">
                         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
-                            Khám phá khóa học
+                            Explore Courses
                         </h1>
                         <p className="text-red-100 text-sm sm:text-lg mb-6 sm:mb-8">
-                            Tìm kiếm và đăng ký khóa học phù hợp với bạn
+                            Find and enroll in the courses that fit you best
                         </p>
 
                         {/* Search Bar */}
@@ -114,7 +114,7 @@ export default function Courses() {
                             <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                             <Input
                                 type="text"
-                                placeholder="Tìm kiếm khóa học..."
+                                placeholder="Search courses..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-10 sm:pl-12 pr-4 h-12 sm:h-14 text-sm sm:text-base bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 shadow-sm"
@@ -135,10 +135,10 @@ export default function Courses() {
                     >
                         <span className="flex items-center gap-2">
                             <Filter className="h-4 w-4" />
-                            Bộ lọc
+                            Filters
                             {hasActiveFilters && (
                                 <span className="rounded-full bg-red-600 text-white text-xs px-2 py-0.5">
-                                    Đã áp dụng
+                                    Applied
                                 </span>
                             )}
                         </span>
@@ -154,7 +154,7 @@ export default function Courses() {
                                 <div className="flex items-center gap-2">
                                     <Filter className="h-5 w-5 text-red-600 dark:text-red-400" />
                                     <h3 className="font-semibold text-zinc-900 dark:text-white">
-                                        Bộ lọc
+                                        Filters
                                     </h3>
                                 </div>
                                 {hasActiveFilters && (
@@ -165,7 +165,7 @@ export default function Courses() {
                                         className="h-8 text-xs"
                                     >
                                         <X className="h-4 w-4 mr-1" />
-                                        Xóa
+                                        Clear
                                     </Button>
                                 )}
                             </div>
@@ -173,7 +173,7 @@ export default function Courses() {
                             {/* Price Filter */}
                             <div className="mb-6">
                                 <h4 className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-3">
-                                    Giá
+                                    Price
                                 </h4>
                                 <div className="space-y-2">
                                     <label className="flex items-center gap-2 cursor-pointer">
@@ -185,7 +185,7 @@ export default function Courses() {
                                             className="text-red-600 focus:ring-red-500"
                                         />
                                         <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                            Tất cả
+                                            All
                                         </span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
@@ -197,7 +197,7 @@ export default function Courses() {
                                             className="text-red-600 focus:ring-red-500"
                                         />
                                         <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                            Miễn phí
+                                            Free
                                         </span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
@@ -209,7 +209,7 @@ export default function Courses() {
                                             className="text-red-600 focus:ring-red-500"
                                         />
                                         <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                            Có phí
+                                            Paid
                                         </span>
                                     </label>
                                 </div>
@@ -218,17 +218,17 @@ export default function Courses() {
                             {/* Category Filter */}
                             <div>
                                 <h4 className="font-medium text-sm text-zinc-700 dark:text-zinc-300 mb-3">
-                                    Danh mục
+                                    Category
                                 </h4>
                                 <div className="space-y-2">
                                     <button
                                         onClick={() => setSelectedCategory(null)}
                                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === null
-                                                ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium'
-                                                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                            ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium'
+                                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                                             }`}
                                     >
-                                        Tất cả danh mục
+                                        All Categories
                                     </button>
                                     {categories.map((category) => {
                                         const catId = category.id || category.categoryId;
@@ -237,8 +237,8 @@ export default function Courses() {
                                                 key={catId}
                                                 onClick={() => setSelectedCategory(catId!)}
                                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === catId
-                                                        ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium'
-                                                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                                    ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-medium'
+                                                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                                                     }`}
                                             >
                                                 {category.name}
@@ -255,10 +255,10 @@ export default function Courses() {
                         {/* Results Header */}
                         <div className="mb-4 sm:mb-6">
                             <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-1 sm:mb-2">
-                                {hasActiveFilters ? 'Kết quả tìm kiếm' : 'Tất cả khóa học'}
+                                {hasActiveFilters ? 'Search Results' : 'All Courses'}
                             </h2>
                             <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                                Tìm thấy {filteredCourses.length} khóa học
+                                Found {filteredCourses.length} courses
                             </p>
                         </div>
 
@@ -282,10 +282,10 @@ export default function Courses() {
                                         <Search className="h-16 w-16 text-zinc-300 dark:text-zinc-700 mx-auto" />
                                     </div>
                                     <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                                        Không tìm thấy khóa học
+                                        No courses found
                                     </h3>
                                     <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-                                        Không có khóa học nào phù hợp với tiêu chí tìm kiếm của bạn
+                                        No courses match your search criteria.
                                     </p>
                                     {hasActiveFilters && (
                                         <Button
@@ -293,7 +293,7 @@ export default function Courses() {
                                             variant="outline"
                                             className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                                         >
-                                            Xóa bộ lọc
+                                            Clear Filters
                                         </Button>
                                     )}
                                 </div>

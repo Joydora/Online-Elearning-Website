@@ -16,7 +16,7 @@ export default function ResendVerification() {
         e.preventDefault();
 
         if (!email) {
-            showErrorAlert('Lỗi', 'Vui lòng nhập địa chỉ email');
+            showErrorAlert('Error', 'Please enter your email address');
             return;
         }
 
@@ -25,17 +25,17 @@ export default function ResendVerification() {
         try {
             await apiClient.post('/auth/resend-verification', { email });
             setIsSent(true);
-            showSuccessAlert('Thành công', 'Email xác thực đã được gửi. Vui lòng kiểm tra hộp thư.');
+            showSuccessAlert('Success', 'Verification email has been sent. Please check your mailbox.');
         } catch (error: any) {
             const errorCode = error.response?.data?.code;
             const errorMessage = error.response?.data?.error;
 
             if (errorCode === 'ALREADY_VERIFIED') {
-                showErrorAlert('Email đã xác thực', 'Email này đã được xác thực. Bạn có thể đăng nhập ngay.');
+                showErrorAlert('Email Already Verified', 'This email has already been verified. You can login now.');
             } else if (error.response?.status === 404) {
-                showErrorAlert('Không tìm thấy', 'Không tìm thấy tài khoản với email này.');
+                showErrorAlert('Not Found', 'No account found with this email.');
             } else {
-                showErrorAlert('Lỗi', errorMessage || 'Không thể gửi email xác thực. Vui lòng thử lại.');
+                showErrorAlert('Error', errorMessage || 'Could not send verification email. Please try again.');
             }
         } finally {
             setIsLoading(false);
@@ -50,16 +50,16 @@ export default function ResendVerification() {
                         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Email đã được gửi!
+                        Email sent!
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mb-2">
-                        Chúng tôi đã gửi email xác thực đến:
+                        We have sent a verification email to:
                     </p>
                     <p className="text-red-600 dark:text-red-400 font-semibold mb-6">
                         {email}
                     </p>
                     <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-6">
-                        Vui lòng kiểm tra hộp thư (bao gồm cả thư rác) và click vào link xác thực trong email.
+                        Please check your mailbox (including spam/junk folder) and click the verification link in the email.
                     </p>
                     <div className="space-y-3">
                         <Button
@@ -67,12 +67,12 @@ export default function ResendVerification() {
                             variant="outline"
                             className="w-full"
                         >
-                            Gửi lại với email khác
+                            Resend to another email
                         </Button>
                         <Link to="/login">
                             <Button variant="ghost" className="w-full gap-2">
                                 <ArrowLeft className="w-4 h-4" />
-                                Quay lại đăng nhập
+                                Back to login
                             </Button>
                         </Link>
                     </div>
@@ -89,17 +89,17 @@ export default function ResendVerification() {
                         <Mail className="w-8 h-8 text-red-600 dark:text-red-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Gửi lại email xác thực
+                        Resend Verification Email
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        Nhập địa chỉ email đã đăng ký để nhận lại link xác thực
+                        Enter your registered email address to receive the verification link
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Địa chỉ email
+                            Email address
                         </label>
                         <Input
                             type="email"
@@ -120,12 +120,12 @@ export default function ResendVerification() {
                         {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                Đang gửi...
+                                Sending...
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Send className="w-5 h-5" />
-                                Gửi email xác thực
+                                Resend verification email
                             </div>
                         )}
                     </Button>
@@ -137,7 +137,7 @@ export default function ResendVerification() {
                         className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 flex items-center justify-center gap-2"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay lại đăng nhập
+                        Back to login
                     </Link>
                 </div>
             </Card>

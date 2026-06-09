@@ -123,7 +123,7 @@ export default function CourseDetail() {
             const { data } = await apiClient.post('/promotions/validate', { code: code.toUpperCase(), price });
             return data;
         } catch (error: any) {
-            showErrorAlert('Lỗi!', error.response?.data?.error || 'Mã khuyến mãi không hợp lệ.');
+            showErrorAlert('Error!', error.response?.data?.error || 'Invalid promotion code.');
             return null;
         } finally {
             setIsValidatingPromo(false);
@@ -132,7 +132,7 @@ export default function CourseDetail() {
 
     const handleApplyPromotion = async () => {
         if (!promotionCode.trim()) {
-            showErrorAlert('Lỗi!', 'Vui lòng nhập mã khuyến mãi.');
+            showErrorAlert('Error!', 'Please enter a promotion code.');
             return;
         }
 
@@ -147,7 +147,7 @@ export default function CourseDetail() {
                 discountAmount: result.discountAmount,
                 discountedPrice: result.discountedPrice,
             });
-            showSuccessAlert('Thành công!', `Áp dụng mã khuyến mãi "${result.promotion.code}" thành công.`);
+            showSuccessAlert('Success!', `Promotion code "${result.promotion.code}" applied successfully.`);
         }
     };
 
@@ -162,12 +162,12 @@ export default function CourseDetail() {
             return data;
         },
         onSuccess: async () => {
-            await showSuccessAlert('Đăng ký thử thành công!', course?.trialDurationDays != null ? `Bạn có ${course.trialDurationDays} ngày học thử miễn phí.` : 'Chúc bạn học tốt!');
+            await showSuccessAlert('Trial enrollment successful!', course?.trialDurationDays != null ? `You have ${course.trialDurationDays} days of free trial.` : 'Happy learning!');
             navigate(`/learning/${course?.courseId || course?.id}`);
         },
         onError: (error: any) => {
-            const msg = error.response?.data?.error || 'Không thể đăng ký học thử.';
-            showErrorAlert('Lỗi', msg);
+            const msg = error.response?.data?.error || 'Could not enroll in trial.';
+            showErrorAlert('Error', msg);
         },
     });
 
@@ -184,7 +184,7 @@ export default function CourseDetail() {
                 // Check if it's a local URL (free course) or Stripe URL
                 if (data.url.includes('localhost') || data.url.includes('payment-success')) {
                     // Free course - navigate to success page
-                    await showSuccessAlert('Đăng ký thành công!', 'Bạn đã đăng ký khóa học miễn phí thành công.');
+                    await showSuccessAlert('Enrolled successfully!', 'You have successfully enrolled in this free course.');
                     navigate('/my-courses');
                 } else {
                     // Paid course - redirect to Stripe checkout
@@ -192,22 +192,22 @@ export default function CourseDetail() {
                 }
             } else {
                 // Fallback - refresh to show enrollment
-                await showSuccessAlert('Đăng ký thành công!', 'Bạn đã đăng ký khóa học thành công.');
+                await showSuccessAlert('Enrolled successfully!', 'You have successfully enrolled in this course.');
                 window.location.reload();
             }
         },
         onError: (error: any) => {
             Swal.close();
-            const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Không thể tạo phiên thanh toán. Vui lòng thử lại.';
-            showErrorAlert('Lỗi thanh toán', errorMessage);
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Could not create checkout session. Please try again.';
+            showErrorAlert('Payment error', errorMessage);
         },
     });
 
     const handleEnroll = async () => {
         if (!isAuthenticated) {
             const result = await showErrorAlert(
-                'Chưa đăng nhập',
-                'Bạn cần đăng nhập để đăng ký khóa học'
+                'Not logged in',
+                'You need to log in to enroll in the course.'
             );
             if (result.isConfirmed) {
                 navigate('/login');
@@ -216,7 +216,7 @@ export default function CourseDetail() {
         }
 
         if (user?.role !== 'STUDENT') {
-            showErrorAlert('Lỗi', 'Chỉ học viên mới có thể đăng ký khóa học');
+            showErrorAlert('Error', 'Only students can enroll in courses.');
             return;
         }
 
@@ -227,11 +227,11 @@ export default function CourseDetail() {
 
         if (course.price === 0) {
             // Free course - enroll directly
-            showLoadingAlert('Đang đăng ký khóa học...');
+            showLoadingAlert('Enrolling in course...');
             enrollMutation.mutate(courseId);
         } else {
             // Paid course - go to Stripe
-            showLoadingAlert('Đang chuyển đến trang thanh toán...');
+            showLoadingAlert('Redirecting to checkout page...');
             enrollMutation.mutate(courseId);
         }
     };
@@ -256,8 +256,8 @@ export default function CourseDetail() {
             setPreviewContent(data);
         } catch (error: any) {
             showErrorAlert(
-                'Nội dung bị khóa',
-                error.response?.data?.error || 'Bài học này cần đăng ký hoặc mua khóa học để xem.',
+                'Locked Content',
+                error.response?.data?.error || 'This lesson requires enrolling or purchasing the course.',
             );
         } finally {
             setPreviewLoadingId(null);
@@ -281,9 +281,9 @@ export default function CourseDetail() {
     if (isError || !course) {
         return (
             <div className="container mx-auto px-4 py-20 text-center">
-                <p className="text-red-600 dark:text-red-400">Không tìm thấy khóa học</p>
+                <p className="text-red-600 dark:text-red-400">Course not found</p>
                 <Link to="/">
-                    <Button className="mt-4">Về trang chủ</Button>
+                    <Button className="mt-4">Back to home</Button>
                 </Link>
             </div>
         );
@@ -293,9 +293,9 @@ export default function CourseDetail() {
         .filter(Boolean)
         .join(' ') || course.teacher.username;
 
-    const formattedPrice = new Intl.NumberFormat('vi-VN', {
+    const formattedPrice = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'USD'
     }).format(course.price);
 
     const totalLessons = course.modules.reduce((acc, module) => acc + module.contents.length, 0);
@@ -340,7 +340,7 @@ export default function CourseDetail() {
                                             {teacherName.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="text-blue-100 text-xs">Giảng viên</p>
+                                            <p className="text-blue-100 text-xs">Teacher</p>
                                             <p className="font-semibold hover:underline">{teacherName}</p>
                                         </div>
                                     </Link>
@@ -355,7 +355,7 @@ export default function CourseDetail() {
                                     {course.totalEnrollments !== undefined && (
                                         <div className="flex items-center gap-1">
                                             <Users className="h-5 w-5" />
-                                            <span>{course.totalEnrollments} học viên</span>
+                                            <span>{course.totalEnrollments} students</span>
                                         </div>
                                     )}
                                 </div>
@@ -369,15 +369,15 @@ export default function CourseDetail() {
                                                     {formattedPrice}
                                                 </div>
                                                 <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-600 dark:text-green-400">
-                                                    {new Intl.NumberFormat('vi-VN', {
+                                                    {new Intl.NumberFormat('en-US', {
                                                         style: 'currency',
-                                                        currency: 'VND',
+                                                        currency: 'USD',
                                                     }).format(appliedPromotion.discountedPrice)}
                                                 </div>
                                             </div>
                                         ) : (
                                             <div className="text-2xl sm:text-3xl md:text-4xl font-bold">
-                                                {course.price === 0 ? 'Miễn phí' : formattedPrice}
+                                                {course.price === 0 ? 'Free' : formattedPrice}
                                             </div>
                                         )}
                                     </div>
@@ -390,12 +390,12 @@ export default function CourseDetail() {
                                                     <Tag className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
                                                     <div className="flex-1 min-w-0">
                                                         <div className="text-sm font-medium text-red-900 dark:text-red-100 truncate">
-                                                            Mã: {appliedPromotion.code}
+                                                            Code: {appliedPromotion.code}
                                                         </div>
                                                         <div className="text-xs text-red-700 dark:text-red-300">
-                                                            Giảm {new Intl.NumberFormat('vi-VN', {
+                                                            Discount {new Intl.NumberFormat('en-US', {
                                                                 style: 'currency',
-                                                                currency: 'VND',
+                                                                currency: 'USD',
                                                             }).format(appliedPromotion.discountAmount)}
                                                         </div>
                                                     </div>
@@ -412,7 +412,7 @@ export default function CourseDetail() {
                                                 <div className="flex flex-col sm:flex-row gap-2">
                                                     <Input
                                                         type="text"
-                                                        placeholder="Nhập mã khuyến mãi"
+                                                        placeholder="Enter promotion code"
                                                         value={promotionCode}
                                                         onChange={(e) => setPromotionCode(e.target.value.toUpperCase())}
                                                         className="flex-1 uppercase"
@@ -429,7 +429,7 @@ export default function CourseDetail() {
                                                         className="gap-2 sm:shrink-0"
                                                     >
                                                         <Tag className="w-4 h-4" />
-                                                        {isValidatingPromo ? 'Đang kiểm tra...' : 'Áp dụng'}
+                                                        {isValidatingPromo ? 'Validating...' : 'Apply'}
                                                     </Button>
                                                 </div>
                                             )}
@@ -463,7 +463,7 @@ export default function CourseDetail() {
                                             className="w-full bg-white text-blue-600 hover:bg-blue-50 text-base sm:text-lg h-12 sm:h-14"
                                         >
                                             <Play className="mr-2 h-5 w-5" />
-                                            {isTrialEnrollment ? 'Tiếp tục học thử' : 'Bắt đầu học'}
+                                            {isTrialEnrollment ? 'Continue Trial' : 'Start Learning'}
                                         </Button>
                                     ) : (
                                         <>
@@ -474,11 +474,11 @@ export default function CourseDetail() {
                                                 className="w-full bg-white text-blue-600 hover:bg-blue-50 text-base sm:text-lg h-12 sm:h-14"
                                             >
                                                 {enrollMutation.isPending ? (
-                                                    <>Đang xử lý...</>
+                                                    <>Processing...</>
                                                 ) : (
                                                     <>
                                                         <ShoppingCart className="mr-2 h-5 w-5" />
-                                                        {course.price === 0 ? 'Đăng ký ngay' : 'Mua khóa học'}
+                                                        {course.price === 0 ? 'Enroll Now' : 'Buy Course'}
                                                     </>
                                                 )}
                                             </Button>
@@ -493,17 +493,17 @@ export default function CourseDetail() {
                                                         }
                                                         const courseId = course.courseId || course.id;
                                                         if (courseId) trialMutation.mutate(courseId);
-                                                    }}
-                                                    disabled={trialMutation.isPending}
-                                                    className="w-full border-white text-white hover:bg-white/10 text-sm sm:text-base h-11 sm:h-12"
-                                                >
-                                                    <Play className="mr-2 h-4 w-4" />
-                                                    {trialMutation.isPending ? 'Đang xử lý...' : `Học thử ${course.trialDurationDays} ngày miễn phí`}
-                                                </Button>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
+                                                     }}
+                                                     disabled={trialMutation.isPending}
+                                                     className="w-full border-white text-white hover:bg-white/10 text-sm sm:text-base h-11 sm:h-12"
+                                                 >
+                                                     <Play className="mr-2 h-4 w-4" />
+                                                     {trialMutation.isPending ? 'Processing...' : `Free Trial for ${course.trialDurationDays} Days`}
+                                                 </Button>
+                                             )}
+                                         </>
+                                     )}
+                                 </div>
                             </div>
                         </div>
                     </div>
@@ -520,14 +520,14 @@ export default function CourseDetail() {
                                 {/* What you'll learn */}
                                 <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                                     <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
-                                        Bạn sẽ học được gì?
+                                        What you'll learn
                                     </h2>
                                     <div className="grid sm:grid-cols-2 gap-3">
                                         {[
-                                            'Nắm vững kiến thức cơ bản',
-                                            'Thực hành qua các bài tập',
-                                            'Áp dụng vào dự án thực tế',
-                                            'Nhận chứng chỉ hoàn thành'
+                                            'Master the fundamentals',
+                                            'Practice with exercises',
+                                            'Apply to real-world projects',
+                                            'Earn a completion certificate'
                                         ].map((item, index) => (
                                             <div key={index} className="flex items-start gap-2">
                                                 <CheckCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
@@ -540,10 +540,10 @@ export default function CourseDetail() {
                                 {/* Course Content */}
                                 <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                                     <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
-                                        Nội dung khóa học
+                                        Course Syllabus
                                     </h2>
                                     <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-4 sm:mb-6">
-                                        {course.modules.length} chương • {totalLessons} bài học
+                                        {course.modules.length} modules • {totalLessons} lessons
                                         {totalDuration > 0 && ` • ${Math.floor(totalDuration / 3600)}h ${Math.floor((totalDuration % 3600) / 60)}m`}
                                     </p>
 
@@ -554,7 +554,7 @@ export default function CourseDetail() {
                                     />
                                     {previewLoadingId && (
                                         <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-                                            Đang tải bài học xem thử...
+                                            Loading preview lesson...
                                         </p>
                                     )}
                                     {previewContent && (
@@ -562,7 +562,7 @@ export default function CourseDetail() {
                                             <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
                                                 <div>
                                                     <p className="text-xs font-semibold uppercase text-green-600 dark:text-green-400">
-                                                        Bài học miễn phí
+                                                        Free Preview
                                                     </p>
                                                     <h3 className="font-semibold text-zinc-900 dark:text-white">
                                                         {previewContent.title}
@@ -574,7 +574,7 @@ export default function CourseDetail() {
                                                     size="sm"
                                                     onClick={() => setPreviewContent(null)}
                                                 >
-                                                    Đóng
+                                                    Close
                                                 </Button>
                                             </div>
                                             {previewContent.contentType === 'VIDEO' && previewContent.videoUrl ? (
@@ -593,12 +593,12 @@ export default function CourseDetail() {
                                                         rel="noopener noreferrer"
                                                         className="text-red-600 hover:underline dark:text-red-400"
                                                     >
-                                                        Mở tài liệu xem thử
+                                                        Open preview document
                                                     </a>
                                                 </div>
                                             ) : (
                                                 <div className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
-                                                    Bài học xem thử này chưa có tài nguyên hiển thị.
+                                                    This preview lesson does not have a display resource yet.
                                                 </div>
                                             )}
                                         </Card>
@@ -619,24 +619,24 @@ export default function CourseDetail() {
                                 {/* Course includes */}
                                 <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                                     <h3 className="font-semibold text-zinc-900 dark:text-white mb-3 sm:mb-4">
-                                        Khóa học bao gồm
+                                        This course includes
                                     </h3>
                                     <ul className="space-y-3">
                                         <li className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
                                             <Clock className="h-5 w-5 text-zinc-400" />
-                                            <span>Truy cập trọn đời</span>
+                                            <span>Lifetime access</span>
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
                                             <BookOpen className="h-5 w-5 text-zinc-400" />
-                                            <span>{totalLessons} bài học</span>
+                                            <span>{totalLessons} lessons</span>
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
                                             <Award className="h-5 w-5 text-zinc-400" />
-                                            <span>Chứng chỉ hoàn thành</span>
+                                            <span>Completion certificate</span>
                                         </li>
                                         <li className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300">
                                             <Users className="h-5 w-5 text-zinc-400" />
-                                            <span>Cộng đồng học tập</span>
+                                            <span>Learning community</span>
                                         </li>
                                     </ul>
                                 </Card>

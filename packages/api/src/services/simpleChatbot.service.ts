@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 function stringifySyllabus(syllabus: unknown): string {
     if (!syllabus || (typeof syllabus === 'object' && Object.keys(syllabus).length === 0)) {
-        return 'Chưa có syllabus chi tiết.';
+        return 'Detailed syllabus is not available yet.';
     }
 
     if (typeof syllabus === 'string') {
@@ -64,21 +64,21 @@ class SimpleChatbotService {
             const teacherName = `${course.teacher.firstName || ''} ${course.teacher.lastName || ''}`.trim() || course.teacher.username;
             
             let courseInfo = `
-=== KHÓA HỌC: ${course.title} ===
+=== COURSE: ${course.title} ===
 - ID: ${course.id}
-- Giảng viên: ${teacherName}
-- Danh mục: ${course.category.name}
-- Mô tả: ${course.description}
+- Instructor: ${teacherName}
+- Category: ${course.category.name}
+- Description: ${course.description}
 - Syllabus: ${stringifySyllabus(course.syllabus)}
-- Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
-- Số chương: ${course.modules.length}
+- Price: ${course.price === 0 ? 'Free' : `$${course.price}`}
+- Modules count: ${course.modules.length}
 `;
 
             // Add module information
             if (course.modules.length > 0) {
-                courseInfo += '\nCác chương học:\n';
+                courseInfo += '\nModules:\n';
                 for (const module of course.modules) {
-                    courseInfo += `  ${module.order}. ${module.title} (${module.contents.length} bài học)\n`;
+                    courseInfo += `  ${module.order}. ${module.title} (${module.contents.length} lessons)\n`;
                     
                     // Add content titles
                     for (const content of module.contents) {
@@ -104,21 +104,21 @@ class SimpleChatbotService {
             await this.initialize();
         }
 
-        const prompt = `Bạn là trợ lý AI thân thiện cho E-Learning Platform. 
+        const prompt = `You are a friendly AI assistant for E-Learning Platform. 
 
-DỮ LIỆU KHÓA HỌC HIỆN CÓ:
+AVAILABLE COURSE DATA:
 ${this.courseContext}
 
-QUY TẮC:
-1. Với lời chào/câu hỏi chung → Trả lời tự nhiên, thân thiện, giới thiệu bạn có thể giúp gì
-2. Với câu hỏi về khóa học → CHỈ dựa vào DỮ LIỆU TRÊN, không bịa thêm
-3. KHÔNG tạo link giả (example.com)
-4. Nếu khóa học không tồn tại → Nói thẳng "chưa có"
-5. Trả lời ngắn gọn, chính xác, tiếng Việt
+RULES:
+1. For general greetings/questions → Answer naturally, friendly, introduce how you can help
+2. For questions about courses → ONLY rely on the ABOVE DATA, do not make up information
+3. DO NOT create fake links (example.com)
+4. If a course does not exist → Say directly that it is not available yet
+5. Answer concisely and accurately in English
 
-CÂU HỎI: ${question}
+QUESTION: ${question}
 
-TRẢ LỜI:`;
+ANSWER:`;
 
         try {
             const response = await this.ollama.generate({
@@ -130,7 +130,7 @@ TRẢ LỜI:`;
             return response.response;
         } catch (error) {
             console.error('Error generating answer:', error);
-            throw new Error('Không thể tạo câu trả lời. Vui lòng thử lại sau.');
+            throw new Error('Could not generate answer. Please try again later.');
         }
     }
 
@@ -142,21 +142,21 @@ TRẢ LỜI:`;
             await this.initialize();
         }
 
-        const prompt = `Bạn là trợ lý AI thân thiện cho E-Learning Platform. 
+        const prompt = `You are a friendly AI assistant for E-Learning Platform. 
 
-DỮ LIỆU KHÓA HỌC HIỆN CÓ:
+AVAILABLE COURSE DATA:
 ${this.courseContext}
 
-QUY TẮC:
-1. Với lời chào/câu hỏi chung → Trả lời tự nhiên, thân thiện, giới thiệu bạn có thể giúp gì
-2. Với câu hỏi về khóa học → CHỈ dựa vào DỮ LIỆU TRÊN, không bịa thêm
-3. KHÔNG tạo link giả (example.com)
-4. Nếu khóa học không tồn tại → Nói thẳng "chưa có"
-5. Trả lời ngắn gọn, chính xác, tiếng Việt
+RULES:
+1. For general greetings/questions → Answer naturally, friendly, introduce how you can help
+2. For questions about courses → ONLY rely on the ABOVE DATA, do not make up information
+3. DO NOT create fake links (example.com)
+4. If a course does not exist → Say directly that it is not available yet
+5. Answer concisely and accurately in English
 
-CÂU HỎI: ${question}
+QUESTION: ${question}
 
-TRẢ LỜI:`;
+ANSWER:`;
 
         try {
             const stream = await this.ollama.generate({
@@ -170,7 +170,7 @@ TRẢ LỜI:`;
             }
         } catch (error) {
             console.error('Error streaming answer:', error);
-            throw new Error('Không thể tạo câu trả lời. Vui lòng thử lại sau.');
+            throw new Error('Could not generate answer. Please try again later.');
         }
     }
 

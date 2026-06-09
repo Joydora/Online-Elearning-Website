@@ -146,14 +146,14 @@ async function main(): Promise<void> {
     // 📁 CREATE CATEGORIES
     // ============================================
     const categories = await Promise.all([
-        prisma.category.create({ data: { name: 'Lập trình Web' } }),
-        prisma.category.create({ data: { name: 'Lập trình Mobile' } }),
-        prisma.category.create({ data: { name: 'Cơ sở dữ liệu' } }),
-        prisma.category.create({ data: { name: 'Thiết kế UI/UX' } }),
+        prisma.category.create({ data: { name: 'Web Development' } }),
+        prisma.category.create({ data: { name: 'Mobile Development' } }),
+        prisma.category.create({ data: { name: 'Database' } }),
+        prisma.category.create({ data: { name: 'UI/UX Design' } }),
         prisma.category.create({ data: { name: 'DevOps & Cloud' } }),
-        prisma.category.create({ data: { name: 'Trí tuệ nhân tạo' } }),
-        prisma.category.create({ data: { name: 'An ninh mạng' } }),
-        prisma.category.create({ data: { name: 'Kỹ năng mềm' } }),
+        prisma.category.create({ data: { name: 'Artificial Intelligence' } }),
+        prisma.category.create({ data: { name: 'Cybersecurity' } }),
+        prisma.category.create({ data: { name: 'Soft Skills' } }),
     ]);
     console.log(`📁 Created ${categories.length} categories`);
 
@@ -164,8 +164,8 @@ async function main(): Promise<void> {
     // Course 1: FREE - React Basics (Teacher 1)
     const course1 = await prisma.course.create({
         data: {
-            title: 'Học React JS từ Zero đến Hero',
-            description: 'Khóa học miễn phí giúp bạn nắm vững React JS từ cơ bản đến nâng cao. Bạn sẽ học về Components, Hooks, State Management và xây dựng ứng dụng thực tế.',
+            title: 'Learn React JS from Zero to Hero',
+            description: 'A free course to help you master React JS from basic to advanced. You will learn about Components, Hooks, State Management, and build real-world applications.',
             price: 0, // FREE
             thumbnailUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800',
             trialDurationDays: 7,
@@ -173,21 +173,21 @@ async function main(): Promise<void> {
             status: CourseStatus.PUBLISHED,
             syllabus: {
                 chapters: [
-                    { title: 'Giới thiệu React', lessons: ['React là gì?', 'Cài đặt môi trường'] },
+                    { title: 'Introduction to React', lessons: ['What is React?', 'Environment Setup'] },
                     { title: 'Components & Props', lessons: ['Components', 'Props'] },
                 ],
             },
             teacherId: teachers[0].id,
-            categoryId: categories[0].id, // Lập trình Web
+            categoryId: categories[0].id, // Web Development
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: Giới thiệu React',
+                        title: 'Chapter 1: Introduction to React',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'React là gì? Tại sao nên học React?',
+                                    title: 'What is React? Why learn React?',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=Tn6-PIqc4UM',
@@ -195,14 +195,14 @@ async function main(): Promise<void> {
                                     isFreePreview: true,
                                 },
                                 {
-                                    title: 'Cài đặt môi trường phát triển',
+                                    title: 'Development Environment Setup',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=CgkZ7MvWUAA',
                                     durationInSeconds: 480,
                                 },
                                 {
-                                    title: 'Tài liệu: Hướng dẫn cài đặt Node.js và VS Code',
+                                    title: 'Document: Node.js and VS Code Installation Guide',
                                     order: 3,
                                     contentType: ContentType.DOCUMENT,
                                     documentUrl: 'https://nodejs.org/en/download/',
@@ -212,60 +212,60 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 2: Components và Props',
+                        title: 'Chapter 2: Components and Props',
                         order: 2,
                         contents: {
                             create: [
                                 {
-                                    title: 'Tìm hiểu về Components',
+                                    title: 'Understanding Components',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=S4VH8hddg8c',
                                     durationInSeconds: 720,
                                 },
                                 {
-                                    title: 'Props và cách truyền dữ liệu',
+                                    title: 'Props and Data Passing',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=PHaECbrKgs0',
                                     durationInSeconds: 540,
                                 },
                                 {
-                                    title: 'Quiz: Kiểm tra kiến thức Components',
+                                    title: 'Quiz: Components Knowledge Check',
                                     order: 3,
                                     contentType: ContentType.QUIZ,
                                     timeLimitInMinutes: 10,
                                     questions: {
                                         create: [
                                             {
-                                                questionText: 'Component trong React là gì?',
+                                                questionText: 'What is a Component in React?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Một hàm hoặc class trả về JSX', isCorrect: true },
-                                                        { optionText: 'Một file CSS', isCorrect: false },
-                                                        { optionText: 'Một database', isCorrect: false },
-                                                        { optionText: 'Một server', isCorrect: false },
+                                                        { optionText: 'A function or class that returns JSX', isCorrect: true },
+                                                        { optionText: 'A CSS file', isCorrect: false },
+                                                        { optionText: 'A database', isCorrect: false },
+                                                        { optionText: 'A server', isCorrect: false },
                                                     ],
                                                 },
                                             },
                                             {
-                                                questionText: 'Props trong React dùng để làm gì?',
+                                                questionText: 'What are Props in React used for?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Truyền dữ liệu từ component cha sang con', isCorrect: true },
-                                                        { optionText: 'Lưu trữ dữ liệu trong database', isCorrect: false },
-                                                        { optionText: 'Định dạng CSS', isCorrect: false },
-                                                        { optionText: 'Gọi API', isCorrect: false },
+                                                        { optionText: 'Passing data from parent to child component', isCorrect: true },
+                                                        { optionText: 'Storing data in a database', isCorrect: false },
+                                                        { optionText: 'CSS styling', isCorrect: false },
+                                                        { optionText: 'Calling API', isCorrect: false },
                                                     ],
                                                 },
                                             },
                                             {
-                                                questionText: 'Props có thể thay đổi được không?',
+                                                questionText: 'Can Props be changed?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Không, props là read-only', isCorrect: true },
-                                                        { optionText: 'Có, props có thể thay đổi bất cứ lúc nào', isCorrect: false },
-                                                        { optionText: 'Chỉ thay đổi được trong useEffect', isCorrect: false },
+                                                        { optionText: 'No, props are read-only', isCorrect: true },
+                                                        { optionText: 'Yes, props can be changed at any time', isCorrect: false },
+                                                        { optionText: 'Can only be changed inside useEffect', isCorrect: false },
                                                     ],
                                                 },
                                             },
@@ -276,26 +276,26 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 3: State và Hooks',
+                        title: 'Chapter 3: State and Hooks',
                         order: 3,
                         contents: {
                             create: [
                                 {
-                                    title: 'useState Hook - Quản lý state',
+                                    title: 'useState Hook - State Management',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=O6P86uwfdR0',
                                     durationInSeconds: 660,
                                 },
                                 {
-                                    title: 'useEffect Hook - Side effects',
+                                    title: 'useEffect Hook - Side Effects',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=0ZJgIjIuY7U',
                                     durationInSeconds: 780,
                                 },
                                 {
-                                    title: 'Thực hành: useState cơ bản',
+                                    title: 'Practice: Basic useState',
                                     order: 3,
                                     contentType: ContentType.PRACTICE,
                                     timeLimitInMinutes: 15,
@@ -313,8 +313,8 @@ async function main(): Promise<void> {
     // Course 2: PAID - TypeScript Mastery (Teacher 1)
     const course2 = await prisma.course.create({
         data: {
-            title: 'TypeScript Mastery - Từ cơ bản đến nâng cao',
-            description: 'Khóa học TypeScript toàn diện. Học cách viết code an toàn hơn với static typing, generics, decorators và các patterns nâng cao.',
+            title: 'TypeScript Mastery - From Basics to Advanced',
+            description: 'Comprehensive TypeScript course. Learn how to write safer code with static typing, generics, decorators, and advanced design patterns.',
             price: 1.99, // Low price for demo
             thumbnailUrl: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800',
             accessDurationDays: 30,
@@ -322,7 +322,7 @@ async function main(): Promise<void> {
             status: CourseStatus.PUBLISHED,
             syllabus: {
                 chapters: [
-                    { title: 'Nền tảng TypeScript', lessons: ['Types', 'Interfaces'] },
+                    { title: 'TypeScript Foundations', lessons: ['Types', 'Interfaces'] },
                     { title: 'Generics', lessons: ['Generic functions'] },
                 ],
             },
@@ -331,26 +331,26 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: TypeScript Fundamentals',
+                        title: 'Chapter 1: TypeScript Fundamentals',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'TypeScript là gì? Lợi ích của TypeScript',
+                                    title: 'What is TypeScript? Benefits of TypeScript',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=BwuLxPH8IDs',
                                     durationInSeconds: 540,
                                 },
                                 {
-                                    title: 'Cài đặt và cấu hình TypeScript',
+                                    title: 'Installation and Configuration',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=d56mG7DezGs',
                                     durationInSeconds: 420,
                                 },
                                 {
-                                    title: 'Tài liệu: TypeScript Handbook',
+                                    title: 'Document: TypeScript Handbook',
                                     order: 3,
                                     contentType: ContentType.DOCUMENT,
                                     documentUrl: 'https://www.typescriptlang.org/docs/handbook/',
@@ -360,43 +360,43 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 2: Types và Interfaces',
+                        title: 'Chapter 2: Types and Interfaces',
                         order: 2,
                         contents: {
                             create: [
                                 {
-                                    title: 'Basic Types trong TypeScript',
+                                    title: 'Basic Types in TypeScript',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=ahCwqrYpIuM',
                                     durationInSeconds: 600,
                                 },
                                 {
-                                    title: 'Interfaces và Type Aliases',
+                                    title: 'Interfaces and Type Aliases',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=crjIq7LEAYw',
                                     durationInSeconds: 720,
                                 },
                                 {
-                                    title: 'Quiz: Types và Interfaces',
+                                    title: 'Quiz: Types and Interfaces',
                                     order: 3,
                                     contentType: ContentType.QUIZ,
                                     timeLimitInMinutes: 15,
                                     questions: {
                                         create: [
                                             {
-                                                questionText: 'Sự khác biệt chính giữa Interface và Type là gì?',
+                                                questionText: 'What is the main difference between Interface and Type?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Interface có thể extend và merge, Type thì không thể merge', isCorrect: true },
-                                                        { optionText: 'Không có sự khác biệt', isCorrect: false },
-                                                        { optionText: 'Type nhanh hơn Interface', isCorrect: false },
+                                                        { optionText: 'Interface can be extended and merged, Type cannot be merged', isCorrect: true },
+                                                        { optionText: 'There is no difference', isCorrect: false },
+                                                        { optionText: 'Type is faster than Interface', isCorrect: false },
                                                     ],
                                                 },
                                             },
                                             {
-                                                questionText: 'Kiểu dữ liệu nào sau đây là primitive type trong TypeScript?',
+                                                questionText: 'Which of the following is a primitive type in TypeScript?',
                                                 options: {
                                                     create: [
                                                         { optionText: 'string, number, boolean', isCorrect: true },
@@ -412,12 +412,12 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 3: Generics',
+                        title: 'Chapter 3: Generics',
                         order: 3,
                         contents: {
                             create: [
                                 {
-                                    title: 'Generics là gì và tại sao cần Generics?',
+                                    title: 'What is Generics and why do we need them?',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=nViEqpgwxHE',
@@ -436,8 +436,8 @@ async function main(): Promise<void> {
     // Course 3: FREE - Python Basics (Teacher 2)
     const course3 = await prisma.course.create({
         data: {
-            title: 'Python cho người mới bắt đầu',
-            description: 'Khóa học Python miễn phí dành cho người mới. Học lập trình từ con số 0 với ngôn ngữ dễ học nhất.',
+            title: 'Python for Beginners',
+            description: 'Free Python course for beginners. Learn programming from scratch with the easiest language to learn.',
             price: 0,
             thumbnailUrl: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800',
             level: CourseLevel.BEGINNER,
@@ -447,19 +447,19 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: Làm quen với Python',
+                        title: 'Chapter 1: Getting Started with Python',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'Giới thiệu Python và cài đặt',
+                                    title: 'Python Introduction and Installation',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=kqtD5dpn9C8',
                                     durationInSeconds: 600,
                                 },
                                 {
-                                    title: 'Viết chương trình Python đầu tiên',
+                                    title: 'Write Your First Python Program',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=DWgzHbglNIo',
@@ -469,41 +469,41 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 2: Biến và kiểu dữ liệu',
+                        title: 'Chapter 2: Variables and Data Types',
                         order: 2,
                         contents: {
                             create: [
                                 {
-                                    title: 'Biến trong Python',
+                                    title: 'Variables in Python',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=cQT33yu9pY8',
                                     durationInSeconds: 540,
                                 },
                                 {
-                                    title: 'Quiz: Kiến thức cơ bản Python',
+                                    title: 'Quiz: Python Basics Check',
                                     order: 2,
                                     contentType: ContentType.QUIZ,
                                     timeLimitInMinutes: 10,
                                     questions: {
                                         create: [
                                             {
-                                                questionText: 'Python là ngôn ngữ lập trình loại nào?',
+                                                questionText: 'What type of programming language is Python?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Interpreted (thông dịch)', isCorrect: true },
-                                                        { optionText: 'Compiled (biên dịch)', isCorrect: false },
+                                                        { optionText: 'Interpreted', isCorrect: true },
+                                                        { optionText: 'Compiled', isCorrect: false },
                                                         { optionText: 'Assembly', isCorrect: false },
                                                     ],
                                                 },
                                             },
                                             {
-                                                questionText: 'Cách khai báo biến trong Python?',
+                                                questionText: 'How do you declare a variable in Python?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Chỉ cần gán giá trị: x = 10', isCorrect: true },
-                                                        { optionText: 'Phải khai báo kiểu: int x = 10', isCorrect: false },
-                                                        { optionText: 'Dùng từ khóa var: var x = 10', isCorrect: false },
+                                                        { optionText: 'Just assign a value: x = 10', isCorrect: true },
+                                                        { optionText: 'Declare with type: int x = 10', isCorrect: false },
+                                                        { optionText: 'Use var keyword: var x = 10', isCorrect: false },
                                                     ],
                                                 },
                                             },
@@ -523,8 +523,8 @@ async function main(): Promise<void> {
     // Course 4: PAID - Node.js & Express (Teacher 2)
     const course4 = await prisma.course.create({
         data: {
-            title: 'Xây dựng REST API với Node.js & Express',
-            description: 'Học cách xây dựng backend chuyên nghiệp với Node.js, Express, và MongoDB. Bao gồm authentication, authorization, và deployment.',
+            title: 'Build REST APIs with Node.js & Express',
+            description: 'Learn how to build professional backends with Node.js, Express, and MongoDB. Covers authentication, authorization, and deployment.',
             price: 2.99,
             thumbnailUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800',
             accessDurationDays: 60,
@@ -532,7 +532,7 @@ async function main(): Promise<void> {
             status: CourseStatus.PUBLISHED,
             syllabus: {
                 chapters: [
-                    { title: 'Node.js Fundamentals', lessons: ['Node.js là gì?', 'NPM'] },
+                    { title: 'Node.js Fundamentals', lessons: ['What is Node.js?', 'NPM'] },
                     { title: 'Express', lessons: ['Routing', 'Middleware'] },
                 ],
             },
@@ -541,19 +541,19 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: Node.js Fundamentals',
+                        title: 'Chapter 1: Node.js Fundamentals',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'Node.js là gì?',
+                                    title: 'What is Node.js?',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=TlB_eWDSMt4',
                                     durationInSeconds: 720,
                                 },
                                 {
-                                    title: 'NPM và Package Management',
+                                    title: 'NPM and Package Management',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=P3aKRdUyr0s',
@@ -563,19 +563,19 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 2: Express Framework',
+                        title: 'Chapter 2: Express Framework',
                         order: 2,
                         contents: {
                             create: [
                                 {
-                                    title: 'Xây dựng server với Express',
+                                    title: 'Build servers with Express',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=Oe421EPjeBE',
                                     durationInSeconds: 840,
                                 },
                                 {
-                                    title: 'Routing và Middleware',
+                                    title: 'Routing and Middleware',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=lY6icfhap2o',
@@ -589,12 +589,12 @@ async function main(): Promise<void> {
                                     questions: {
                                         create: [
                                             {
-                                                questionText: 'Middleware trong Express là gì?',
+                                                questionText: 'What is Middleware in Express?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Hàm có quyền truy cập vào request và response object', isCorrect: true },
-                                                        { optionText: 'Một loại database', isCorrect: false },
-                                                        { optionText: 'Một framework CSS', isCorrect: false },
+                                                        { optionText: 'A function that has access to request and response objects', isCorrect: true },
+                                                        { optionText: 'A database type', isCorrect: false },
+                                                        { optionText: 'A CSS framework', isCorrect: false },
                                                     ],
                                                 },
                                             },
@@ -614,8 +614,8 @@ async function main(): Promise<void> {
     // Course 5: PAID - UI/UX Design (Teacher 3)
     const course5 = await prisma.course.create({
         data: {
-            title: 'UI/UX Design với Figma',
-            description: 'Học thiết kế giao diện người dùng chuyên nghiệp với Figma. Từ wireframe đến prototype hoàn chỉnh.',
+            title: 'UI/UX Design with Figma',
+            description: 'Learn professional user interface design with Figma. From wireframes to fully interactive prototypes.',
             price: 1.49,
             thumbnailUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800',
             accessDurationDays: 45,
@@ -626,19 +626,19 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: Giới thiệu UI/UX',
+                        title: 'Chapter 1: Introduction to UI/UX',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'UI vs UX - Sự khác biệt',
+                                    title: 'UI vs UX - The Difference',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=5CxXhyhT6Fc',
                                     durationInSeconds: 480,
                                 },
                                 {
-                                    title: 'Làm quen với Figma',
+                                    title: 'Getting Started with Figma',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=FTFaQWZBqQ8',
@@ -648,12 +648,12 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 2: Design Principles',
+                        title: 'Chapter 2: Design Principles',
                         order: 2,
                         contents: {
                             create: [
                                 {
-                                    title: 'Nguyên tắc thiết kế cơ bản',
+                                    title: 'Basic Design Principles',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=a5KYlHNKQB8',
@@ -667,7 +667,7 @@ async function main(): Promise<void> {
                                     questions: {
                                         create: [
                                             {
-                                                questionText: 'UI là viết tắt của?',
+                                                questionText: 'What does UI stand for?',
                                                 options: {
                                                     create: [
                                                         { optionText: 'User Interface', isCorrect: true },
@@ -677,7 +677,7 @@ async function main(): Promise<void> {
                                                 },
                                             },
                                             {
-                                                questionText: 'UX là viết tắt của?',
+                                                questionText: 'What does UX stand for?',
                                                 options: {
                                                     create: [
                                                         { optionText: 'User Experience', isCorrect: true },
@@ -702,8 +702,8 @@ async function main(): Promise<void> {
     // Course 6: FREE - Git & GitHub (Teacher 3)
     const course6 = await prisma.course.create({
         data: {
-            title: 'Git & GitHub cho lập trình viên',
-            description: 'Học cách quản lý source code chuyên nghiệp với Git và GitHub. Bao gồm branching, merging, pull requests.',
+            title: 'Git & GitHub for Developers',
+            description: 'Learn how to manage source code professionally with Git and GitHub. Covers branching, merging, and pull requests.',
             price: 0,
             thumbnailUrl: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=800',
             level: CourseLevel.BEGINNER,
@@ -713,19 +713,19 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: Git Basics',
+                        title: 'Chapter 1: Git Basics',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'Git là gì? Tại sao cần dùng Git?',
+                                    title: 'What is Git? Why use Git?',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=8JJ101D3knE',
                                     durationInSeconds: 900,
                                 },
                                 {
-                                    title: 'Các lệnh Git cơ bản',
+                                    title: 'Basic Git Commands',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=HVsySz-h9r4',
@@ -744,8 +744,8 @@ async function main(): Promise<void> {
     // Course 7: PAID - SQL Database (Teacher 2)
     const course7 = await prisma.course.create({
         data: {
-            title: 'SQL và PostgreSQL từ A-Z',
-            description: 'Thành thạo SQL và PostgreSQL. Học cách thiết kế database, viết query tối ưu, và quản lý dữ liệu hiệu quả.',
+            title: 'SQL and PostgreSQL from A-Z',
+            description: 'Master SQL and PostgreSQL. Learn how to design databases, write optimized queries, and manage data efficiently.',
             price: 2.49,
             thumbnailUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800',
             level: CourseLevel.INTERMEDIATE,
@@ -755,12 +755,12 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: SQL Fundamentals',
+                        title: 'Chapter 1: SQL Fundamentals',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'Giới thiệu về Database và SQL',
+                                    title: 'Introduction to Databases and SQL',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=HXV3zeQKqGY',
@@ -777,12 +777,12 @@ async function main(): Promise<void> {
                         },
                     },
                     {
-                        title: 'Chương 2: Advanced SQL',
+                        title: 'Chapter 2: Advanced SQL',
                         order: 2,
                         contents: {
                             create: [
                                 {
-                                    title: 'JOIN và Subqueries',
+                                    title: 'JOIN and Subqueries',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=9yeOJ0ZMUYw',
@@ -796,7 +796,7 @@ async function main(): Promise<void> {
                                     questions: {
                                         create: [
                                             {
-                                                questionText: 'Lệnh nào dùng để lấy dữ liệu từ database?',
+                                                questionText: 'Which command is used to retrieve data from a database?',
                                                 options: {
                                                     create: [
                                                         { optionText: 'SELECT', isCorrect: true },
@@ -807,12 +807,12 @@ async function main(): Promise<void> {
                                                 },
                                             },
                                             {
-                                                questionText: 'INNER JOIN trả về?',
+                                                questionText: 'What does INNER JOIN return?',
                                                 options: {
                                                     create: [
-                                                        { optionText: 'Chỉ các bản ghi có match ở cả 2 bảng', isCorrect: true },
-                                                        { optionText: 'Tất cả bản ghi từ bảng trái', isCorrect: false },
-                                                        { optionText: 'Tất cả bản ghi từ cả 2 bảng', isCorrect: false },
+                                                        { optionText: 'Only records that have matching values in both tables', isCorrect: true },
+                                                        { optionText: 'All records from the left table', isCorrect: false },
+                                                        { optionText: 'All records from both tables', isCorrect: false },
                                                     ],
                                                 },
                                             },
@@ -832,8 +832,8 @@ async function main(): Promise<void> {
     // Course 8: PAID - Machine Learning (Teacher 1)
     const course8 = await prisma.course.create({
         data: {
-            title: 'Machine Learning cơ bản với Python',
-            description: 'Nhập môn Machine Learning. Học các thuật toán ML cơ bản và cách áp dụng với Python và scikit-learn.',
+            title: 'Introduction to Machine Learning with Python',
+            description: 'Get started with Machine Learning. Learn basic ML algorithms and how to apply them using Python and scikit-learn.',
             price: 3.99,
             thumbnailUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
             level: CourseLevel.ADVANCED,
@@ -843,19 +843,19 @@ async function main(): Promise<void> {
             modules: {
                 create: [
                     {
-                        title: 'Chương 1: Giới thiệu Machine Learning',
+                        title: 'Chapter 1: Introduction to Machine Learning',
                         order: 1,
                         contents: {
                             create: [
                                 {
-                                    title: 'Machine Learning là gì?',
+                                    title: 'What is Machine Learning?',
                                     order: 1,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=ukzFI9rgwfU',
                                     durationInSeconds: 720,
                                 },
                                 {
-                                    title: 'Các loại Machine Learning',
+                                    title: 'Types of Machine Learning',
                                     order: 2,
                                     contentType: ContentType.VIDEO,
                                     videoUrl: 'https://www.youtube.com/watch?v=1vkb7BCMQd0',
@@ -911,10 +911,10 @@ async function main(): Promise<void> {
     const practice = await prisma.practice.create({
         data: {
             contentId: practiceContent.id,
-            prompt: 'Tạo một component React hiển thị bộ đếm và có nút tăng giá trị.',
+            prompt: 'Create a React component that displays a counter and has a button to increment the value.',
             starterCode: `import React, { useState } from 'react';\n\nexport default function Counter() {\n  // TODO: implement\n  return <div />;\n}\n`,
-            expectedOutput: 'Component hiển thị số và tăng khi bấm nút',
-            rubric: 'Sử dụng useState, hiển thị số, có nút tăng giá trị',
+            expectedOutput: 'Component displays a number and increments it when the button is clicked',
+            rubric: 'Uses useState, displays the number, and has a button to increment the value',
             language: 'javascript',
         },
     });
@@ -924,7 +924,7 @@ async function main(): Promise<void> {
             studentId: students[0].id,
             practiceId: practice.id,
             submittedCode: `import React, { useState } from 'react';\n\nexport default function Counter() {\n  const [count, setCount] = useState(0);\n  return (\n    <div>\n      <p>{count}</p>\n      <button onClick={() => setCount(count + 1)}>Increase</button>\n    </div>\n  );\n}\n`,
-            aiFeedback: 'Bạn đã sử dụng useState đúng cách.',
+            aiFeedback: 'You have used useState correctly.',
             score: 0.9,
             passed: true,
         },
@@ -932,9 +932,9 @@ async function main(): Promise<void> {
 
     const project = await prisma.project.create({
         data: {
-            title: 'Xây dựng REST API cho Todo App',
-            description: 'Thiết kế API CRUD cho Todo App với Express và PostgreSQL.',
-            requirements: 'Có đầy đủ CRUD endpoints, validate dữ liệu, dùng Prisma.',
+            title: 'Build a REST API for a Todo App',
+            description: 'Design a CRUD API for a Todo App using Express and PostgreSQL.',
+            requirements: 'Complete CRUD endpoints, data validation, and use Prisma.',
             deadline: daysFromNow(14),
             courseId: course4.id,
         },
@@ -949,7 +949,7 @@ async function main(): Promise<void> {
                 { hash: 'a1b2c3', message: 'Init project', date: now.toISOString() },
                 { hash: 'd4e5f6', message: 'Add CRUD endpoints', date: now.toISOString() },
             ],
-            feedback: 'Cần bổ sung validation và error handling chi tiết hơn.',
+            feedback: 'Need to add more detailed validation and error handling.',
             grade: 7.5,
         },
     });
@@ -1146,7 +1146,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 5,
-                comment: 'Khóa học rất hay và dễ hiểu! Thầy giảng rất chi tiết, tôi đã học được rất nhiều về React.',
+                comment: 'The course is amazing and easy to follow! The explanation is very detailed, I learned a lot about React.',
                 studentId: students[0].id,
                 enrollmentId: enrollments[0].id, // student[0] -> course1
             },
@@ -1154,7 +1154,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 4,
-                comment: 'Nội dung tốt, phù hợp cho người mới bắt đầu. Mong có thêm phần nâng cao.',
+                comment: 'Good content, suitable for beginners. Looking forward to advanced topics.',
                 studentId: students[1].id,
                 enrollmentId: enrollments[4].id, // student[1] -> course1
             },
@@ -1162,7 +1162,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 5,
-                comment: 'Tuyệt vời! Đây là khóa học React tốt nhất mà tôi từng học.',
+                comment: 'Excellent! This is the best React course I have ever taken.',
                 studentId: students[3].id,
                 enrollmentId: enrollments[9].id, // student[3] -> course1
             },
@@ -1172,7 +1172,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 5,
-                comment: 'TypeScript giờ không còn khó nữa. Cảm ơn thầy!',
+                comment: 'TypeScript is no longer difficult. Thank you, teacher!',
                 studentId: students[0].id,
                 enrollmentId: enrollments[1].id, // student[0] -> course2
             },
@@ -1180,7 +1180,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 4,
-                comment: 'Khóa học chất lượng, đáng giá từng đồng.',
+                comment: 'High-quality course, worth every penny.',
                 studentId: students[4].id,
                 enrollmentId: enrollments[12].id, // student[4] -> course2
             },
@@ -1190,7 +1190,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 5,
-                comment: 'Python thật sự dễ học với khóa này. Recommend cho mọi người!',
+                comment: 'Python is really easy to learn with this course. Highly recommend to everyone!',
                 studentId: students[2].id,
                 enrollmentId: enrollments[7].id, // student[2] -> course3
             },
@@ -1200,7 +1200,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 4,
-                comment: 'Figma giờ không còn là vấn đề với tôi. Khóa học rất thực tế.',
+                comment: 'Figma is no longer an issue for me. Very practical course.',
                 studentId: students[1].id,
                 enrollmentId: enrollments[5].id, // student[1] -> course5
             },
@@ -1208,7 +1208,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 5,
-                comment: 'Tôi đã thiết kế được UI đầu tiên sau khóa học này!',
+                comment: 'I designed my first UI after taking this course!',
                 studentId: students[4].id,
                 enrollmentId: enrollments[13].id, // student[4] -> course5
             },
@@ -1218,7 +1218,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 5,
-                comment: 'Git không còn đáng sợ nữa. Video rất dễ theo dõi.',
+                comment: 'Git is not scary anymore. The videos are easy to follow.',
                 studentId: students[0].id,
                 enrollmentId: enrollments[3].id, // student[0] -> course6
             },
@@ -1226,7 +1226,7 @@ async function main(): Promise<void> {
         prisma.review.create({
             data: {
                 rating: 4,
-                comment: 'Nội dung cơ bản nhưng đầy đủ. Phù hợp cho beginner.',
+                comment: 'Basic but comprehensive content. Perfect for beginners.',
                 studentId: students[1].id,
                 enrollmentId: enrollments[6].id, // student[1] -> course6
             },
@@ -1243,21 +1243,21 @@ async function main(): Promise<void> {
     const comments = await Promise.all([
         prisma.comment.create({
             data: {
-                text: 'Video rất hay ạ! Có thể giải thích thêm về virtual DOM không thầy?',
+                text: 'Great video! Could you please explain more about the Virtual DOM?',
                 authorId: students[0].id,
                 contentId: firstContent.id,
             },
         }),
         prisma.comment.create({
             data: {
-                text: 'Cảm ơn thầy, em đã hiểu React là gì rồi ạ!',
+                text: 'Thank you, teacher! I now understand what React is.',
                 authorId: students[1].id,
                 contentId: firstContent.id,
             },
         }),
         prisma.comment.create({
             data: {
-                text: 'Thầy ơi, phần tiếp theo bao giờ ra ạ?',
+                text: 'When will the next part be released, teacher?',
                 authorId: students[3].id,
                 contentId: firstContent.id,
             },

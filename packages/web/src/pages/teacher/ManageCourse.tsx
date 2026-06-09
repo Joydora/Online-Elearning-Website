@@ -66,11 +66,11 @@ type CourseDetail = {
 };
 
 const STATUS_LABELS: Record<CourseStatus, string> = {
-    DRAFT: 'Bản nháp',
-    PENDING_REVIEW: 'Chờ duyệt',
-    APPROVED: 'Đã duyệt',
-    REJECTED: 'Bị từ chối',
-    PUBLISHED: 'Đã xuất bản',
+    DRAFT: 'Draft',
+    PENDING_REVIEW: 'Pending Review',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected',
+    PUBLISHED: 'Published',
 };
 
 const STATUS_COLORS: Record<CourseStatus, string> = {
@@ -126,10 +126,10 @@ export default function ManageCourse() {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
             setIsAddingModule(false);
             setNewModuleTitle('');
-            showSuccessAlert('Thêm chương thành công!', 'Chương học mới đã được tạo.');
+            showSuccessAlert('Module added successfully!', 'A new learning module has been created.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi tạo chương', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error creating module', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -143,10 +143,10 @@ export default function ManageCourse() {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
             setEditingModuleId(null);
             setEditingModuleTitle('');
-            showSuccessAlert('Cập nhật chương thành công!', 'Tiêu đề chương học đã được thay đổi.');
+            showSuccessAlert('Module updated successfully!', 'The module title has been changed.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi cập nhật chương', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error updating module', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -163,10 +163,10 @@ export default function ManageCourse() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
-            showSuccessAlert('Xóa thành công!', 'Chương học đã được xóa.');
+            showSuccessAlert('Deleted successfully!', 'The learning module has been deleted.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi xóa chương', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error deleting module', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -177,10 +177,10 @@ export default function ManageCourse() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
-            showSuccessAlert('Xóa thành công!', 'Nội dung đã được xóa.');
+            showSuccessAlert('Deleted successfully!', 'The content has been deleted.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi xóa nội dung', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error deleting content', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -190,10 +190,10 @@ export default function ManageCourse() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
-            showSuccessAlert('Đã cập nhật!', 'Thiết lập bài học xem thử đã được lưu.');
+            showSuccessAlert('Updated!', 'Free preview settings have been saved.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi cập nhật preview', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Error updating preview', error.response?.data?.error || 'An error occurred');
         },
     });
 
@@ -205,28 +205,28 @@ export default function ManageCourse() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
             showSuccessAlert(
-                'Đã gửi duyệt!',
-                'Khoá học đã được gửi tới quản trị viên để duyệt.',
+                'Submitted for review!',
+                'The course has been submitted to the admin for review.',
             );
         },
         onError: (error: any) => {
             showErrorAlert(
-                'Lỗi gửi duyệt',
-                error.response?.data?.error || 'Đã có lỗi xảy ra',
+                'Error submitting for review',
+                error.response?.data?.error || 'An error occurred',
             );
         },
     });
 
     const handleSubmitForReview = async () => {
         const result = await Swal.fire({
-            title: 'Gửi khoá học để duyệt?',
-            text: 'Sau khi gửi, bạn sẽ không thể chỉnh sửa cho đến khi có kết quả duyệt.',
+            title: 'Submit course for review?',
+            text: 'After submitting, you will not be able to edit the course until the review is complete.',
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Gửi duyệt',
-            cancelButtonText: 'Huỷ',
+            confirmButtonText: 'Submit for Review',
+            cancelButtonText: 'Cancel',
         });
         if (result.isConfirmed) {
             submitForReviewMutation.mutate();
@@ -247,15 +247,15 @@ export default function ManageCourse() {
 
     const handleDeleteModule = async (moduleId: number, moduleTitle: string) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa chương?',
-            html: `Bạn có chắc muốn xóa chương <strong>"${moduleTitle}"</strong>?<br><br>
-                   <span style="color: #dc2626;">Tất cả nội dung bên trong sẽ bị xóa!</span>`,
+            title: 'Confirm delete module?',
+            html: `Are you sure you want to delete the module <strong>"${moduleTitle}"</strong>?<br><br>
+                   <span style="color: #dc2626;">All content inside will be deleted!</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -265,14 +265,14 @@ export default function ManageCourse() {
 
     const handleDeleteContent = async (contentId: number, contentTitle: string) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa nội dung?',
-            html: `Bạn có chắc muốn xóa <strong>"${contentTitle}"</strong>?`,
+            title: 'Confirm delete content?',
+            html: `Are you sure you want to delete <strong>"${contentTitle}"</strong>?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -307,13 +307,13 @@ export default function ManageCourse() {
             case 'VIDEO':
                 return 'Video';
             case 'DOCUMENT':
-                return 'Tài liệu';
+                return 'Document';
             case 'QUIZ':
-                return 'Bài kiểm tra';
+                return 'Quiz';
             case 'PRACTICE':
-                return 'Bài thực hành';
+                return 'Practice';
             case 'ASSIGNMENT':
-                return 'Bài tập';
+                return 'Assignment';
             default:
                 return type;
         }
@@ -324,7 +324,7 @@ export default function ManageCourse() {
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-red-600 mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
                 </div>
             </div>
         );
@@ -334,8 +334,8 @@ export default function ManageCourse() {
         return (
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                 <div className="text-center">
-                    <p className="text-xl text-zinc-900 dark:text-white mb-4">Không tìm thấy khóa học</p>
-                    <Button onClick={() => navigate('/dashboard')}>Quay lại Dashboard</Button>
+                    <p className="text-xl text-zinc-900 dark:text-white mb-4">Course not found</p>
+                    <Button onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
                 </div>
             </div>
         );
@@ -352,13 +352,13 @@ export default function ManageCourse() {
                         className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại {isAdmin ? 'Admin' : 'Dashboard'}
+                        Back to {isAdmin ? 'Admin' : 'Dashboard'}
                     </Button>
 
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0 flex-1">
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
-                                Quản lý khóa học
+                                Course Management
                             </h1>
                             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                                 <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">
@@ -386,7 +386,7 @@ export default function ManageCourse() {
                                         ) : (
                                             <Send className="h-4 w-4" />
                                         )}
-                                        Gửi duyệt
+                                        Submit for Review
                                     </Button>
                                 )}
                             <Button
@@ -395,7 +395,7 @@ export default function ManageCourse() {
                                 className="gap-2"
                             >
                                 <Sparkles className="h-4 w-4" />
-                                Cấu trúc AI
+                                AI Outline
                             </Button>
                             <Button
                                 onClick={() => navigate(studentsPath)}
@@ -403,7 +403,7 @@ export default function ManageCourse() {
                                 className="gap-2"
                             >
                                 <UserCheck className="h-4 w-4" />
-                                Xem học viên
+                                View Students
                             </Button>
                             {!isAdmin && (
                                 <Button
@@ -412,7 +412,7 @@ export default function ManageCourse() {
                                     className="gap-2"
                                 >
                                     <Github className="h-4 w-4" />
-                                    Dự án
+                                    Projects
                                 </Button>
                             )}
                             <Button
@@ -421,7 +421,7 @@ export default function ManageCourse() {
                                 className="gap-2"
                             >
                                 <Edit className="h-4 w-4" />
-                                Sửa thông tin
+                                Edit Details
                             </Button>
                         </div>
                     </div>
@@ -431,14 +431,14 @@ export default function ManageCourse() {
                             <div className="flex items-start gap-3 min-w-0">
                                 <Clock className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-300 shrink-0" />
                                 <div className="min-w-0">
-                                    <p className="font-semibold">Thiết lập thời hạn truy cập</p>
+                                    <p className="font-semibold">Access Duration Settings</p>
                                     <p className="mt-1">
                                         {course.accessDurationDays
-                                            ? `Sau khi mua, học viên được truy cập khóa học trong ${course.accessDurationDays} ngày.`
-                                            : 'Khóa học hiện đang để trống thời hạn, học viên được truy cập không giới hạn sau khi mua.'}
+                                            ? `After purchase, students can access the course for ${course.accessDurationDays} days.`
+                                            : 'No limit is set, students have unlimited access after purchase.'}
                                     </p>
                                     <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
-                                        Người set phần này là teacher/admin tại mục "Sửa thông tin" của khóa học.
+                                        You can set this in the "Edit Details" section of the course.
                                     </p>
                                 </div>
                             </div>
@@ -447,26 +447,26 @@ export default function ManageCourse() {
                                 variant="outline"
                                 className="shrink-0 border-blue-300 bg-white/70 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200 w-full md:w-auto"
                             >
-                                Cài thời hạn
+                                Set Duration
                             </Button>
                         </div>
                     </Card>
 
                     {course.status === 'REJECTED' && course.rejectionReason && (
                         <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
-                            <p className="font-semibold mb-1">Khoá học bị từ chối</p>
+                            <p className="font-semibold mb-1">Course Rejected</p>
                             <p>
-                                <strong>Lý do:</strong> {course.rejectionReason}
+                                <strong>Reason:</strong> {course.rejectionReason}
                             </p>
                             <p className="mt-2 text-xs">
-                                Vui lòng chỉnh sửa khoá học theo phản hồi và nhấn "Gửi duyệt" lại.
+                                Please edit the course according to the feedback and click "Submit for Review" again.
                             </p>
                         </div>
                     )}
 
                     {course.status === 'PENDING_REVIEW' && (
                         <div className="mt-4 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900/50 dark:bg-yellow-950/40 dark:text-yellow-300">
-                            Khoá học đang chờ quản trị viên duyệt. Bạn sẽ nhận được thông báo khi có kết quả.
+                            The course is currently waiting for admin approval. You will receive a notification when the review is complete.
                         </div>
                     )}
                 </div>
@@ -482,14 +482,14 @@ export default function ManageCourse() {
                                 className="w-full gap-2 text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
                             >
                                 <Plus className="h-5 w-5" />
-                                Thêm chương mới
+                                Add New Module
                             </Button>
                         </Card>
                     ) : (
                         <Card className="p-3 sm:p-4 border-2 border-red-500">
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <Input
-                                    placeholder="Tên chương (VD: Chương 1: Giới thiệu)"
+                                    placeholder="Module title (e.g. Chapter 1: Introduction)"
                                     value={newModuleTitle}
                                     onChange={(e) => setNewModuleTitle(e.target.value)}
                                     onKeyDown={(e) => {
@@ -533,7 +533,7 @@ export default function ManageCourse() {
                     {course.modules.length === 0 ? (
                         <Card className="p-12 text-center border-zinc-200 dark:border-zinc-800">
                             <p className="text-zinc-500 dark:text-zinc-400">
-                                Chưa có chương nào. Hãy thêm chương đầu tiên!
+                                No modules yet. Add the first module!
                             </p>
                         </Card>
                     ) : (
@@ -598,7 +598,7 @@ export default function ManageCourse() {
                                                 {module.title}
                                             </h3>
                                             <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 shrink-0">
-                                                ({module.contents.length} bài)
+                                                ({module.contents.length} lessons)
                                             </span>
                                         </div>
                                     )}
@@ -638,13 +638,13 @@ export default function ManageCourse() {
                                             onClick={() => setAddingContentToModule(module.id)}
                                         >
                                             <Plus className="h-4 w-4" />
-                                            Thêm nội dung
+                                            Add Content
                                         </Button>
 
                                         {/* Contents List */}
                                         {module.contents.length === 0 ? (
                                             <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center py-4">
-                                                Chưa có nội dung nào
+                                                No content yet
                                             </p>
                                         ) : (
                                             <div className="space-y-2">
@@ -662,10 +662,10 @@ export default function ManageCourse() {
                                                                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
                                                                     {getContentTypeLabel(content.contentType)}
                                                                     {content.durationInSeconds && (
-                                                                        <> • {Math.floor(content.durationInSeconds / 60)} phút</>
+                                                                        <> • {Math.floor(content.durationInSeconds / 60)} mins</>
                                                                     )}
                                                                     {content.isFreePreview && (
-                                                                        <> • Xem thử miễn phí</>
+                                                                        <> • Free Preview</>
                                                                     )}
                                                                 </p>
                                                             </div>
@@ -682,7 +682,7 @@ export default function ManageCourse() {
                                                                 })}
                                                             >
                                                                 <Eye className="h-4 w-4" />
-                                                                {content.isFreePreview ? 'Đang preview' : 'Mở preview'}
+                                                                {content.isFreePreview ? 'Previewing' : 'Enable Preview'}
                                                             </Button>
                                                             {content.contentType === 'QUIZ' && (
                                                                 <Button
@@ -692,7 +692,7 @@ export default function ManageCourse() {
                                                                     onClick={() => navigate(quizManagePath(content.id))}
                                                                 >
                                                                     <Edit className="h-4 w-4 mr-1" />
-                                                                    Quản lý câu hỏi
+                                                                    Manage Questions
                                                                 </Button>
                                                             )}
                                                             <Button
@@ -702,7 +702,7 @@ export default function ManageCourse() {
                                                                 onClick={() => setEditingContent({ ...content, moduleId: module.id })}
                                                             >
                                                                 <Edit className="h-4 w-4 mr-1" />
-                                                                Sửa
+                                                                Edit
                                                             </Button>
                                                             <Button
                                                                 variant="ghost"

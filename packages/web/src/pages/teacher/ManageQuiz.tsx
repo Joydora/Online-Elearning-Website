@@ -112,10 +112,10 @@ export default function ManageQuiz() {
             queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
             setIsAddingQuestion(false);
             setNewQuestionText('');
-            showSuccessAlert('Thêm câu hỏi thành công!', '');
+            showSuccessAlert('Question added successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể tạo câu hỏi');
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to create question');
         },
     });
 
@@ -126,10 +126,10 @@ export default function ManageQuiz() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
-            showSuccessAlert('Xóa câu hỏi thành công!', '');
+            showSuccessAlert('Question deleted successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể xóa câu hỏi');
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to delete question');
         },
     });
 
@@ -155,10 +155,10 @@ export default function ManageQuiz() {
             queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
             setNewOptionText('');
             setNewOptionIsCorrect(false);
-            showSuccessAlert('Thêm đáp án thành công!', '');
+            showSuccessAlert('Option added successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể tạo đáp án');
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to create option');
         },
     });
 
@@ -169,10 +169,10 @@ export default function ManageQuiz() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
-            showSuccessAlert('Xóa đáp án thành công!', '');
+            showSuccessAlert('Option deleted successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể xóa đáp án');
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to delete option');
         },
     });
 
@@ -192,10 +192,10 @@ export default function ManageQuiz() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
-            showSuccessAlert('Thêm marker thành công!', '');
+            showSuccessAlert('Marker added successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể tạo marker');
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to create marker');
         },
     });
 
@@ -205,24 +205,24 @@ export default function ManageQuiz() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
-            showSuccessAlert('Xóa marker thành công!', '');
+            showSuccessAlert('Marker deleted successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể xóa marker');
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to delete marker');
         },
     });
 
     const handleDeleteQuestion = async (questionId: number, questionText: string) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa câu hỏi?',
-            html: `Bạn có chắc muốn xóa câu hỏi <strong>"${questionText}"</strong>?<br><br>
-                   <span style="color: #dc2626;">Tất cả đáp án sẽ bị xóa!</span>`,
+            title: 'Confirm delete question?',
+            html: `Are you sure you want to delete the question <strong>"${questionText}"</strong>?<br><br>
+                   <span style="color: #dc2626;">All options will be deleted!</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -232,13 +232,13 @@ export default function ManageQuiz() {
 
     const handleDeleteOption = async (optionId: number) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa đáp án?',
+            title: 'Confirm delete option?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -278,12 +278,12 @@ export default function ManageQuiz() {
 
     const handleCreateMarker = () => {
         if (!selectedVideoContentId) {
-            showErrorAlert('Vui lòng chọn video');
+            showErrorAlert('Please select a video');
             return;
         }
 
         if (!markerQuestionId) {
-            showErrorAlert('Vui lòng chọn câu hỏi');
+            showErrorAlert('Please select a question');
             return;
         }
 
@@ -292,13 +292,13 @@ export default function ManageQuiz() {
 
     const handleDeleteMarker = async (markerId: number) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa marker?',
+            title: 'Confirm delete marker?',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -311,7 +311,7 @@ export default function ManageQuiz() {
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-red-600 mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
                 </div>
             </div>
         );
@@ -322,9 +322,9 @@ export default function ManageQuiz() {
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-xl text-zinc-900 dark:text-white mb-4">
-                        Không tìm thấy bài kiểm tra
+                        Quiz not found
                     </p>
-                    <Button onClick={() => navigate(-1)}>Quay lại</Button>
+                    <Button onClick={() => navigate(-1)}>Back</Button>
                 </div>
             </div>
         );
@@ -341,16 +341,16 @@ export default function ManageQuiz() {
                         className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại
+                        Back
                     </Button>
 
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Quản lý bài kiểm tra
+                        Manage Quiz
                     </h1>
                     <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">{quiz.title}</p>
                     {quiz.timeLimitInMinutes && (
                         <p className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">
-                            Thời gian: {quiz.timeLimitInMinutes} phút
+                            Time Limit: {quiz.timeLimitInMinutes} minutes
                         </p>
                     )}
                 </div>
@@ -360,21 +360,21 @@ export default function ManageQuiz() {
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
                             <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
-                                Quiz nhúng trong video
+                                Embedded In-Video Quiz
                             </h2>
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                Chọn video, lấy timestamp trên timeline và gắn câu hỏi của quiz này vào video.
+                                Select a video, find the timestamp on the timeline, and attach a question from this quiz to the video.
                             </p>
                         </div>
                     </div>
 
                     {quiz.availableVideoContents.length === 0 ? (
                         <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-500 dark:text-zinc-400">
-                            Khóa học này chưa có video để gắn marker.
+                            This course has no videos to attach markers to.
                         </div>
                     ) : quiz.questions.length === 0 ? (
                         <div className="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-500 dark:text-zinc-400">
-                            Hãy tạo ít nhất một câu hỏi trước khi thêm marker.
+                            Please create at least one question before adding a marker.
                         </div>
                     ) : (
                         <div className="space-y-4 sm:space-y-5">
@@ -398,7 +398,7 @@ export default function ManageQuiz() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Câu hỏi
+                                        Question
                                     </label>
                                     <select
                                         value={markerQuestionId ?? ''}
@@ -407,7 +407,7 @@ export default function ManageQuiz() {
                                     >
                                         {quiz.questions.map((question, index) => (
                                             <option key={question.id} value={question.id}>
-                                                Câu {index + 1}: {question.questionText}
+                                                Question {index + 1}: {question.questionText}
                                             </option>
                                         ))}
                                     </select>
@@ -421,14 +421,14 @@ export default function ManageQuiz() {
                                     src={selectedVideo.videoUrl}
                                     className="w-full rounded-lg bg-black max-h-[360px]"
                                 >
-                                    Trình duyệt của bạn không hỗ trợ video.
+                                    Your browser does not support the video tag.
                                 </video>
                             )}
 
                             <div className="grid sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] gap-3 sm:gap-4 items-end">
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Timestamp (giây)
+                                        Timestamp (seconds)
                                     </label>
                                     <Input
                                         type="number"
@@ -441,7 +441,7 @@ export default function ManageQuiz() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Chế độ
+                                        Mode
                                     </label>
                                     <select
                                         value={markerBlockingMode}
@@ -449,7 +449,7 @@ export default function ManageQuiz() {
                                         className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-white"
                                     >
                                         <option value="pause">Pause video</option>
-                                        <option value="non-blocking">Không chặn video</option>
+                                        <option value="non-blocking">Non-blocking</option>
                                     </select>
                                 </div>
 
@@ -460,7 +460,7 @@ export default function ManageQuiz() {
                                     disabled={!selectedVideo?.videoUrl}
                                     className="w-full sm:w-auto sm:col-span-2 lg:col-span-1"
                                 >
-                                    Lấy thời điểm hiện tại
+                                    Get Current Time
                                 </Button>
                             </div>
 
@@ -472,23 +472,23 @@ export default function ManageQuiz() {
                                 {createMarkerMutation.isPending ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Đang thêm...
+                                        Adding...
                                     </>
                                 ) : (
                                     <>
                                         <Plus className="h-4 w-4 mr-2" />
-                                        Thêm marker
+                                        Add Marker
                                     </>
                                 )}
                             </Button>
 
                             <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
                                 <h3 className="font-medium text-zinc-900 dark:text-white mb-3">
-                                    Marker trên video đã chọn
+                                    Markers on Selected Video
                                 </h3>
                                 {selectedVideoMarkers.length === 0 ? (
                                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                        Chưa có marker nào trên video này.
+                                        No markers on this video yet.
                                     </p>
                                 ) : (
                                     <div className="space-y-2">
@@ -503,7 +503,7 @@ export default function ManageQuiz() {
                                                         {formatTime(marker.timestampSec)}
                                                     </span>
                                                     <span className="flex-1 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 min-w-0 break-words">
-                                                        Câu {questionIndex >= 0 ? questionIndex + 1 : '?'}: {quiz.questions[questionIndex]?.questionText ?? 'Câu hỏi đã xóa'}
+                                                        Question {questionIndex >= 0 ? questionIndex + 1 : '?'}: {quiz.questions[questionIndex]?.questionText ?? 'Deleted question'}
                                                     </span>
                                                     <span className="text-xs px-2 py-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 shrink-0">
                                                         {marker.blockingMode === 'pause' ? 'Pause' : 'Non-blocking'}
@@ -537,14 +537,14 @@ export default function ManageQuiz() {
                                 className="w-full gap-2 text-zinc-600 dark:text-zinc-400"
                             >
                                 <Plus className="h-5 w-5" />
-                                Thêm câu hỏi mới
+                                Add New Question
                             </Button>
                         </Card>
                     ) : (
                         <Card className="p-3 sm:p-4 border-2 border-red-500">
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <Input
-                                    placeholder="Nhập câu hỏi..."
+                                    placeholder="Enter question..."
                                     value={newQuestionText}
                                     onChange={(e) => setNewQuestionText(e.target.value)}
                                     onKeyDown={(e) => {
@@ -591,7 +591,7 @@ export default function ManageQuiz() {
                     {quiz.questions.length === 0 ? (
                         <Card className="p-12 text-center">
                             <p className="text-zinc-500 dark:text-zinc-400">
-                                Chưa có câu hỏi nào. Hãy thêm câu hỏi đầu tiên!
+                                No questions yet. Add the first question!
                             </p>
                         </Card>
                     ) : (
@@ -601,10 +601,10 @@ export default function ManageQuiz() {
                                 <div className="flex items-start justify-between gap-2 mb-4">
                                     <div className="flex-1 min-w-0">
                                         <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-white mb-1 break-words">
-                                            Câu {index + 1}: {question.questionText}
+                                            Question {index + 1}: {question.questionText}
                                         </h3>
                                         <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                                            {question.options.length} đáp án
+                                            {question.options.length} options
                                         </p>
                                     </div>
                                     <Button
@@ -653,7 +653,7 @@ export default function ManageQuiz() {
                                 {addingOptionsFor === question.id ? (
                                     <div className="border-t pt-4 space-y-3">
                                         <Input
-                                            placeholder="Nhập đáp án..."
+                                            placeholder="Enter option..."
                                             value={newOptionText}
                                             onChange={(e) => setNewOptionText(e.target.value)}
                                             onKeyDown={(e) => {
@@ -678,7 +678,7 @@ export default function ManageQuiz() {
                                                 htmlFor={`correct-${question.id}`}
                                                 className="text-sm text-zinc-700 dark:text-zinc-300"
                                             >
-                                                Đáp án đúng
+                                                Correct option
                                             </label>
                                         </div>
                                         <div className="flex gap-2">
@@ -693,12 +693,12 @@ export default function ManageQuiz() {
                                                 {createOptionMutation.isPending ? (
                                                     <>
                                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                        Đang thêm...
+                                                        Adding...
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Save className="h-4 w-4 mr-2" />
-                                                        Thêm đáp án
+                                                        Add Option
                                                     </>
                                                 )}
                                             </Button>
@@ -710,7 +710,7 @@ export default function ManageQuiz() {
                                                 }}
                                                 variant="outline"
                                             >
-                                                Hủy
+                                                Cancel
                                             </Button>
                                         </div>
                                     </div>
@@ -722,7 +722,7 @@ export default function ManageQuiz() {
                                         className="w-full border-dashed"
                                     >
                                         <Plus className="h-4 w-4 mr-2" />
-                                        Thêm đáp án
+                                        Add Option
                                     </Button>
                                 )}
                             </Card>

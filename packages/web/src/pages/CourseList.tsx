@@ -17,7 +17,7 @@ export function CourseList({ courses }: CourseListProps) {
     if (courses.length === 0) {
         return (
             <div className="text-center text-slate-500">
-                Hiện chưa có khóa học nào được đăng tải.
+                No courses have been published yet.
             </div>
         );
     }
@@ -38,7 +38,7 @@ export function CourseList({ courses }: CourseListProps) {
                     <CardFooter className="mt-auto">
                         <Button asChild className="w-full" variant="default">
                             <Link to={`/courses/${course.id}`}>
-                                Xem chi tiết
+                                View Details
                             </Link>
                         </Button>
                     </CardFooter>

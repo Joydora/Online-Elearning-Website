@@ -94,14 +94,14 @@ export default function Profile() {
     const updateProfileMutation = useMutation({
         mutationFn: async () => {
             if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-                throw new Error('Mật khẩu mới và xác nhận mật khẩu không khớp');
+                throw new Error('New password and confirm password do not match');
             }
 
             const updateData: any = {
                 firstName: formData.firstName || null,
                 lastName: formData.lastName || null,
                 email: formData.email,
-                // Username không được thay đổi
+                // Username cannot be changed
             };
 
             if (formData.newPassword) {
@@ -116,7 +116,7 @@ export default function Profile() {
             // Update auth store
             setUser(data.user);
             queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-            showSuccessAlert('Thành công!', 'Thông tin đã được cập nhật.');
+            showSuccessAlert('Success!', 'Profile information updated successfully.');
 
             // Clear password fields
             setFormData(prev => ({
@@ -127,8 +127,8 @@ export default function Profile() {
             }));
         },
         onError: (error: any) => {
-            const errorMessage = error.response?.data?.error || error.message || 'Không thể cập nhật thông tin.';
-            showErrorAlert('Lỗi', errorMessage);
+            const errorMessage = error.response?.data?.error || error.message || 'Could not update profile.';
+            showErrorAlert('Error', errorMessage);
         },
     });
 
@@ -155,16 +155,16 @@ export default function Profile() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
-            showSuccessAlert('Thành công!', 'Cài đặt thông báo đã được lưu.');
+            showSuccessAlert('Success!', 'Notification settings saved.');
         },
         onError: (error: any) => {
-            const msg = error.response?.data?.error || error.message || 'Không thể lưu cài đặt.';
-            showErrorAlert('Lỗi', msg);
+            const msg = error.response?.data?.error || error.message || 'Could not save settings.';
+            showErrorAlert('Error', msg);
         },
     });
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -174,11 +174,11 @@ export default function Profile() {
     const getRoleName = (role: string) => {
         switch (role) {
             case 'ADMIN':
-                return 'Quản trị viên';
+                return 'Admin';
             case 'TEACHER':
-                return 'Giảng viên';
+                return 'Teacher';
             case 'STUDENT':
-                return 'Học viên';
+                return 'Student';
             default:
                 return role;
         }
@@ -189,7 +189,7 @@ export default function Profile() {
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải thông tin...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading profile...</p>
                 </div>
             </div>
         );
@@ -200,10 +200,10 @@ export default function Profile() {
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
                 <div className="text-center">
                     <h1 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                        Không tìm thấy thông tin
+                        Profile not found
                     </h1>
                     <Button onClick={() => navigate('/')} variant="outline">
-                        Quay về trang chủ
+                        Back to home
                     </Button>
                 </div>
             </div>
@@ -214,7 +214,7 @@ export default function Profile() {
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-6 sm:py-8">
             <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
                 <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-6 sm:mb-8">
-                    Hồ sơ của tôi
+                    My Profile
                 </h1>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -235,21 +235,21 @@ export default function Profile() {
                             </div>
                             {!profile.isVerified && (
                                 <div className="mt-3 text-xs text-yellow-600 dark:text-yellow-400">
-                                    ⚠️ Email chưa xác thực
+                                    ⚠️ Email not verified
                                 </div>
                             )}
                         </Card>
 
                         {/* Stats */}
                         <Card className="p-4 sm:p-6">
-                            <h3 className="font-semibold text-zinc-900 dark:text-white mb-4">Thống kê</h3>
+                            <h3 className="font-semibold text-zinc-900 dark:text-white mb-4">Statistics</h3>
                             <div className="space-y-4">
                                 {profile.role === 'STUDENT' && (
                                     <>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                                 <BookOpen className="w-5 h-5" />
-                                                <span>Khóa học đã đăng ký</span>
+                                                <span>Enrolled courses</span>
                                             </div>
                                             <span className="font-bold text-zinc-900 dark:text-white">
                                                 {profile._count.enrollments}
@@ -258,7 +258,7 @@ export default function Profile() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                                 <Trophy className="w-5 h-5" />
-                                                <span>Quiz đã làm</span>
+                                                <span>Quizzes taken</span>
                                             </div>
                                             <span className="font-bold text-zinc-900 dark:text-white">
                                                 {profile._count.quizAttempts}
@@ -271,7 +271,7 @@ export default function Profile() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                                 <GraduationCap className="w-5 h-5" />
-                                                <span>Khóa học đã tạo</span>
+                                                <span>Courses created</span>
                                             </div>
                                             <span className="font-bold text-zinc-900 dark:text-white">
                                                 {profile._count.coursesAsTeacher}
@@ -280,7 +280,7 @@ export default function Profile() {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                                 <BookOpen className="w-5 h-5" />
-                                                <span>Tổng học viên</span>
+                                                <span>Total students</span>
                                             </div>
                                             <span className="font-bold text-zinc-900 dark:text-white">
                                                 {profile.totalStudents || 0}
@@ -291,7 +291,7 @@ export default function Profile() {
                                 <div className="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-800">
                                     <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                         <Calendar className="w-5 h-5" />
-                                        <span>Tham gia</span>
+                                        <span>Joined</span>
                                     </div>
                                     <span className="text-sm text-zinc-500 dark:text-zinc-500">
                                         {formatDate(profile.createdAt)}
@@ -305,7 +305,7 @@ export default function Profile() {
                     <div className="lg:col-span-2 space-y-6">
                         <Card className="p-4 sm:p-6">
                             <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
-                                Thông tin cá nhân
+                                Personal Information
                             </h2>
 
                             <form
@@ -319,24 +319,24 @@ export default function Profile() {
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                            Họ
+                                            First Name
                                         </label>
                                         <Input
                                             type="text"
                                             value={formData.firstName}
                                             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                            placeholder="Nhập họ"
+                                            placeholder="Enter first name"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                            Tên
+                                            Last Name
                                         </label>
                                         <Input
                                             type="text"
                                             value={formData.lastName}
                                             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                            placeholder="Nhập tên"
+                                            placeholder="Enter last name"
                                         />
                                     </div>
                                 </div>
@@ -355,7 +355,7 @@ export default function Profile() {
                                     />
                                     {!profile.isVerified && (
                                         <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                                            ⚠️ Email chưa xác thực. Vui lòng kiểm tra hộp thư.
+                                            ⚠️ Email not verified. Please check your mailbox.
                                         </p>
                                     )}
                                 </div>
@@ -364,7 +364,7 @@ export default function Profile() {
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                         <User className="w-4 h-4 inline mr-1" />
-                                        Tên đăng nhập
+                                        Username
                                     </label>
                                     <Input
                                         type="text"
@@ -373,28 +373,28 @@ export default function Profile() {
                                         className="bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed"
                                     />
                                     <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                                        Tên đăng nhập không thể thay đổi
+                                        Username cannot be changed
                                     </p>
                                 </div>
 
                                 {/* Password Section */}
                                 <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800">
                                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-                                        Đổi mật khẩu (tùy chọn)
+                                        Change Password (optional)
                                     </h3>
 
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                                                 <Lock className="w-4 h-4 inline mr-1" />
-                                                Mật khẩu hiện tại
+                                                Current Password
                                             </label>
                                             <div className="relative">
                                                 <Input
                                                     type={showCurrentPassword ? 'text' : 'password'}
                                                     value={formData.currentPassword}
                                                     onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                                                    placeholder="Nhập mật khẩu hiện tại"
+                                                    placeholder="Enter current password"
                                                 />
                                                 <button
                                                     type="button"
@@ -408,14 +408,14 @@ export default function Profile() {
 
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                                Mật khẩu mới
+                                                New Password
                                             </label>
                                             <div className="relative">
                                                 <Input
                                                     type={showNewPassword ? 'text' : 'password'}
                                                     value={formData.newPassword}
                                                     onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                                                    placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                                                    placeholder="Enter new password (minimum 6 characters)"
                                                     minLength={6}
                                                 />
                                                 <button
@@ -430,14 +430,14 @@ export default function Profile() {
 
                                         <div>
                                             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                                Xác nhận mật khẩu mới
+                                                Confirm New Password
                                             </label>
                                             <div className="relative">
                                                 <Input
                                                     type={showConfirmPassword ? 'text' : 'password'}
                                                     value={formData.confirmPassword}
                                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                                    placeholder="Nhập lại mật khẩu mới"
+                                                    placeholder="Confirm your new password"
                                                 />
                                                 <button
                                                     type="button"
@@ -459,7 +459,7 @@ export default function Profile() {
                                         className="gap-2 bg-red-600 hover:bg-red-700"
                                     >
                                         <Save className="w-4 h-4" />
-                                        {updateProfileMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                        {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                                     </Button>
                                 </div>
                             </form>
@@ -468,21 +468,21 @@ export default function Profile() {
                         <Card className="p-4 sm:p-6">
                             <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-2 flex items-center gap-2">
                                 <Bell className="h-5 w-5 text-red-600" />
-                                Cài đặt thông báo
+                                Notification Settings
                             </h2>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                                Bật hoặc tắt từng loại thông báo trên ứng dụng và qua email.
+                                Enable or disable notification types in-app and via email.
                             </p>
 
                             {prefsLoading ? (
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">Đang tải...</p>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading...</p>
                             ) : (
                                 <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
                                     <table className="w-full text-sm">
                                         <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-left">
                                             <tr>
-                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">Loại</th>
-                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-center">Trong app</th>
+                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">Type</th>
+                                                <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-center">In-app</th>
                                                 <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-center">Email</th>
                                             </tr>
                                         </thead>
@@ -534,7 +534,7 @@ export default function Profile() {
                                     className="gap-2 bg-red-600 hover:bg-red-700"
                                 >
                                     <Save className="w-4 h-4" />
-                                    {saveNotificationPrefsMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt thông báo'}
+                                    {saveNotificationPrefsMutation.isPending ? 'Saving...' : 'Save Notification Settings'}
                                 </Button>
                             </div>
                         </Card>

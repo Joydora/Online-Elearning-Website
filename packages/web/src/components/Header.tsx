@@ -21,8 +21,8 @@ export function Header() {
 
     const handleLogout = async () => {
         const result = await showConfirmAlert(
-            'Đăng xuất',
-            'Bạn có chắc chắn muốn đăng xuất?'
+            'Logout',
+            'Are you sure you want to log out?'
         );
 
         if (result.isConfirmed) {
@@ -99,11 +99,11 @@ export function Header() {
     }, [isAuthenticated]);
 
     const navLinks = [
-        { path: '/', label: 'Trang chủ' },
-        { path: '/courses', label: 'Khóa học' },
-        { path: '/learning-path', label: 'Lộ trình AI' },
-        { path: '/about', label: 'Về chúng tôi' },
-        { path: '/contact', label: 'Liên hệ' },
+        { path: '/', label: 'Home' },
+        { path: '/courses', label: 'Courses' },
+        { path: '/learning-path', label: 'AI Learning Path' },
+        { path: '/about', label: 'About Us' },
+        { path: '/contact', label: 'Contact' },
     ];
 
     return (
@@ -132,8 +132,8 @@ export function Header() {
                                 key={link.path}
                                 to={link.path}
                                 className={`text-sm font-medium transition-colors relative group ${isActive(link.path)
-                                        ? 'text-red-600 dark:text-red-400'
-                                        : 'text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400'
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400'
                                     }`}
                             >
                                 {link.label}
@@ -159,7 +159,7 @@ export function Header() {
                                             {displayName}
                                         </span>
                                         <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                            {user?.role === 'ADMIN' ? 'Quản trị viên' : user?.role === 'TEACHER' ? 'Giảng viên' : 'Học viên'}
+                                            {user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'TEACHER' ? 'Instructor' : 'Student'}
                                         </span>
                                     </div>
                                 </div>
@@ -197,7 +197,7 @@ export function Header() {
                                                 className="gap-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:border-red-500 dark:text-red-400"
                                             >
                                                 <BookOpen className="h-4 w-4" />
-                                                Khóa học của tôi
+                                                My Courses
                                             </Button>
                                         </Link>
                                         <Link to="/quiz-history">
@@ -207,7 +207,7 @@ export function Header() {
                                                 className="gap-2 border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white dark:border-amber-500 dark:text-amber-400"
                                             >
                                                 <Trophy className="h-4 w-4" />
-                                                Lịch sử Quiz
+                                                Quiz History
                                             </Button>
                                         </Link>
                                     </>
@@ -217,7 +217,7 @@ export function Header() {
                                 <Link to="/notifications">
                                     <Button variant="outline" size="sm" className="gap-2 relative">
                                         <Bell className="h-4 w-4" />
-                                        Thong bao
+                                        Notifications
                                         {unreadNotifications > 0 && (
                                             <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-red-600 text-white text-[10px] leading-5 text-center">
                                                 {unreadNotifications > 99 ? '99+' : unreadNotifications}
@@ -234,7 +234,7 @@ export function Header() {
                                         className="gap-2"
                                     >
                                         <Settings className="h-4 w-4" />
-                                        Hồ sơ
+                                        Profile
                                     </Button>
                                 </Link>
 
@@ -252,12 +252,12 @@ export function Header() {
                             <div className="hidden md:flex items-center gap-2">
                                 <Link to="/login">
                                     <Button variant="ghost" size="sm" className="hover:text-red-600">
-                                        Đăng nhập
+                                        Login
                                     </Button>
                                 </Link>
                                 <Link to="/register">
                                     <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white">
-                                        Đăng ký
+                                        Register
                                     </Button>
                                 </Link>
                             </div>
@@ -287,8 +287,8 @@ export function Header() {
                                     to={link.path}
                                     onClick={() => setMobileMenuOpen(false)}
                                     className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive(link.path)
-                                            ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
-                                            : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                        ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400'
+                                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                                         }`}
                                 >
                                     {link.label}
@@ -307,7 +307,7 @@ export function Header() {
                                                     {displayName}
                                                 </div>
                                                 <div className="text-xs text-red-600 dark:text-red-400">
-                                                    {user?.role === 'ADMIN' ? 'Quản trị viên' : user?.role === 'TEACHER' ? 'Giảng viên' : 'Học viên'}
+                                                    {user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'TEACHER' ? 'Instructor' : 'Student'}
                                                 </div>
                                             </div>
                                         </div>
@@ -334,13 +334,13 @@ export function Header() {
                                             <Link to="/my-courses" onClick={() => setMobileMenuOpen(false)}>
                                                 <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 justify-center">
                                                     <BookOpen className="h-4 w-4" />
-                                                    Khóa học của tôi
+                                                    My Courses
                                                 </button>
                                             </Link>
                                             <Link to="/quiz-history" onClick={() => setMobileMenuOpen(false)}>
                                                 <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-amber-600 text-white hover:bg-amber-700 transition-colors flex items-center gap-2 justify-center">
                                                     <Trophy className="h-4 w-4" />
-                                                    Lịch sử Quiz
+                                                    Quiz History
                                                 </button>
                                             </Link>
                                         </>
@@ -349,13 +349,13 @@ export function Header() {
                                     <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
                                         <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-zinc-600 text-white hover:bg-zinc-700 transition-colors flex items-center gap-2 justify-center">
                                             <Settings className="h-4 w-4" />
-                                            Hồ sơ
+                                            Profile
                                         </button>
                                     </Link>
                                     <Link to="/notifications" onClick={() => setMobileMenuOpen(false)}>
                                         <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-zinc-600 text-white hover:bg-zinc-700 transition-colors flex items-center gap-2 justify-center">
                                             <Bell className="h-4 w-4" />
-                                            Thong bao {unreadNotifications > 0 ? `(${unreadNotifications})` : ''}
+                                            Notifications {unreadNotifications > 0 ? `(${unreadNotifications})` : ''}
                                         </button>
                                     </Link>
 
@@ -367,19 +367,19 @@ export function Header() {
                                         className="w-full px-4 py-3 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2 justify-center"
                                     >
                                         <LogOut className="h-4 w-4" />
-                                        Đăng xuất
+                                        Logout
                                     </button>
                                 </>
                             ) : (
                                 <div className="space-y-2 pt-2">
                                     <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                                         <button className="w-full px-4 py-3 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                                            Đăng nhập
+                                            Login
                                         </button>
                                     </Link>
                                     <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
                                         <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors">
-                                            Đăng ký
+                                            Register
                                         </button>
                                     </Link>
                                 </div>

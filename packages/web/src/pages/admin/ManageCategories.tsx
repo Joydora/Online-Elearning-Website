@@ -38,10 +38,10 @@ export default function ManageCategories() {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             setIsAdding(false);
             setNewName('');
-            showSuccessAlert('Thêm danh mục thành công!', '');
+            showSuccessAlert('Category added successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể tạo danh mục');
+            showErrorAlert('Error', error.response?.data?.error || 'Could not create category');
         },
     });
 
@@ -52,10 +52,10 @@ export default function ManageCategories() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             setEditingId(null);
-            showSuccessAlert('Cập nhật thành công!', '');
+            showSuccessAlert('Updated successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể cập nhật');
+            showErrorAlert('Error', error.response?.data?.error || 'Could not update category');
         },
     });
 
@@ -65,23 +65,23 @@ export default function ManageCategories() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
-            showSuccessAlert('Xóa thành công!', '');
+            showSuccessAlert('Deleted successfully!', '');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể xóa danh mục');
+            showErrorAlert('Error', error.response?.data?.error || 'Could not delete category');
         },
     });
 
     const handleDelete = async (id: number, name: string) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa?',
-            html: `Xóa danh mục <strong>"${name}"</strong>?`,
+            title: 'Confirm delete?',
+            html: `Delete category <strong>"${name}"</strong>?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
         });
         if (result.isConfirmed) deleteMutation.mutate(id);
     };
@@ -95,11 +95,11 @@ export default function ManageCategories() {
                     className="mb-3 sm:mb-4"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Quay lại Dashboard
+                    Back to Dashboard
                 </Button>
 
                 <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-5 sm:mb-8">
-                    Quản lý Danh mục
+                    Manage Categories
                 </h1>
 
                 {/* Add Form */}
@@ -107,7 +107,7 @@ export default function ManageCategories() {
                     <Card className="p-3 sm:p-4 border-dashed border-2 mb-5 sm:mb-6">
                         <Button onClick={() => setIsAdding(true)} variant="ghost" className="w-full">
                             <Plus className="h-5 w-5 mr-2" />
-                            Thêm danh mục mới
+                            Add new category
                         </Button>
                     </Card>
                 ) : (
@@ -116,7 +116,7 @@ export default function ManageCategories() {
                             <Input
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
-                                placeholder="Tên danh mục..."
+                                placeholder="Category name..."
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') createMutation.mutate(newName);
                                     if (e.key === 'Escape') {
@@ -150,7 +150,7 @@ export default function ManageCategories() {
                         </Card>
                     ) : categories.length === 0 ? (
                         <Card className="p-8 text-center">
-                            <p className="text-zinc-500">Chưa có danh mục nào</p>
+                            <p className="text-zinc-500">No categories found</p>
                         </Card>
                     ) : (
                         categories.map((cat) => (

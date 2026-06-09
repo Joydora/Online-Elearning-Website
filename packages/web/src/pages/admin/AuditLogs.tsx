@@ -54,7 +54,7 @@ export default function AdminAuditLogs() {
             <div className="container mx-auto max-w-7xl">
                 <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại
+                    Back
                 </Button>
 
                 <div className="mb-6">
@@ -63,7 +63,7 @@ export default function AdminAuditLogs() {
                         Admin Audit Logs
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-                        Lịch sử thao tác quản trị: user, course, promotion, payout.
+                        Administrator action history: user, course, promotion, payout.
                     </p>
                 </div>
 
@@ -77,7 +77,7 @@ export default function AdminAuditLogs() {
                             }}
                             className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
                         >
-                            <option value="">Tất cả resource</option>
+                            <option value="">All Resources</option>
                             <option value="USER">USER</option>
                             <option value="COURSE">COURSE</option>
                             <option value="PROMOTION">PROMOTION</option>
@@ -92,7 +92,7 @@ export default function AdminAuditLogs() {
                             }}
                             className="rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
                         >
-                            <option value="">Tất cả action</option>
+                            <option value="">All Actions</option>
                             <option value="CREATE">CREATE</option>
                             <option value="UPDATE">UPDATE</option>
                             <option value="DELETE">DELETE</option>
@@ -102,18 +102,18 @@ export default function AdminAuditLogs() {
 
                 <Card className="p-4 sm:p-6">
                     {isLoading ? (
-                        <p className="text-zinc-600 dark:text-zinc-400">Đang tải audit logs...</p>
+                        <p className="text-zinc-600 dark:text-zinc-400">Loading audit logs...</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                                        <th className="text-left py-2 px-3">Thời gian</th>
+                                        <th className="text-left py-2 px-3">Timestamp</th>
                                         <th className="text-left py-2 px-3">Admin</th>
                                         <th className="text-left py-2 px-3">Action</th>
                                         <th className="text-left py-2 px-3">Resource</th>
                                         <th className="text-left py-2 px-3">Resource ID</th>
-                                        <th className="text-left py-2 px-3">Mô tả</th>
+                                        <th className="text-left py-2 px-3">Description</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -124,7 +124,7 @@ export default function AdminAuditLogs() {
                                             'N/A';
                                         return (
                                             <tr key={row.id} className="border-b border-zinc-100 dark:border-zinc-800">
-                                                <td className="py-2 px-3">{new Date(row.createdAt).toLocaleString('vi-VN')}</td>
+                                                <td className="py-2 px-3">{new Date(row.createdAt).toLocaleString('en-US')}</td>
                                                 <td className="py-2 px-3">{adminName}</td>
                                                 <td className="py-2 px-3">{row.action}</td>
                                                 <td className="py-2 px-3">{row.resource}</td>

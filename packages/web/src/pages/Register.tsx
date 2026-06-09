@@ -52,18 +52,18 @@ export default function Register() {
 
             if (data.verificationSent) {
                 await showSuccessAlert(
-                    'Đăng ký thành công!',
-                    'Vui lòng kiểm tra email để xác thực tài khoản.'
+                    'Registration successful!',
+                    'Please check your email to verify your account.'
                 );
             } else {
                 await showSuccessAlert(
-                    'Đăng ký thành công!',
-                    'Tài khoản đã được tạo nhưng không thể gửi email xác thực. Vui lòng yêu cầu gửi lại.'
+                    'Registration successful!',
+                    'Account created but verification email could not be sent. Please request a resend.'
                 );
             }
         },
         onError: (error) => {
-            let message = 'Đăng ký thất bại. Vui lòng thử lại.';
+            let message = 'Registration failed. Please try again.';
 
             if (error instanceof AxiosError) {
                 const responseMessage = (error.response?.data as { message?: string })?.message;
@@ -72,13 +72,13 @@ export default function Register() {
                 message = error.message;
             }
 
-            showErrorAlert('Lỗi đăng ký', message);
+            showErrorAlert('Registration Error', message);
         },
     });
 
     const onSubmit = form.handleSubmit((values: RegisterFormValues) => {
         if (values.password !== values.confirmPassword) {
-            showErrorAlert('Lỗi', 'Mật khẩu xác nhận không khớp!');
+            showErrorAlert('Error', 'Confirm password does not match!');
             return;
         }
         registerMutation.mutate(values);
@@ -95,17 +95,17 @@ export default function Register() {
 
                 <div className="relative z-10 container mx-auto flex min-h-screen items-center justify-center px-4 py-10">
                     <div className="w-full max-w-md">
-                        <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+                        <div className="bg-white dark:bg-zinc-855 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
                             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                             </div>
 
                             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                                Đăng ký thành công! 🎉
+                                Registration successful! 🎉
                             </h1>
 
                             <p className="text-zinc-600 dark:text-zinc-400 mb-2">
-                                Chúng tôi đã gửi email xác thực đến:
+                                We have sent a verification email to:
                             </p>
 
                             <p className="text-lg font-semibold text-green-600 dark:text-green-400 mb-6">
@@ -114,14 +114,14 @@ export default function Register() {
 
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-6">
                                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                    <strong>Quan trọng:</strong> Vui lòng kiểm tra hộp thư (bao gồm cả thư rác) và click vào link xác thực để kích hoạt tài khoản.
+                                    <strong>Important:</strong> Please check your mailbox (including spam/junk folder) and click the verification link to activate your account.
                                 </p>
                             </div>
 
                             <div className="space-y-3">
                                 <Link to="/login">
                                     <Button className="w-full gap-2 bg-red-600 hover:bg-red-700">
-                                        Đi đến trang đăng nhập
+                                        Go to login page
                                         <ArrowRight className="w-4 h-4" />
                                     </Button>
                                 </Link>
@@ -129,7 +129,7 @@ export default function Register() {
                                 <Link to={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}>
                                     <Button variant="outline" className="w-full gap-2">
                                         <Mail className="w-4 h-4" />
-                                        Gửi lại email xác thực
+                                        Resend verification email
                                     </Button>
                                 </Link>
                             </div>
@@ -166,16 +166,16 @@ export default function Register() {
                             E-Learning Platform
                         </h2>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            Bắt đầu hành trình học tập của bạn ngay hôm nay
+                            Start your learning journey today
                         </p>
                     </div>
 
                     {/* Register Card */}
                     <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 space-y-6">
                         <header className="space-y-2 text-center">
-                            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Tạo tài khoản</h1>
+                            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Create Account</h1>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Điền thông tin bên dưới để bắt đầu hành trình học tập
+                                Fill in the information below to start your learning journey
                             </p>
                         </header>
 
@@ -186,19 +186,19 @@ export default function Register() {
                                     control={form.control}
                                     name="username"
                                     rules={{
-                                        required: 'Vui lòng nhập tên đăng nhập',
+                                        required: 'Please enter your username',
                                         minLength: {
                                             value: 3,
-                                            message: 'Tên đăng nhập phải có ít nhất 3 ký tự'
+                                            message: 'Username must be at least 3 characters'
                                         },
                                         pattern: {
                                             value: /^[a-zA-Z0-9_]+$/,
-                                            message: 'Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới'
+                                            message: 'Username can only contain letters, numbers, and underscores'
                                         }
                                     }}
                                     render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'username'> }) => (
                                         <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Tên đăng nhập</FormLabel>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Username</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
@@ -221,10 +221,10 @@ export default function Register() {
                                     control={form.control}
                                     name="email"
                                     rules={{
-                                        required: 'Vui lòng nhập email',
+                                        required: 'Please enter your email',
                                         pattern: {
                                             value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                            message: 'Email không hợp lệ'
+                                            message: 'Invalid email address'
                                         }
                                     }}
                                     render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'email'> }) => (
@@ -253,13 +253,13 @@ export default function Register() {
                                     <FormField
                                         control={form.control}
                                         name="firstName"
-                                        rules={{ required: 'Vui lòng nhập tên' }}
+                                        rules={{ required: 'Please enter your first name' }}
                                         render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'firstName'> }) => (
                                             <FormItem>
-                                                <FormLabel className="text-zinc-700 dark:text-zinc-300">Tên</FormLabel>
+                                                <FormLabel className="text-zinc-700 dark:text-zinc-300">First Name</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="Duy"
+                                                        placeholder="John"
                                                         autoComplete="given-name"
                                                         disabled={registerMutation.isPending}
                                                         className="h-12 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600 focus:border-red-500 dark:focus:border-red-400 transition-colors"
@@ -274,13 +274,13 @@ export default function Register() {
                                     <FormField
                                         control={form.control}
                                         name="lastName"
-                                        rules={{ required: 'Vui lòng nhập họ' }}
+                                        rules={{ required: 'Please enter your last name' }}
                                         render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'lastName'> }) => (
                                             <FormItem>
-                                                <FormLabel className="text-zinc-700 dark:text-zinc-300">Họ</FormLabel>
+                                                <FormLabel className="text-zinc-700 dark:text-zinc-300">Last Name</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="Nguyễn"
+                                                        placeholder="Doe"
                                                         autoComplete="family-name"
                                                         disabled={registerMutation.isPending}
                                                         className="h-12 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600 focus:border-red-500 dark:focus:border-red-400 transition-colors"
@@ -298,15 +298,15 @@ export default function Register() {
                                     control={form.control}
                                     name="password"
                                     rules={{
-                                        required: 'Vui lòng nhập mật khẩu',
+                                        required: 'Please enter your password',
                                         minLength: {
                                             value: 6,
-                                            message: 'Mật khẩu phải có ít nhất 6 ký tự'
+                                            message: 'Password must be at least 6 characters'
                                         }
                                     }}
                                     render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'password'> }) => (
                                         <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Mật khẩu</FormLabel>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Password</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
@@ -341,12 +341,12 @@ export default function Register() {
                                     control={form.control}
                                     name="confirmPassword"
                                     rules={{
-                                        required: 'Vui lòng xác nhận mật khẩu',
-                                        validate: (value) => value === form.watch('password') || 'Mật khẩu xác nhận không khớp'
+                                        required: 'Please confirm your password',
+                                        validate: (value) => value === form.watch('password') || 'Passwords do not match'
                                     }}
                                     render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'confirmPassword'> }) => (
                                         <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Xác nhận mật khẩu</FormLabel>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Confirm Password</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
@@ -384,12 +384,12 @@ export default function Register() {
                                     {registerMutation.isPending ? (
                                         <>
                                             <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                            Đang đăng ký...
+                                            Registering...
                                         </>
                                     ) : (
                                         <>
                                             <UserPlus className="mr-2 h-5 w-5" />
-                                            Đăng ký
+                                            Register
                                         </>
                                     )}
                                 </Button>
@@ -403,7 +403,7 @@ export default function Register() {
                             </div>
                             <div className="relative flex justify-center text-sm">
                                 <span className="px-4 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                                    hoặc tiếp tục với
+                                    or continue with
                                 </span>
                             </div>
                         </div>
@@ -433,7 +433,7 @@ export default function Register() {
                                         fill="#EA4335"
                                     />
                                 </svg>
-                                Đăng ký với Google
+                                Sign up with Google
                             </Button>
                         </a>
 
@@ -445,7 +445,7 @@ export default function Register() {
                                 </div>
                                 <div className="relative flex justify-center text-sm">
                                     <span className="px-4 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                                        Đã có tài khoản?
+                                        Already have an account?
                                     </span>
                                 </div>
                             </div>
@@ -456,7 +456,7 @@ export default function Register() {
                                     variant="outline"
                                     className="w-full h-12 border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700 font-semibold rounded-lg transition-colors duration-200"
                                 >
-                                    Đăng nhập
+                                    Login
                                 </Button>
                             </Link>
                         </div>
@@ -464,14 +464,14 @@ export default function Register() {
 
                     {/* Additional Info */}
                     <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-                        Bằng cách đăng ký, bạn đồng ý với{' '}
-                        <a href="#" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
-                            Điều khoản dịch vụ
-                        </a>{' '}
-                        và{' '}
-                        <a href="#" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
-                            Chính sách bảo mật
-                        </a>
+                        By registering, you agree to our{' '}
+                        <Link to="/terms" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
+                            Terms of Service
+                        </Link>{' '}
+                        and{' '}
+                        <Link to="/privacy" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
+                            Privacy Policy
+                        </Link>
                     </p>
                 </div>
             </div>

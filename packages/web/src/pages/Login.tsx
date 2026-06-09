@@ -55,8 +55,8 @@ export default function Login() {
             setUser(data.user);
 
             await showSuccessAlert(
-                'Đăng nhập thành công!',
-                `Chào mừng trở lại, ${data.user.firstName || data.user.username}!`
+                'Login successful!',
+                `Welcome back, ${data.user.firstName || data.user.username}!`
             );
 
             const isTeacher = data.user.role === 'TEACHER';
@@ -64,7 +64,7 @@ export default function Login() {
             navigate(isAdmin ? '/admin' : isTeacher ? '/dashboard' : '/');
         },
         onError: (error) => {
-            let message = 'Đăng nhập thất bại. Vui lòng thử lại.';
+            let message = 'Login failed. Please try again.';
 
             if (error instanceof AxiosError) {
                 const errorCode = error.response?.data?.code;
@@ -82,7 +82,7 @@ export default function Login() {
             }
 
             setEmailNotVerified(false);
-            showErrorAlert('Lỗi đăng nhập', message);
+            showErrorAlert('Login Error', message);
         },
     });
 
@@ -107,7 +107,7 @@ export default function Login() {
                 <div className="w-full max-w-md">
                     {/* Logo/Brand Section */}
                     <div className="mb-8 text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 via-red-600 to-red-800 shadow-[0_10px_30px_rgba(239,68,68,0.35)] ring-2 ring-white/10 dark:ring-red-500/30">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-50 via-red-600 to-red-800 shadow-[0_10px_30px_rgba(239,68,68,0.35)] ring-2 ring-white/10 dark:ring-red-500/30">
                             <div className="rounded-xl bg-black/60 p-2.5">
                                 <img src={logo} alt="E-Learning Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
                             </div>
@@ -116,16 +116,16 @@ export default function Login() {
                             E-Learning Platform
                         </h2>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            Nơi tri thức không giới hạn
+                            Where knowledge knows no bounds
                         </p>
                     </div>
 
                     {/* Login Card */}
                     <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800 p-8 space-y-6">
                         <header className="space-y-2 text-center">
-                            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Đăng nhập</h1>
+                            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Login</h1>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                Chào mừng bạn quay trở lại! Hãy đăng nhập để tiếp tục.
+                                Welcome back! Please login to continue.
                             </p>
                         </header>
 
@@ -136,17 +136,17 @@ export default function Login() {
                                     <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
-                                            Email chưa được xác thực
+                                            Email not verified
                                         </h3>
                                         <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-3">
-                                            Vui lòng kiểm tra hộp thư <strong>{unverifiedEmail}</strong> và click vào link xác thực.
+                                            Please check your mailbox <strong>{unverifiedEmail}</strong> and click the verification link.
                                         </p>
                                         <Link
                                             to={`/resend-verification?email=${encodeURIComponent(unverifiedEmail)}`}
                                             className="inline-flex items-center gap-2 text-sm font-medium text-yellow-700 dark:text-yellow-300 hover:text-yellow-900 dark:hover:text-yellow-100 underline"
                                         >
                                             <Mail className="h-4 w-4" />
-                                            Gửi lại email xác thực
+                                            Resend verification email
                                         </Link>
                                     </div>
                                 </div>
@@ -159,17 +159,17 @@ export default function Login() {
                                     control={form.control}
                                     name="emailOrUsername"
                                     rules={{
-                                        required: 'Vui lòng nhập email hoặc tên đăng nhập',
+                                        required: 'Please enter your email or username',
                                     }}
                                     render={({ field }: { field: ControllerRenderProps<LoginFormValues, 'emailOrUsername'> }) => (
                                         <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Email hoặc Tên đăng nhập</FormLabel>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Email or Username</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
                                                     <Input
                                                         type="text"
-                                                        placeholder="email@example.com hoặc username"
+                                                        placeholder="email@example.com or username"
                                                         autoComplete="username"
                                                         disabled={loginMutation.isPending}
                                                         className="pl-11 h-12 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 focus:border-red-500 dark:focus:border-red-400 transition-colors"
@@ -188,7 +188,7 @@ export default function Login() {
                                         to="/forgot-password"
                                         className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline"
                                     >
-                                        Quên mật khẩu?
+                                        Forgot password?
                                     </Link>
                                 </div>
 
@@ -196,15 +196,15 @@ export default function Login() {
                                     control={form.control}
                                     name="password"
                                     rules={{
-                                        required: 'Vui lòng nhập mật khẩu',
+                                        required: 'Please enter your password',
                                         minLength: {
                                             value: 6,
-                                            message: 'Mật khẩu phải có ít nhất 6 ký tự'
+                                            message: 'Password must be at least 6 characters'
                                         }
                                     }}
                                     render={({ field }: { field: ControllerRenderProps<LoginFormValues, 'password'> }) => (
                                         <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Mật khẩu</FormLabel>
+                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">Password</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
                                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400 dark:text-zinc-500" />
@@ -242,12 +242,12 @@ export default function Login() {
                                     {loginMutation.isPending ? (
                                         <>
                                             <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                            Đang đăng nhập...
+                                            Logging in...
                                         </>
                                     ) : (
                                         <>
                                             <LogIn className="mr-2 h-5 w-5" />
-                                            Đăng nhập
+                                            Login
                                         </>
                                     )}
                                 </Button>
@@ -261,7 +261,7 @@ export default function Login() {
                             </div>
                             <div className="relative flex justify-center text-sm">
                                 <span className="px-4 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
-                                    hoặc tiếp tục với
+                                    or continue with
                                 </span>
                             </div>
                         </div>
@@ -291,7 +291,7 @@ export default function Login() {
                                         fill="#EA4335"
                                     />
                                 </svg>
-                                Đăng nhập với Google
+                                Sign in with Google
                             </Button>
                         </a>
 
@@ -303,7 +303,7 @@ export default function Login() {
                                 </div>
                                 <div className="relative flex justify-center text-sm">
                                     <span className="px-4 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
-                                        Chưa có tài khoản?
+                                        Don't have an account?
                                     </span>
                                 </div>
                             </div>
@@ -314,7 +314,7 @@ export default function Login() {
                                     variant="outline"
                                     className="w-full h-12 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium rounded-lg transition-all duration-200"
                                 >
-                                    Đăng ký ngay
+                                    Register now
                                 </Button>
                             </Link>
                         </div>
@@ -322,14 +322,14 @@ export default function Login() {
 
                     {/* Additional Info */}
                     <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-                        Bằng cách đăng nhập, bạn đồng ý với{' '}
-                        <a href="#" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
-                            Điều khoản dịch vụ
-                        </a>{' '}
-                        và{' '}
-                        <a href="#" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
-                            Chính sách bảo mật
-                        </a>
+                        By logging in, you agree to our{' '}
+                        <Link to="/terms" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
+                            Terms of Service
+                        </Link>{' '}
+                        and{' '}
+                        <Link to="/privacy" className="font-medium text-red-600 hover:text-red-500 dark:text-red-400">
+                            Privacy Policy
+                        </Link>
                     </p>
                 </div>
             </div>

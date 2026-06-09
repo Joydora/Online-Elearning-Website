@@ -54,17 +54,17 @@ export default function Dashboard() {
             queryClient.invalidateQueries({ queryKey: ['teacher-courses'] });
             Swal.fire({
                 icon: 'success',
-                title: 'Xóa thành công!',
-                text: 'Khóa học đã được xóa khỏi hệ thống.',
+                title: 'Deleted successfully!',
+                text: 'The course has been deleted from the system.',
                 timer: 2000,
                 showConfirmButton: false,
             });
         },
         onError: (error: any) => {
-            const message = error.response?.data?.error || 'Đã có lỗi xảy ra. Vui lòng thử lại.';
+            const message = error.response?.data?.error || 'An error occurred. Please try again.';
             Swal.fire({
                 icon: 'error',
-                title: 'Lỗi xóa khóa học',
+                title: 'Error deleting course',
                 text: message,
             });
         },
@@ -72,15 +72,15 @@ export default function Dashboard() {
 
     const handleDeleteCourse = async (courseId: number, courseTitle: string) => {
         const result = await Swal.fire({
-            title: 'Xác nhận xóa khóa học?',
-            html: `Bạn có chắc muốn xóa khóa học <strong>"${courseTitle}"</strong>?<br><br>
-                   <span style="color: #dc2626;">Hành động này không thể hoàn tác!</span>`,
+            title: 'Confirm delete course?',
+            html: `Are you sure you want to delete the course <strong>"${courseTitle}"</strong>?<br><br>
+                   <span style="color: #dc2626;">This action cannot be undone!</span>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#64748b',
-            confirmButtonText: 'Xóa khóa học',
-            cancelButtonText: 'Hủy',
+            confirmButtonText: 'Delete Course',
+            cancelButtonText: 'Cancel',
         });
 
         if (result.isConfirmed) {
@@ -103,10 +103,10 @@ export default function Dashboard() {
                 {/* Header */}
                 <div className="mb-6 sm:mb-8">
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Dashboard Giảng viên
+                        Teacher Dashboard
                     </h1>
                     <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                        Chào mừng trở lại, {user?.firstName || user?.username}!
+                        Welcome back, {user?.firstName || user?.username}!
                     </p>
                 </div>
 
@@ -116,7 +116,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Lớp đang quản lý
+                                    Managed Courses
                                 </p>
                                 <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalCourses}
@@ -132,7 +132,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Học viên
+                                    Students
                                 </p>
                                 <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalStudents}
@@ -148,7 +148,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Bài học
+                                    Lessons
                                 </p>
                                 <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {totalLessons}
@@ -164,25 +164,25 @@ export default function Dashboard() {
                 {/* Action Buttons */}
                 <div className="flex flex-col gap-4 mb-6 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
                     <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
-                        Khóa học của tôi
+                        My Courses
                     </h2>
                     <div className="flex flex-wrap gap-2 sm:gap-3">
                         <Link to="/profile" className="flex-1 sm:flex-initial">
                             <Button variant="outline" className="w-full gap-2">
                                 <UserCircle className="h-4 w-4" />
-                                <span>Cập nhật hồ sơ</span>
+                                <span>Update Profile</span>
                             </Button>
                         </Link>
                         <Link to="/teacher/earnings" className="flex-1 sm:flex-initial">
                             <Button variant="outline" className="w-full gap-2">
                                 <Wallet className="h-4 w-4" />
-                                <span>Tiền đang giữ</span>
+                                <span>Held Earnings</span>
                             </Button>
                         </Link>
                         <Link to="/courses/create" className="flex-1 sm:flex-initial">
                             <Button className="w-full gap-2 bg-red-600 hover:bg-red-700">
                                 <Plus className="h-4 w-4" />
-                                <span>Tạo khóa học mới</span>
+                                <span>Create New Course</span>
                             </Button>
                         </Link>
                     </div>
@@ -205,15 +205,15 @@ export default function Dashboard() {
                     <Card className="p-8 sm:p-12 text-center border-zinc-200 dark:border-zinc-800">
                         <BookOpen className="h-16 w-16 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                            Chưa có khóa học nào
+                            No courses yet
                         </h3>
                         <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                            Bắt đầu tạo khóa học đầu tiên của bạn để chia sẻ kiến thức với học viên
+                            Start creating your first course to share your knowledge with students
                         </p>
                         <Link to="/courses/create">
                             <Button className="gap-2 bg-red-600 hover:bg-red-700">
                                 <Plus className="h-4 w-4" />
-                                Tạo khóa học đầu tiên
+                                Create First Course
                             </Button>
                         </Link>
                     </Card>
@@ -252,12 +252,12 @@ export default function Dashboard() {
                                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600 dark:text-zinc-400">
                                                         <div className="flex items-center gap-1">
                                                             <Users className="h-4 w-4" />
-                                                            <span>{course._count?.enrollments ?? course.totalEnrollments ?? 0} học viên</span>
+                                                            <span>{course._count?.enrollments ?? course.totalEnrollments ?? 0} students</span>
                                                         </div>
                                                         <div className="flex items-center gap-1">
                                                             <FileText className="h-4 w-4" />
                                                             <span>
-                                                                {(course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0)} bài học
+                                                                {(course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0)} lessons
                                                             </span>
                                                         </div>
                                                     </div>
@@ -267,18 +267,18 @@ export default function Dashboard() {
                                                 <div className="flex flex-wrap gap-2">
                                                     <Link to={`/courses/${course.courseId || course.id}/manage`}>
                                                         <Button variant="default" size="sm" className="bg-red-600 hover:bg-red-700">
-                                                            Quản lý
+                                                            Manage
                                                         </Button>
                                                     </Link>
                                                     <Link to={`/courses/${course.courseId || course.id}/students`}>
                                                         <Button variant="outline" size="sm" className="gap-2">
                                                             <UserCheck className="h-4 w-4" />
-                                                            Học viên
+                                                            Students
                                                         </Button>
                                                     </Link>
                                                     <Link to={`/courses/${course.courseId || course.id}`}>
                                                         <Button variant="outline" size="sm">
-                                                            Xem
+                                                            View
                                                         </Button>
                                                     </Link>
                                                     <Link to={`/courses/${course.courseId || course.id}/edit`}>

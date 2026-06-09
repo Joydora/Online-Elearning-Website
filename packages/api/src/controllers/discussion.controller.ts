@@ -46,16 +46,16 @@ export async function createDiscussionPostController(req: Request, res: Response
             const message = (error as Error).message;
 
             if (message === 'DISCUSSION_TEXT_REQUIRED') {
-                return res.status(400).json({ error: 'Nội dung bình luận là bắt buộc' });
+                return res.status(400).json({ error: 'Comment content is required' });
             }
             if (message === 'DISCUSSION_ACCESS_DENIED') {
-                return res.status(403).json({ error: 'Bạn không có quyền tham gia thảo luận khóa học này' });
+                return res.status(403).json({ error: 'You do not have permission to join this course discussion' });
             }
             if (message === 'COURSE_NOT_FOUND') {
-                return res.status(404).json({ error: 'Không tìm thấy khóa học' });
+                return res.status(404).json({ error: 'Course not found' });
             }
             if (message === 'INVALID_PARENT_POST') {
-                return res.status(400).json({ error: 'Bình luận trả lời không hợp lệ' });
+                return res.status(400).json({ error: 'Invalid reply comment' });
             }
             throw error;
         }

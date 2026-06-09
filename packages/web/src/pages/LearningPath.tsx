@@ -21,15 +21,15 @@ type RecommendedCourse = {
 };
 
 const LEVELS = [
-    { value: 'BEGINNER', label: 'Người mới bắt đầu' },
-    { value: 'INTERMEDIATE', label: 'Trung cấp' },
-    { value: 'ADVANCED', label: 'Nâng cao' },
+    { value: 'BEGINNER', label: 'Beginner' },
+    { value: 'INTERMEDIATE', label: 'Intermediate' },
+    { value: 'ADVANCED', label: 'Advanced' },
 ];
 
 const LEVEL_LABELS: Record<string, string> = {
-    BEGINNER: 'Cơ bản',
-    INTERMEDIATE: 'Trung cấp',
-    ADVANCED: 'Nâng cao',
+    BEGINNER: 'Beginner',
+    INTERMEDIATE: 'Intermediate',
+    ADVANCED: 'Advanced',
 };
 
 export default function LearningPath() {
@@ -43,17 +43,17 @@ export default function LearningPath() {
         },
     });
 
-    const fmt = (n: number) => n === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+    const fmt = (n: number) => n === 0 ? 'Free' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
     return (
         <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 max-w-4xl">
             <div className="text-center mb-8 sm:mb-10">
                 <div className="flex items-center justify-center gap-2 mb-3">
                     <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
-                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Lộ trình học tập AI</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">AI Learning Path</h1>
                 </div>
                 <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400">
-                    Mô tả mục tiêu của bạn và để AI đề xuất lộ trình phù hợp nhất
+                    Describe your goals and let AI suggest the most suitable learning path
                 </p>
             </div>
 
@@ -61,12 +61,12 @@ export default function LearningPath() {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Mục tiêu học tập của bạn
+                            Your Learning Goal
                         </label>
                         <textarea
                             className="w-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none disabled:opacity-60"
                             rows={3}
-                            placeholder="Ví dụ: Tôi muốn trở thành lập trình viên web fullstack trong 6 tháng..."
+                            placeholder="e.g., I want to become a fullstack web developer in 6 months..."
                             value={goal}
                             onChange={(e) => setGoal(e.target.value)}
                             disabled={recommendMutation.isPending}
@@ -74,7 +74,7 @@ export default function LearningPath() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Trình độ hiện tại
+                            Current Level
                         </label>
                         <div className="flex gap-3 flex-wrap">
                             {LEVELS.map(({ value, label }) => (
@@ -95,9 +95,9 @@ export default function LearningPath() {
                         className="bg-red-600 hover:bg-red-700 gap-2 w-full"
                     >
                         {recommendMutation.isPending ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" />Đang phân tích...</>
+                            <><Loader2 className="w-4 h-4 animate-spin" />Analyzing...</>
                         ) : (
-                            <><Sparkles className="w-4 h-4" />Gợi ý lộ trình</>
+                            <><Sparkles className="w-4 h-4" />Generate Path</>
                         )}
                     </Button>
                 </div>
@@ -107,66 +107,66 @@ export default function LearningPath() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                         <BookOpen className="w-5 h-5 text-red-600" />
-                        Lộ trình đề xuất ({recommendMutation.data.length} khóa học)
+                        Suggested Path ({recommendMutation.data.length} courses)
                     </h2>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Thứ tự học được sắp theo độ khó và điều kiện tiên quyết giữa các khóa học.
+                        The learning sequence is ordered by difficulty and course prerequisites.
                     </p>
                     <div className="relative space-y-4">
                         <div className="absolute left-4 top-4 bottom-4 w-px bg-zinc-200 dark:bg-zinc-700" />
                         {recommendMutation.data.map((course, index) => {
-                        const teacherName = [course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || course.teacher.username;
-                        return (
-                            <Card key={course.id} className="p-4 sm:p-5 hover:shadow-md transition-shadow relative ml-0 md:ml-3">
-                                <div className="flex gap-3 sm:gap-4 items-start">
-                                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-sm relative z-10">
-                                        {index + 1}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <h3 className="font-semibold text-zinc-900 dark:text-white break-words">{course.title}</h3>
-                                                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{teacherName}</p>
+                            const teacherName = [course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || course.teacher.username;
+                            return (
+                                <Card key={course.id} className="p-4 sm:p-5 hover:shadow-md transition-shadow relative ml-0 md:ml-3">
+                                    <div className="flex gap-3 sm:gap-4 items-start">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 font-bold text-sm relative z-10">
+                                            {index + 1}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                                <div className="min-w-0">
+                                                    <h3 className="font-semibold text-zinc-900 dark:text-white break-words">{course.title}</h3>
+                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{teacherName}</p>
+                                                </div>
+                                                <div className="sm:text-right flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
+                                                    <p className="font-bold text-red-600">{fmt(course.price)}</p>
+                                                    {course.level && (
+                                                        <span className="text-xs px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-600 dark:text-zinc-400">
+                                                            {LEVEL_LABELS[course.level] || course.level}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="sm:text-right flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
-                                                <p className="font-bold text-red-600">{fmt(course.price)}</p>
-                                                {course.level && (
-                                                    <span className="text-xs px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-600 dark:text-zinc-400">
-                                                        {LEVEL_LABELS[course.level] || course.level}
-                                                    </span>
+                                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 line-clamp-2">{course.description}</p>
+                                            {course.prerequisites && course.prerequisites.length > 0 && (
+                                                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                                                    Prerequisites: {course.prerequisites.length} courses
+                                                </p>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3">
+                                                {course.averageRating !== undefined && course.averageRating > 0 && (
+                                                    <div className="flex items-center gap-1 text-sm text-zinc-500">
+                                                        <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                                                        {course.averageRating.toFixed(1)}
+                                                    </div>
                                                 )}
+                                                {course.totalEnrollments !== undefined && (
+                                                    <div className="flex items-center gap-1 text-sm text-zinc-500">
+                                                        <Users className="w-3.5 h-3.5" />
+                                                        {course.totalEnrollments}
+                                                    </div>
+                                                )}
+                                                <Link to={`/courses/${course.id}`} className="ml-auto">
+                                                    <Button size="sm" className="bg-red-600 hover:bg-red-700 gap-1 text-xs">
+                                                        View Course
+                                                        <ChevronRight className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </Link>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 line-clamp-2">{course.description}</p>
-                                        {course.prerequisites && course.prerequisites.length > 0 && (
-                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                                                Yêu cầu trước: {course.prerequisites.length} khóa học
-                                            </p>
-                                        )}
-                                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3">
-                                            {course.averageRating !== undefined && course.averageRating > 0 && (
-                                                <div className="flex items-center gap-1 text-sm text-zinc-500">
-                                                    <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                                                    {course.averageRating.toFixed(1)}
-                                                </div>
-                                            )}
-                                            {course.totalEnrollments !== undefined && (
-                                                <div className="flex items-center gap-1 text-sm text-zinc-500">
-                                                    <Users className="w-3.5 h-3.5" />
-                                                    {course.totalEnrollments}
-                                                </div>
-                                            )}
-                                            <Link to={`/courses/${course.id}`} className="ml-auto">
-                                                <Button size="sm" className="bg-red-600 hover:bg-red-700 gap-1 text-xs">
-                                                    Xem khóa học
-                                                    <ChevronRight className="w-3.5 h-3.5" />
-                                                </Button>
-                                            </Link>
-                                        </div>
                                     </div>
-                                </div>
-                            </Card>
-                        );
+                                </Card>
+                            );
                         })}
                     </div>
                 </div>
@@ -174,7 +174,7 @@ export default function LearningPath() {
 
             {recommendMutation.isError && (
                 <div className="text-center text-red-500 mt-4">
-                    Không thể tải gợi ý. Vui lòng thử lại.
+                    Failed to generate path. Please try again.
                 </div>
             )}
         </div>

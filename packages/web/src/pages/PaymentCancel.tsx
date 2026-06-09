@@ -12,10 +12,10 @@ export default function PaymentCancel() {
                         <XCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Thanh toán bị hủy
+                        Payment Cancelled
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        Giao dịch thanh toán đã bị hủy hoặc không thành công. Bạn có thể thử lại hoặc chọn khóa học khác.
+                        The payment transaction was cancelled or unsuccessful. You can try again or choose another course.
                     </p>
                 </div>
 
@@ -23,19 +23,19 @@ export default function PaymentCancel() {
                     <Link to="/courses" className="block">
                         <Button className="w-full gap-2 bg-red-600 hover:bg-red-700">
                             <ArrowLeft className="w-4 h-4" />
-                            Quay lại danh sách khóa học
+                            Back to Courses
                         </Button>
                     </Link>
                     <Link to="/contact" className="block">
                         <Button variant="outline" className="w-full gap-2">
                             <HelpCircle className="w-4 h-4" />
-                            Liên hệ hỗ trợ
+                            Contact Support
                         </Button>
                     </Link>
                 </div>
 
                 <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-6">
-                    Nếu bạn gặp vấn đề, vui lòng liên hệ hỗ trợ để được giúp đỡ.
+                    If you experience issues, please contact support for assistance.
                 </p>
             </Card>
         </div>

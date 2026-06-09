@@ -13,11 +13,11 @@ const ALL_TYPES: NotificationType[] = [
     NotificationType.DISCUSSION_REPLY,
 ];
 
-const LABEL_VI: Record<NotificationType, string> = {
-    [NotificationType.DEADLINE_REMINDER]: 'Nhắc deadline (project, bài tập)',
-    [NotificationType.REENGAGEMENT_REMINDER]: 'Nhắc học lại (engagement)',
-    [NotificationType.PROJECT_GRADED]: 'Chấm điểm / phản hồi bài nộp',
-    [NotificationType.DISCUSSION_REPLY]: 'Phản hồi trong thảo luận',
+const LABEL_EN: Record<NotificationType, string> = {
+    [NotificationType.DEADLINE_REMINDER]: 'Deadline reminders (projects, assignments)',
+    [NotificationType.REENGAGEMENT_REMINDER]: 'Re-engagement reminders (learning reminders)',
+    [NotificationType.PROJECT_GRADED]: 'Grading and feedback on submissions',
+    [NotificationType.DISCUSSION_REPLY]: 'Replies in discussion boards',
 };
 
 export type NotificationPreferenceRow = {
@@ -44,7 +44,7 @@ export async function listNotificationPreferenceRowsForUser(userId: number): Pro
             type,
             inAppEnabled: row?.inAppEnabled ?? true,
             emailEnabled: row?.emailEnabled ?? true,
-            label: LABEL_VI[type],
+            label: LABEL_EN[type],
         };
     });
 }

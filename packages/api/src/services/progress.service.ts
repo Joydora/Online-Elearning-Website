@@ -211,11 +211,11 @@ export async function getProgressAISummary(courseId: number, studentId: number):
         .filter((c) => c.practiceScore !== null)
         .map((c) => ({ title: c.title, ...c.practiceScore }));
 
-    const prompt = `Học viên đã hoàn thành ${completedCount}/${totalCount} nội dung khoá học (tiến độ: ${detail.progress}%).
-${quizScores.length > 0 ? `Điểm quiz: ${quizScores.map((q) => `${q.title}: ${q.score}%`).join(', ')}` : ''}
-${practiceScores.length > 0 ? `Thực hành: ${practiceScores.map((p) => `${p.title}: ${p.passed ? 'Đạt' : 'Chưa đạt'}`).join(', ')}` : ''}
+    const prompt = `The student has completed ${completedCount}/${totalCount} course items (progress: ${detail.progress}%).
+${quizScores.length > 0 ? `Quiz scores: ${quizScores.map((q) => `${q.title}: ${q.score}%`).join(', ')}` : ''}
+${practiceScores.length > 0 ? `Practice: ${practiceScores.map((p) => `${p.title}: ${p.passed ? 'Passed' : 'Failed'}`).join(', ')}` : ''}
 
-Hãy đưa ra nhận xét ngắn gọn (2-3 câu) bằng tiếng Việt về điểm mạnh và điểm cần cải thiện của học viên này.`;
+Please provide a brief summary (2-3 sentences) in English about this student's strengths and areas for improvement.`;
 
     try {
         const response = await ollama.chat({
@@ -225,7 +225,7 @@ Hãy đưa ra nhận xét ngắn gọn (2-3 câu) bằng tiếng Việt về đi
         });
         return response.message.content.trim();
     } catch {
-        return `Bạn đã hoàn thành ${detail.progress}% khoá học. Hãy tiếp tục cố gắng để đạt kết quả tốt hơn!`;
+        return `You have completed ${detail.progress}% of the course. Keep up the good work to achieve better results!`;
     }
 }
 

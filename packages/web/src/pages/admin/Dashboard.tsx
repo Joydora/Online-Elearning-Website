@@ -37,7 +37,7 @@ export default function AdminDashboard() {
     if (isLoading) {
         return (
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
-                <p className="text-zinc-600 dark:text-zinc-400">Đang tải...</p>
+                <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
             </div>
         );
     }
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
                         Admin Dashboard
                     </h1>
                     <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                        Quản lý toàn bộ hệ thống E-Learning
+                        Manage the entire E-Learning system
                     </p>
                 </div>
 
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
                     <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng người dùng</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Total Users</p>
                                 <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalUsers || 0}
                                 </p>
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
                     <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng khóa học</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Total Courses</p>
                                 <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalCourses || 0}
                                 </p>
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
                     <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Tổng đăng ký</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Total Enrollments</p>
                                 <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalEnrollments || 0}
                                 </p>
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
                     <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Danh mục</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-1">Categories</p>
                                 <p className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.totalCategories || 0}
                                 </p>
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
                                 <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div>
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Học viên</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Students</p>
                                 <p className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.usersByRole?.STUDENT || 0}
                                 </p>
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
                                 <UserCog className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
                             </div>
                             <div>
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Giảng viên</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Teachers</p>
                                 <p className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.usersByRole?.TEACHER || 0}
                                 </p>
@@ -150,7 +150,7 @@ export default function AdminDashboard() {
                                 <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                             </div>
                             <div>
-                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Quản trị viên</p>
+                                <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">Administrators</p>
                                 <p className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                                     {stats?.usersByRole?.ADMIN || 0}
                                 </p>
@@ -164,49 +164,49 @@ export default function AdminDashboard() {
                     <Link to="/admin/users">
                         <Button className="w-full h-16 sm:h-20 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal">
                             <Users className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Quản lý người dùng</span>
+                            <span>Manage Users</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/courses">
                         <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
                             <BookOpen className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Quản lý khóa học</span>
+                            <span>Manage Courses</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/courses/review">
                         <Button className="w-full h-16 sm:h-20 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm whitespace-normal">
                             <ClipboardCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Duyệt khóa học{stats?.pendingCourses ? ` (${stats.pendingCourses})` : ''}</span>
+                            <span>Review Courses{stats?.pendingCourses ? ` (${stats.pendingCourses})` : ''}</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/categories">
                         <Button className="w-full h-16 sm:h-20 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm whitespace-normal">
                             <FolderTree className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Quản lý danh mục</span>
+                            <span>Manage Categories</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/promotions">
                         <Button className="w-full h-16 sm:h-20 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm whitespace-normal">
                             <Tag className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Mã khuyến mãi</span>
+                            <span>Promotions</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/revenue">
                         <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
                             <DollarSign className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Doanh thu</span>
+                            <span>Revenue</span>
                         </Button>
                     </Link>
 
                     <Link to="/admin/audit-logs">
                         <Button className="w-full h-16 sm:h-20 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm whitespace-normal">
                             <ShieldCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Audit logs</span>
+                            <span>Audit Logs</span>
                         </Button>
                     </Link>
                 </div>
@@ -214,7 +214,7 @@ export default function AdminDashboard() {
                 {/* Recent Users */}
                 <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800">
                     <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
-                        Người dùng mới nhất
+                        Recent Users
                     </h2>
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                                         Role
                                     </th>
                                     <th className="text-left py-3 px-4 text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-                                        Ngày tạo
+                                        Created Date
                                     </th>
                                 </tr>
                             </thead>
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
                                             </span>
                                         </td>
                                         <td className="py-3 px-4 text-sm text-zinc-600 dark:text-zinc-400">
-                                            {new Date(user.createdAt).toLocaleDateString('vi-VN')}
+                                            {new Date(user.createdAt).toLocaleDateString('en-US')}
                                         </td>
                                     </tr>
                                 ))}

@@ -16,7 +16,7 @@ export default function ForgotPassword() {
         e.preventDefault();
 
         if (!email) {
-            showErrorAlert('Lỗi', 'Vui lòng nhập địa chỉ email');
+            showErrorAlert('Error', 'Please enter your email address');
             return;
         }
 
@@ -26,12 +26,12 @@ export default function ForgotPassword() {
             await apiClient.post('/password/forgot', { email });
             setIsSent(true);
             showSuccessAlert(
-                'Email đã được gửi!',
-                'Nếu tài khoản với email này tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến hộp thư của bạn.'
+                'Email sent!',
+                'If an account with this email exists, we have sent a password reset link to your mailbox.'
             );
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Không thể gửi email. Vui lòng thử lại.';
-            showErrorAlert('Lỗi', errorMessage);
+            const errorMessage = error.response?.data?.error || 'Could not send email. Please try again.';
+            showErrorAlert('Error', errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -45,24 +45,24 @@ export default function ForgotPassword() {
                         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Email đã được gửi! ✅
+                        Email sent! ✅
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mb-2">
-                        Chúng tôi đã gửi link đặt lại mật khẩu đến:
+                        We have sent a password reset link to:
                     </p>
                     <p className="text-red-600 dark:text-red-400 font-semibold mb-6">
                         {email}
                     </p>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-6">
                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                            <strong>Lưu ý:</strong> Vui lòng kiểm tra hộp thư (bao gồm cả thư rác) và click vào link trong email. Link sẽ hết hạn sau <strong>1 giờ</strong>.
+                            <strong>Note:</strong> Please check your mailbox (including spam/junk folder) and click the link in the email. The link will expire after <strong>1 hour</strong>.
                         </p>
                     </div>
                     <div className="space-y-3">
                         <Link to="/login">
                             <Button className="w-full gap-2 bg-green-600 hover:bg-green-700">
                                 <ArrowLeft className="w-4 h-4" />
-                                Quay lại đăng nhập
+                                Back to login
                             </Button>
                         </Link>
                         <Button
@@ -73,7 +73,7 @@ export default function ForgotPassword() {
                             }}
                             className="w-full"
                         >
-                            Gửi lại email
+                            Resend email
                         </Button>
                     </div>
                 </Card>
@@ -89,10 +89,10 @@ export default function ForgotPassword() {
                         <Mail className="w-8 h-8 text-red-600 dark:text-red-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Quên mật khẩu?
+                        Forgot password?
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        Nhập địa chỉ email của bạn và chúng tôi sẽ gửi link đặt lại mật khẩu
+                        Enter your email address and we will send you a password reset link
                     </p>
                 </div>
 
@@ -100,7 +100,7 @@ export default function ForgotPassword() {
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             <Mail className="w-4 h-4 inline mr-1" />
-                            Địa chỉ email
+                            Email address
                         </label>
                         <Input
                             type="email"
@@ -121,12 +121,12 @@ export default function ForgotPassword() {
                         {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                Đang gửi...
+                                Sending...
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Send className="w-5 h-5" />
-                                Gửi link đặt lại mật khẩu
+                                Send password reset link
                             </div>
                         )}
                     </Button>
@@ -138,7 +138,7 @@ export default function ForgotPassword() {
                         className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 flex items-center justify-center gap-2"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay lại đăng nhập
+                        Back to login
                     </Link>
                 </div>
             </Card>

@@ -32,7 +32,7 @@ export default function QuizHistory() {
     });
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -67,9 +67,9 @@ export default function QuizHistory() {
                 <div className="text-center">
                     <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                        Không thể tải lịch sử quiz
+                        Could not load quiz history
                     </h2>
-                    <p className="text-zinc-600 dark:text-zinc-400">Vui lòng thử lại sau</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Please try again later</p>
                 </div>
             </div>
         );
@@ -101,10 +101,10 @@ export default function QuizHistory() {
                     <div className="min-w-0">
                         <h1 className="text-xl sm:text-3xl font-bold text-zinc-900 dark:text-white flex items-center gap-2 sm:gap-3">
                             <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 shrink-0" />
-                            <span className="truncate">Lịch sử Quiz</span>
+                            <span className="truncate">Quiz History</span>
                         </h1>
                         <p className="text-xs sm:text-base text-zinc-600 dark:text-zinc-400 mt-1">
-                            Xem lại kết quả các bài quiz đã làm
+                            Review your quiz attempt results
                         </p>
                     </div>
                 </div>
@@ -118,7 +118,7 @@ export default function QuizHistory() {
                                     <BookOpen className="h-5 w-5 text-blue-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Tổng số lần làm</p>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Attempts</p>
                                     <p className="text-2xl font-bold text-zinc-900 dark:text-white">{attempts.length}</p>
                                 </div>
                             </div>
@@ -130,7 +130,7 @@ export default function QuizHistory() {
                                     <CheckCircle className="h-5 w-5 text-green-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Điểm trung bình</p>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Average Score</p>
                                     <p className="text-2xl font-bold text-zinc-900 dark:text-white">
                                         {(attempts.reduce((sum, a) => sum + a.score, 0) / attempts.length).toFixed(1)}%
                                     </p>
@@ -144,7 +144,7 @@ export default function QuizHistory() {
                                     <Trophy className="h-5 w-5 text-yellow-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Điểm cao nhất</p>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Highest Score</p>
                                     <p className="text-2xl font-bold text-zinc-900 dark:text-white">
                                         {Math.max(...attempts.map(a => a.score))}%
                                     </p>
@@ -158,7 +158,7 @@ export default function QuizHistory() {
                                     <BookOpen className="h-5 w-5 text-red-500" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Số khóa học</p>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Courses</p>
                                     <p className="text-2xl font-bold text-zinc-900 dark:text-white">
                                         {Object.keys(groupedByCourse || {}).length}
                                     </p>
@@ -173,14 +173,14 @@ export default function QuizHistory() {
                     <Card className="p-8 sm:p-12 text-center">
                         <BookOpen className="h-16 w-16 text-zinc-400 mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                            Chưa có lịch sử quiz
+                            No quiz history yet
                         </h2>
                         <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                            Bạn chưa làm bài quiz nào. Hãy bắt đầu học và làm quiz!
+                            You haven't taken any quizzes yet. Start learning and test your knowledge!
                         </p>
                         <Link to="/my-courses">
                             <Button className="bg-red-600 hover:bg-red-700 text-white">
-                                Đi đến khóa học của tôi
+                                Go to My Courses
                             </Button>
                         </Link>
                     </Card>
@@ -208,7 +208,7 @@ export default function QuizHistory() {
                                     </h2>
                                 </Link>
                                 <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
-                                    {courseAttempts.length} lần làm quiz
+                                    {courseAttempts.length} attempts
                                 </p>
                             </div>
                         </div>
@@ -238,7 +238,7 @@ export default function QuizHistory() {
                                                 <div className={`text-2xl sm:text-3xl font-bold ${getScoreColor(attempt.score)}`}>
                                                     {attempt.score}%
                                                 </div>
-                                                <p className="text-xs text-zinc-500">Điểm số</p>
+                                                <p className="text-xs text-zinc-500">Score</p>
                                             </div>
 
                                             <Link to={`/learning/${course.id}`}>
@@ -247,7 +247,7 @@ export default function QuizHistory() {
                                                     size="sm"
                                                     className="border-red-500/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                                 >
-                                                    Làm lại
+                                                    Retake
                                                 </Button>
                                             </Link>
                                         </div>

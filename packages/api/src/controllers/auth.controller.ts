@@ -77,7 +77,7 @@ export async function loginController(req: Request, res: Response): Promise<Resp
             return res.status(403).json({ 
                 error: 'Email not verified',
                 code: 'EMAIL_NOT_VERIFIED',
-                message: 'Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn.',
+                message: 'Please verify your email before logging in. Check your inbox.',
             });
         }
 

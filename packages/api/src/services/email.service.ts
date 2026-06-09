@@ -7,7 +7,7 @@ const SMTP_PASS = process.env.SMTP_PASS || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@elearning.vn';
 const FROM_NAME = process.env.FROM_NAME || 'E-Learning Platform';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || FROM_EMAIL; // Email nhận feedback
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || FROM_EMAIL; // Email for receiving feedback
 
 // Create transporter
 const transporter = nodemailer.createTransport({
@@ -47,7 +47,7 @@ export async function sendVerificationEmail(
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xác thực email</title>
+    <title>Verify Email</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -58,19 +58,19 @@ export async function sendVerificationEmail(
                     <tr>
                         <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
                             <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">E-Learning</h1>
-                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">Nền tảng học trực tuyến hàng đầu</p>
+                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">Leading online learning platform</p>
                         </td>
                     </tr>
                     
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Xác thực địa chỉ email</h2>
+                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Verify your email address</h2>
                             <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                Xin chào <strong>${username}</strong>,
+                                Hello <strong>${username}</strong>,
                             </p>
                             <p style="margin: 0 0 25px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                Cảm ơn bạn đã đăng ký tài khoản tại E-Learning. Vui lòng click vào nút bên dưới để xác thực địa chỉ email của bạn:
+                                Thank you for registering an account at E-Learning. Please click the button below to verify your email address:
                             </p>
                             
                             <!-- Button -->
@@ -79,14 +79,14 @@ export async function sendVerificationEmail(
                                     <td align="center" style="padding: 20px 0;">
                                         <a href="${verificationUrl}" 
                                            style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; border-radius: 8px; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);">
-                                            Xác thực email
+                                            Verify Email
                                         </a>
                                     </td>
                                 </tr>
                             </table>
                             
                             <p style="margin: 25px 0 15px; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                                Hoặc copy và dán link sau vào trình duyệt:
+                                Or copy and paste the following link into your browser:
                             </p>
                             <p style="margin: 0 0 25px; padding: 12px; background-color: #f3f4f6; border-radius: 4px; word-break: break-all;">
                                 <a href="${verificationUrl}" style="color: #dc2626; font-size: 14px; text-decoration: none;">
@@ -95,10 +95,10 @@ export async function sendVerificationEmail(
                             </p>
                             
                             <p style="margin: 0 0 10px; color: #9ca3af; font-size: 14px;">
-                                ⏰ Link xác thực sẽ hết hạn sau <strong>24 giờ</strong>.
+                                ⏰ Verification link will expire in <strong>24 hours</strong>.
                             </p>
                             <p style="margin: 0; color: #9ca3af; font-size: 14px;">
-                                Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.
+                                If you did not register this account, please ignore this email.
                             </p>
                         </td>
                     </tr>
@@ -110,7 +110,7 @@ export async function sendVerificationEmail(
                                 © 2024 E-Learning Platform. All rights reserved.
                             </p>
                             <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                                123 Đường ABC, Quận 1, TP. Hồ Chí Minh
+                                123 ABC Street, District 1, Ho Chi Minh City
                             </p>
                         </td>
                     </tr>
@@ -123,18 +123,18 @@ export async function sendVerificationEmail(
     `;
 
     const textContent = `
-Xác thực địa chỉ email - E-Learning
+Verify your email address - E-Learning
 
-Xin chào ${username},
+Hello ${username},
 
-Cảm ơn bạn đã đăng ký tài khoản tại E-Learning. 
-Vui lòng click vào link sau để xác thực email của bạn:
+Thank you for registering an account at E-Learning. 
+Please click the following link to verify your email address:
 
 ${verificationUrl}
 
-Link xác thực sẽ hết hạn sau 24 giờ.
+Verification link will expire in 24 hours.
 
-Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.
+If you did not register this account, please ignore this email.
 
 ---
 E-Learning Platform
@@ -144,7 +144,7 @@ E-Learning Platform
         await transporter.sendMail({
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to,
-            subject: '🔐 Xác thực địa chỉ email - E-Learning',
+            subject: '🔐 Verify email address - E-Learning',
             text: textContent,
             html: htmlContent,
         });
@@ -169,7 +169,7 @@ export async function sendPasswordResetEmail(
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Đặt lại mật khẩu</title>
+    <title>Reset Password</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -183,19 +183,19 @@ export async function sendPasswordResetEmail(
                     </tr>
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px; color: #1f2937;">Đặt lại mật khẩu</h2>
-                            <p style="color: #4b5563; line-height: 1.6;">Xin chào <strong>${username}</strong>,</p>
-                            <p style="color: #4b5563; line-height: 1.6;">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+                            <h2 style="margin: 0 0 20px; color: #1f2937;">Reset Password</h2>
+                            <p style="color: #4b5563; line-height: 1.6;">Hello <strong>${username}</strong>,</p>
+                            <p style="color: #4b5563; line-height: 1.6;">We received a request to reset the password for your account.</p>
                             <table role="presentation" style="width: 100%;">
                                 <tr>
                                     <td align="center" style="padding: 20px 0;">
                                         <a href="${resetUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 8px;">
-                                            Đặt lại mật khẩu
+                                            Reset Password
                                         </a>
                                     </td>
                                 </tr>
                             </table>
-                            <p style="color: #9ca3af; font-size: 14px;">Link sẽ hết hạn sau 1 giờ.</p>
+                            <p style="color: #9ca3af; font-size: 14px;">Link will expire in 1 hour.</p>
                         </td>
                     </tr>
                 </table>
@@ -210,8 +210,8 @@ export async function sendPasswordResetEmail(
         await transporter.sendMail({
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to,
-            subject: '🔑 Đặt lại mật khẩu - E-Learning',
-            text: `Đặt lại mật khẩu: ${resetUrl}`,
+            subject: '🔑 Reset password - E-Learning',
+            text: `Reset password: ${resetUrl}`,
             html: htmlContent,
         });
         return true;
@@ -234,7 +234,7 @@ export async function sendContactEmail(
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yêu cầu hỗ trợ mới</title>
+    <title>New Support Request</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -245,30 +245,30 @@ export async function sendContactEmail(
                     <tr>
                         <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
                             <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">E-Learning</h1>
-                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">Yêu cầu hỗ trợ mới</p>
+                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">New support request</p>
                         </td>
                     </tr>
                     
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Yêu cầu hỗ trợ từ khách hàng</h2>
+                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Customer Support Request</h2>
                             
                             <div style="background-color: #f9fafb; border-left: 4px solid #dc2626; padding: 20px; margin-bottom: 20px; border-radius: 4px;">
                                 <p style="margin: 0 0 10px; color: #4b5563; font-size: 16px;">
-                                    <strong style="color: #1f2937;">Tên:</strong> ${name}
+                                    <strong style="color: #1f2937;">Name:</strong> ${name}
                                 </p>
                                 <p style="margin: 0 0 10px; color: #4b5563; font-size: 16px;">
                                     <strong style="color: #1f2937;">Email:</strong> 
                                     <a href="mailto:${email}" style="color: #dc2626; text-decoration: none;">${email}</a>
                                 </p>
                                 <p style="margin: 0; color: #4b5563; font-size: 16px;">
-                                    <strong style="color: #1f2937;">Chủ đề:</strong> ${subject}
+                                    <strong style="color: #1f2937;">Subject:</strong> ${subject}
                                 </p>
                             </div>
                             
                             <div style="margin-bottom: 20px;">
-                                <h3 style="margin: 0 0 10px; color: #1f2937; font-size: 18px;">Nội dung:</h3>
+                                <h3 style="margin: 0 0 10px; color: #1f2937; font-size: 18px;">Content:</h3>
                                 <div style="padding: 15px; background-color: #f3f4f6; border-radius: 4px; color: #4b5563; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">
 ${message}
                                 </div>
@@ -276,7 +276,7 @@ ${message}
                             
                             <div style="padding: 15px; background-color: #fef3c7; border-radius: 4px; border-left: 4px solid #f59e0b;">
                                 <p style="margin: 0; color: #92400e; font-size: 14px;">
-                                    <strong>⚠️ Lưu ý:</strong> Vui lòng phản hồi email này trong vòng 24 giờ.
+                                    <strong>⚠️ Note:</strong> Please respond to this email within 24 hours.
                                 </p>
                             </div>
                         </td>
@@ -299,13 +299,13 @@ ${message}
     `;
 
     const textContent = `
-Yêu cầu hỗ trợ mới - E-Learning
+New support request - E-Learning
 
-Tên: ${name}
+Name: ${name}
 Email: ${email}
-Chủ đề: ${subject}
+Subject: ${subject}
 
-Nội dung:
+Content:
 ${message}
 
 ---
@@ -318,7 +318,7 @@ E-Learning Platform
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to: ADMIN_EMAIL,
             replyTo: email, // Allow admin to reply directly to user
-            subject: `[Hỗ trợ] ${subject} - ${name}`,
+            subject: `[Support] ${subject} - ${name}`,
             text: textContent,
             html: htmlContent,
         });
@@ -329,7 +329,7 @@ E-Learning Platform
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Xác nhận yêu cầu hỗ trợ</title>
+    <title>Confirm Support Request</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -343,19 +343,19 @@ E-Learning Platform
                     </tr>
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px; color: #1f2937;">Cảm ơn bạn đã liên hệ!</h2>
+                            <h2 style="margin: 0 0 20px; color: #1f2937;">Thank you for contacting us!</h2>
                             <p style="color: #4b5563; line-height: 1.6;">
-                                Xin chào <strong>${name}</strong>,
+                                Hello <strong>${name}</strong>,
                             </p>
                             <p style="color: #4b5563; line-height: 1.6;">
-                                Chúng tôi đã nhận được yêu cầu hỗ trợ của bạn với chủ đề: <strong>"${subject}"</strong>
+                                We have received your support request with subject: <strong>"${subject}"</strong>
                             </p>
                             <p style="color: #4b5563; line-height: 1.6;">
-                                Đội ngũ hỗ trợ của chúng tôi sẽ xem xét và phản hồi bạn trong thời gian sớm nhất (thường trong vòng 24 giờ).
+                                Our support team will review and respond to you as soon as possible (usually within 24 hours).
                             </p>
                             <div style="margin: 30px 0; padding: 15px; background-color: #f3f4f6; border-radius: 4px;">
                                 <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                                    <strong>Mã yêu cầu:</strong> #${Date.now()}
+                                    <strong>Request ID:</strong> #${Date.now()}
                                 </p>
                             </div>
                         </td>
@@ -371,8 +371,8 @@ E-Learning Platform
         await transporter.sendMail({
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to: email,
-            subject: `[E-Learning] Xác nhận yêu cầu hỗ trợ: ${subject}`,
-            text: `Cảm ơn bạn đã liên hệ! Chúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ.`,
+            subject: `[E-Learning] Confirm support request: ${subject}`,
+            text: `Thank you for contacting us! We have received your support request and will respond within 24 hours.`,
             html: confirmationHtml,
         });
 
@@ -397,7 +397,7 @@ export async function sendRejectionEmail(
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khoá học bị từ chối</title>
+    <title>Course Rejected</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -407,30 +407,30 @@ export async function sendRejectionEmail(
                     <tr>
                         <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
                             <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold;">E-Learning</h1>
-                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">Khoá học bị từ chối</p>
+                            <p style="margin: 10px 0 0; color: #fecaca; font-size: 14px;">Course Rejected</p>
                         </td>
                     </tr>
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Khoá học chưa được duyệt</h2>
+                            <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 24px;">Course not approved</h2>
                             <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                Xin chào <strong>${username}</strong>,
+                                Hello <strong>${username}</strong>,
                             </p>
                             <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                Rất tiếc, khoá học <strong>"${courseTitle}"</strong> của bạn chưa đáp ứng yêu cầu phê duyệt và đã bị từ chối.
+                                Unfortunately, your course <strong>"${courseTitle}"</strong> does not meet the approval requirements and has been rejected.
                             </p>
                             <div style="margin: 25px 0; padding: 20px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
-                                <h3 style="margin: 0 0 10px; color: #991b1b; font-size: 16px;">Lý do từ chối:</h3>
+                                <h3 style="margin: 0 0 10px; color: #991b1b; font-size: 16px;">Rejection reason:</h3>
                                 <p style="margin: 0; color: #7f1d1d; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${reason}</p>
                             </div>
                             <p style="margin: 0 0 15px; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                                Vui lòng chỉnh sửa khoá học theo phản hồi và gửi lại để được duyệt. Đội ngũ kiểm duyệt sẵn sàng hỗ trợ bạn.
+                                Please edit the course according to the feedback and resubmit for approval. The review team is ready to assist you.
                             </p>
                             <table role="presentation" style="width: 100%;">
                                 <tr>
                                     <td align="center" style="padding: 20px 0;">
                                         <a href="${FRONTEND_URL}/dashboard" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 8px;">
-                                            Mở dashboard giảng viên
+                                            Open Instructor Dashboard
                                         </a>
                                     </td>
                                 </tr>
@@ -451,15 +451,15 @@ export async function sendRejectionEmail(
 </body>
 </html>`;
 
-    const textContent = `Khoá học "${courseTitle}" bị từ chối
+    const textContent = `Course "${courseTitle}" rejected
 
-Xin chào ${username},
+Hello ${username},
 
-Khoá học của bạn chưa được phê duyệt.
+Your course has not been approved.
 
-Lý do: ${reason}
+Reason: ${reason}
 
-Vui lòng chỉnh sửa và gửi lại.
+Please edit and resubmit.
 
 E-Learning Platform`;
 
@@ -467,7 +467,7 @@ E-Learning Platform`;
         await transporter.sendMail({
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to,
-            subject: `[E-Learning] Khoá học "${courseTitle}" bị từ chối`,
+            subject: `[E-Learning] Course "${courseTitle}" rejected`,
             text: textContent,
             html: htmlContent,
         });
@@ -496,12 +496,12 @@ export async function sendEnrollmentExpiryReminder(
       <h1 style="color:#fff;margin:0;font-size:24px;">E-Learning Platform</h1>
     </td></tr>
     <tr><td style="padding:32px;">
-      <h2 style="color:#111827;">Khoá học sắp hết hạn!</h2>
-      <p>Xin chào <strong>${name}</strong>,</p>
-      <p>Quyền truy cập khoá học <strong>"${courseTitle}"</strong> của bạn sẽ hết hạn sau <strong>${daysLeft} ngày</strong>.</p>
-      <p>Hãy đăng nhập và học ngay để không bỏ lỡ nội dung!</p>
-      <a href="${FRONTEND_URL}/my-courses" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Học ngay</a>
-      <p style="color:#6b7280;font-size:13px;">Nếu bạn muốn gia hạn, hãy liên hệ với chúng tôi.</p>
+      <h2 style="color:#111827;">Course expiring soon!</h2>
+      <p>Hello <strong>${name}</strong>,</p>
+      <p>Your access to the course <strong>"${courseTitle}"</strong> will expire in <strong>${daysLeft} days</strong>.</p>
+      <p>Please log in and learn now so you don't miss out on the content!</p>
+      <a href="${FRONTEND_URL}/my-courses" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Learn Now</a>
+      <p style="color:#6b7280;font-size:13px;">If you wish to extend access, please contact us.</p>
     </td></tr>
   </table>
 </body>
@@ -510,7 +510,7 @@ export async function sendEnrollmentExpiryReminder(
         await transporter.sendMail({
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to,
-            subject: `[E-Learning] Khoá học "${courseTitle}" hết hạn sau ${daysLeft} ngày`,
+            subject: `[E-Learning] Course "${courseTitle}" expires in ${daysLeft} days`,
             html,
         });
         return true;
@@ -537,11 +537,11 @@ export async function sendNotificationEmail(
       <h1 style="color:#fff;margin:0;font-size:24px;">E-Learning Notification</h1>
     </td></tr>
     <tr><td style="padding:28px;">
-      <p>Xin chào <strong>${name}</strong>,</p>
+      <p>Hello <strong>${name}</strong>,</p>
       <h2 style="color:#111827;margin-top:0;">${title}</h2>
       <p style="color:#374151;line-height:1.6;">${message}</p>
       <a href="${actionLink}" style="display:inline-block;margin-top:14px;padding:12px 22px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">
-        Xem chi tiết
+        View details
       </a>
     </td></tr>
   </table>
@@ -553,7 +553,7 @@ export async function sendNotificationEmail(
             from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
             to,
             subject: `[E-Learning] ${title}`,
-            text: `${title}\n\n${message}\n\nXem chi tiết: ${actionLink}`,
+            text: `${title}\n\n${message}\n\nView details: ${actionLink}`,
             html,
         });
         return true;

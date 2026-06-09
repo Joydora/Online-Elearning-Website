@@ -42,11 +42,11 @@ type AdminCourse = {
 };
 
 const STATUS_LABELS: Record<CourseStatus, string> = {
-    DRAFT: 'Bản nháp',
-    PENDING_REVIEW: 'Chờ duyệt',
-    APPROVED: 'Đã duyệt',
-    REJECTED: 'Bị từ chối',
-    PUBLISHED: 'Đã xuất bản',
+    DRAFT: 'Draft',
+    PENDING_REVIEW: 'Pending Review',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected',
+    PUBLISHED: 'Published',
 };
 
 function StatusBadge({ status }: { status: CourseStatus }) {
@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: CourseStatus }) {
 function formatDate(value: string | null) {
     if (!value) return '-';
     try {
-        return new Date(value).toLocaleString('vi-VN');
+        return new Date(value).toLocaleString('en-US');
     } catch {
         return value;
     }
@@ -77,10 +77,10 @@ function formatDate(value: string | null) {
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
     VIDEO: 'Video',
-    DOCUMENT: 'Tài liệu',
-    QUIZ: 'Bài kiểm tra',
-    PRACTICE: 'Thực hành',
-    ASSIGNMENT: 'Bài tập',
+    DOCUMENT: 'Document',
+    QUIZ: 'Quiz',
+    PRACTICE: 'Practice',
+    ASSIGNMENT: 'Assignment',
 };
 
 export default function ReviewCourses() {
@@ -115,12 +115,12 @@ export default function ReviewCourses() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-review-pending'] });
             queryClient.invalidateQueries({ queryKey: ['admin-review-all'] });
-            showSuccessAlert('Đã duyệt', 'Khoá học đã được xuất bản.');
+            showSuccessAlert('Approved', 'The course has been published.');
         },
         onError: (error: any) => {
             showErrorAlert(
-                'Lỗi duyệt khoá học',
-                error.response?.data?.error || 'Đã có lỗi xảy ra',
+                'Error approving course',
+                error.response?.data?.error || 'An error occurred',
             );
         },
     });
@@ -134,19 +134,19 @@ export default function ReviewCourses() {
             queryClient.invalidateQueries({ queryKey: ['admin-review-all'] });
             setRejectingId(null);
             setRejectReason('');
-            showSuccessAlert('Đã từ chối', 'Đã thông báo cho giảng viên qua email.');
+            showSuccessAlert('Rejected', 'The instructor has been notified via email.');
         },
         onError: (error: any) => {
             showErrorAlert(
-                'Lỗi từ chối khoá học',
-                error.response?.data?.error || 'Đã có lỗi xảy ra',
+                'Error rejecting course',
+                error.response?.data?.error || 'An error occurred',
             );
         },
     });
 
     const handleReject = (courseId: number) => {
         if (!rejectReason.trim()) {
-            showErrorAlert('Thiếu lý do', 'Vui lòng nhập lý do từ chối.');
+            showErrorAlert('Reason missing', 'Please enter a rejection reason.');
             return;
         }
         rejectMutation.mutate({ courseId, reason: rejectReason.trim() });
@@ -165,11 +165,11 @@ export default function ReviewCourses() {
                     className="mb-3 sm:mb-4"
                 >
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại Admin
+                    Back to Admin
                 </Button>
 
                 <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
-                    Duyệt khoá học
+                    Review Courses
                 </h1>
 
                 {/* Tabs */}
@@ -183,7 +183,7 @@ export default function ReviewCourses() {
                                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                         }`}
                     >
-                        Chờ duyệt
+                        Pending Review
                         {pendingQuery.data && (
                             <span className="ml-2 inline-block rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">
                                 {pendingQuery.data.length}
@@ -199,7 +199,7 @@ export default function ReviewCourses() {
                                 : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                         }`}
                     >
-                        Tất cả khoá học
+                        All Courses
                     </button>
                 </div>
 
@@ -211,8 +211,8 @@ export default function ReviewCourses() {
                     <Card className="p-12 text-center">
                         <p className="text-zinc-500 dark:text-zinc-400">
                             {tab === 'pending'
-                                ? 'Không có khoá học nào đang chờ duyệt.'
-                                : 'Chưa có khoá học nào.'}
+                                ? 'No courses pending review.'
+                                : 'No courses found.'}
                         </p>
                     </Card>
                 ) : (
@@ -228,7 +228,7 @@ export default function ReviewCourses() {
                                             <StatusBadge status={course.status} />
                                         </div>
                                         <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mb-2 break-words">
-                                            Giảng viên:{' '}
+                                            Instructor:{' '}
                                             <span className="font-medium">
                                                 {course.teacher.firstName ?? ''}{' '}
                                                 {course.teacher.lastName ?? ''}
@@ -239,33 +239,33 @@ export default function ReviewCourses() {
                                             )}
                                         </p>
                                         <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400">
-                                            Danh mục: {course.category?.name ?? '-'} •{' '}
-                                            {course._count.modules} chương •{' '}
-                                            {course._count.enrollments} học viên
+                                            Category: {course.category?.name ?? '-'} •{' '}
+                                            {course._count.modules} modules •{' '}
+                                            {course._count.enrollments} students
                                         </p>
                                         <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">
                                             {course.submittedAt
-                                                ? `Gửi duyệt: ${formatDate(course.submittedAt)}`
-                                                : `Tạo: ${formatDate(course.createdAt)}`}
+                                                ? `Submitted: ${formatDate(course.submittedAt)}`
+                                                : `Created: ${formatDate(course.createdAt)}`}
                                         </p>
                                         {course.status === 'REJECTED' && course.rejectionReason && (
                                             <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
-                                                <strong>Lý do từ chối:</strong> {course.rejectionReason}
+                                                <strong>Rejection reason:</strong> {course.rejectionReason}
                                             </div>
                                         )}
                                         <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
                                             <p className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                                                Xem trước nội dung
+                                                Preview content
                                             </p>
                                             {course.modules && course.modules.length > 0 ? (
                                                 <div className="space-y-3">
                                                     {course.modules.map((module) => (
                                                         <div key={module.id}>
                                                             <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                                                                Chương {module.order}: {module.title}
+                                                                Module {module.order}: {module.title}
                                                             </p>
                                                             {module.contents.length > 0 ? (
-                                                                <ul className="mt-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                                                 <ul className="mt-1 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                                                                     {module.contents.map((content) => (
                                                                         <li key={content.id}>
                                                                             {content.order}. {content.title}{' '}
@@ -277,7 +277,7 @@ export default function ReviewCourses() {
                                                                 </ul>
                                                             ) : (
                                                                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
-                                                                    Chưa có bài học trong chương này.
+                                                                    No content in this module.
                                                                 </p>
                                                             )}
                                                         </div>
@@ -285,7 +285,7 @@ export default function ReviewCourses() {
                                                 </div>
                                             ) : (
                                                 <p className="text-sm text-zinc-500 dark:text-zinc-500">
-                                                    Khóa học chưa có chương/nội dung.
+                                                    This course does not have modules/content.
                                                 </p>
                                             )}
                                         </div>
@@ -303,7 +303,7 @@ export default function ReviewCourses() {
                                                     className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                                                 >
                                                     <Check className="h-4 w-4 mr-2" />
-                                                    Duyệt
+                                                    Approve
                                                 </Button>
                                                 <Button
                                                     onClick={() => {
@@ -316,7 +316,7 @@ export default function ReviewCourses() {
                                                     className="border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 w-full sm:w-auto"
                                                 >
                                                     <X className="h-4 w-4 mr-2" />
-                                                    Từ chối
+                                                    Reject
                                                 </Button>
                                             </div>
                                         </div>
@@ -326,13 +326,13 @@ export default function ReviewCourses() {
                                 {rejectingId === course.id && (
                                     <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3 sm:p-4 dark:border-zinc-700 dark:bg-zinc-800">
                                         <label className="mb-2 block text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                                            Lý do từ chối
+                                            Rejection reason
                                         </label>
                                         <textarea
                                             value={rejectReason}
                                             onChange={(e) => setRejectReason(e.target.value)}
                                             rows={4}
-                                            placeholder="Nhập lý do từ chối khoá học..."
+                                            placeholder="Enter rejection reason for the course..."
                                             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
                                         />
                                         <div className="mt-3 flex flex-col sm:flex-row sm:justify-end gap-2">
@@ -344,7 +344,7 @@ export default function ReviewCourses() {
                                                 }}
                                                 className="w-full sm:w-auto"
                                             >
-                                                Huỷ
+                                                Cancel
                                             </Button>
                                             <Button
                                                 onClick={() => handleReject(course.id)}
@@ -354,7 +354,7 @@ export default function ReviewCourses() {
                                                 {rejectMutation.isPending ? (
                                                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                                 ) : null}
-                                                Gửi từ chối
+                                                Submit Rejection
                                             </Button>
                                         </div>
                                     </div>

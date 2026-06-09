@@ -42,11 +42,11 @@ export default function AdminCreateCourse() {
             await apiClient.post('/admin/courses', data);
         },
         onSuccess: () => {
-            showSuccessAlert('Thành công', 'Đã tạo khóa học mới');
+            showSuccessAlert('Success', 'Created a new course');
             navigate('/admin/courses');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.error || 'Không thể tạo khóa học');
+            showErrorAlert('Error', error.response?.data?.error || 'Unable to create course');
         },
     });
 
@@ -56,13 +56,13 @@ export default function AdminCreateCourse() {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            showErrorAlert('Lỗi', 'Vui lòng chọn file ảnh');
+            showErrorAlert('Error', 'Please select an image file');
             return;
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            showErrorAlert('Lỗi', 'Kích thước ảnh tối đa là 5MB');
+            showErrorAlert('Error', 'Maximum image size is 5MB');
             return;
         }
 
@@ -77,7 +77,7 @@ export default function AdminCreateCourse() {
 
             setFormData(prev => ({ ...prev, thumbnailUrl: data.url }));
         } catch (error) {
-            showErrorAlert('Lỗi', 'Không thể upload ảnh');
+            showErrorAlert('Error', 'Unable to upload image');
         } finally {
             setUploading(false);
         }
@@ -90,7 +90,7 @@ export default function AdminCreateCourse() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title || !formData.description || !formData.categoryId || !formData.teacherId) {
-            showErrorAlert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
+            showErrorAlert('Error', 'Please fill in all details');
             return;
         }
         createMutation.mutate(formData);
@@ -101,37 +101,37 @@ export default function AdminCreateCourse() {
             <div className="container mx-auto max-w-3xl">
                 <Button variant="ghost" onClick={() => navigate('/admin/courses')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại
+                    Back
                 </Button>
                 <Card className="p-4 sm:p-6">
-                    <h1 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6">Tạo khóa học mới</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6">Create New Course</h1>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium mb-2">Tên khóa học</label>
+                            <label className="block text-sm font-medium mb-2">Course Title</label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
-                                placeholder="Nhập tên khóa học"
+                                placeholder="Enter course title"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2">Mô tả</label>
+                            <label className="block text-sm font-medium mb-2">Description</label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
-                                placeholder="Nhập mô tả khóa học"
+                                placeholder="Enter course description"
                                 rows={5}
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2">Giá (VND)</label>
+                            <label className="block text-sm font-medium mb-2">Price (USD)</label>
                             <input
                                 type="number"
                                 value={formData.price}
@@ -139,47 +139,47 @@ export default function AdminCreateCourse() {
                                 className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
                                 placeholder="0"
                                 min="0"
-                                step="1"
+                                step="0.01"
                                 required
                             />
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <label className="block text-sm font-medium mb-2">Số ngày học thử</label>
+                                <label className="block text-sm font-medium mb-2">Trial Duration (Days)</label>
                                 <input
                                     type="number"
                                     value={formData.trialDurationDays}
                                     onChange={(e) => setFormData({ ...formData, trialDurationDays: e.target.value })}
                                     className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
-                                    placeholder="VD: 7"
+                                    placeholder="e.g. 7"
                                     min="1"
                                 />
-                                <p className="mt-1 text-xs text-zinc-500">Để trống nếu không cho học thử.</p>
+                                <p className="mt-1 text-xs text-zinc-500">Leave blank if no trial period is offered.</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-2">Thời hạn truy cập sau khi mua</label>
+                                <label className="block text-sm font-medium mb-2">Access Duration (Days)</label>
                                 <input
                                     type="number"
                                     value={formData.accessDurationDays}
                                     onChange={(e) => setFormData({ ...formData, accessDurationDays: e.target.value })}
                                     className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
-                                    placeholder="Để trống = không giới hạn"
+                                    placeholder="Leave blank = unlimited"
                                     min="1"
                                 />
-                                <p className="mt-1 text-xs text-zinc-500">Ví dụ 30 nghĩa là học viên có 30 ngày truy cập.</p>
+                                <p className="mt-1 text-xs text-zinc-500">Example: 30 means students have 30 days of access.</p>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2">Danh mục</label>
+                            <label className="block text-sm font-medium mb-2">Category</label>
                             <select
                                 value={formData.categoryId}
                                 onChange={(e) => setFormData({ ...formData, categoryId: Number(e.target.value) })}
                                 className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
                                 required
                             >
-                                <option value={0}>Chọn danh mục</option>
+                                <option value={0}>Select Category</option>
                                 {categories.map((category: any) => (
                                     <option key={category.id} value={category.id}>
                                         {category.name}
@@ -189,14 +189,14 @@ export default function AdminCreateCourse() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-2">Giảng viên</label>
+                            <label className="block text-sm font-medium mb-2">Instructor</label>
                             <select
                                 value={formData.teacherId}
                                 onChange={(e) => setFormData({ ...formData, teacherId: Number(e.target.value) })}
                                 className="w-full px-4 py-2 border rounded-lg dark:bg-zinc-900 dark:border-zinc-700"
                                 required
                             >
-                                <option value={0}>Chọn giảng viên</option>
+                                <option value={0}>Select Instructor</option>
                                 {teachers.map((teacher: any) => (
                                     <option key={teacher.id} value={teacher.id}>
                                         {teacher.firstName} {teacher.lastName} (@{teacher.username})
@@ -207,7 +207,7 @@ export default function AdminCreateCourse() {
 
                         {/* Thumbnail Upload */}
                         <div>
-                            <label className="block text-sm font-medium mb-2">Ảnh thumbnail</label>
+                            <label className="block text-sm font-medium mb-2">Thumbnail Image</label>
                             {formData.thumbnailUrl ? (
                                 <div className="relative w-full max-w-md">
                                     <img
@@ -232,9 +232,9 @@ export default function AdminCreateCourse() {
                                             <>
                                                 <Image className="w-10 h-10 text-zinc-400 mb-3" />
                                                 <p className="text-sm text-zinc-500">
-                                                    <span className="font-semibold text-red-600">Nhấn để upload</span> hoặc kéo thả
+                                                    <span className="font-semibold text-red-600">Click to upload</span> or drag and drop
                                                 </p>
-                                                <p className="text-xs text-zinc-400 mt-1">PNG, JPG (tối đa 5MB)</p>
+                                                <p className="text-xs text-zinc-400 mt-1">PNG, JPG (max 5MB)</p>
                                             </>
                                         )}
                                     </div>
@@ -255,7 +255,7 @@ export default function AdminCreateCourse() {
                                 disabled={createMutation.isPending}
                                 className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                             >
-                                {createMutation.isPending ? 'Đang tạo...' : 'Tạo khóa học'}
+                                {createMutation.isPending ? 'Creating...' : 'Create Course'}
                             </Button>
                             <Button
                                 type="button"
@@ -263,7 +263,7 @@ export default function AdminCreateCourse() {
                                 onClick={() => navigate('/admin/courses')}
                                 className="w-full sm:w-auto"
                             >
-                                Hủy
+                                Cancel
                             </Button>
                         </div>
                     </form>

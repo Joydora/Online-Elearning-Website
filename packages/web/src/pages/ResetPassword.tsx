@@ -23,7 +23,7 @@ export default function ResetPassword() {
     useEffect(() => {
         if (!token) {
             setStatus('error');
-            setErrorMessage('Link đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu link mới.');
+            setErrorMessage('Invalid password reset link. Please request a new link.');
         }
     }, [token]);
 
@@ -31,17 +31,17 @@ export default function ResetPassword() {
         e.preventDefault();
 
         if (!password || !confirmPassword) {
-            showErrorAlert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+            showErrorAlert('Error', 'Please fill in all fields');
             return;
         }
 
         if (password.length < 6) {
-            showErrorAlert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+            showErrorAlert('Error', 'Password must be at least 6 characters');
             return;
         }
 
         if (password !== confirmPassword) {
-            showErrorAlert('Lỗi', 'Mật khẩu xác nhận không khớp');
+            showErrorAlert('Error', 'Confirm password does not match');
             return;
         }
 
@@ -54,7 +54,7 @@ export default function ResetPassword() {
         try {
             await apiClient.post('/password/reset', { token, password });
             setStatus('success');
-            showSuccessAlert('Thành công!', 'Mật khẩu đã được đặt lại. Bạn có thể đăng nhập ngay.');
+            showSuccessAlert('Success!', 'Password has been reset. You can now login.');
 
             // Redirect to login after 3 seconds
             setTimeout(() => {
@@ -62,16 +62,16 @@ export default function ResetPassword() {
             }, 3000);
         } catch (error: any) {
             const errorCode = error.response?.data?.code;
-            const errorMessage = error.response?.data?.error || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
+            const errorMessage = error.response?.data?.error || 'Could not reset password. Please try again.';
 
             if (errorCode === 'TOKEN_EXPIRED') {
                 setStatus('error');
-                setErrorMessage('Link đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu link mới.');
+                setErrorMessage('Password reset link has expired. Please request a new link.');
             } else if (errorCode === 'INVALID_TOKEN') {
                 setStatus('error');
-                setErrorMessage('Link đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu link mới.');
+                setErrorMessage('Invalid password reset link. Please request a new link.');
             } else {
-                showErrorAlert('Lỗi', errorMessage);
+                showErrorAlert('Error', errorMessage);
             }
         } finally {
             setIsLoading(false);
@@ -86,18 +86,18 @@ export default function ResetPassword() {
                         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Đặt lại mật khẩu thành công! 🎉
+                        Password reset successful! 🎉
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                        Mật khẩu của bạn đã được đặt lại. Bạn có thể đăng nhập ngay bây giờ.
+                        Your password has been reset. You can log in now.
                     </p>
                     <Link to="/login">
                         <Button className="w-full gap-2 bg-green-600 hover:bg-green-700">
-                            Đi đến trang đăng nhập
+                            Go to login page
                         </Button>
                     </Link>
                     <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-4">
-                        Tự động chuyển hướng sau 3 giây...
+                        Redirecting automatically in 3 seconds...
                     </p>
                 </Card>
             </div>
@@ -112,7 +112,7 @@ export default function ResetPassword() {
                         <XCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Lỗi
+                        Error
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                         {errorMessage}
@@ -120,13 +120,13 @@ export default function ResetPassword() {
                     <div className="space-y-3">
                         <Link to="/forgot-password">
                             <Button className="w-full gap-2 bg-red-600 hover:bg-red-700">
-                                Yêu cầu link mới
+                                Request new link
                             </Button>
                         </Link>
                         <Link to="/login">
                             <Button variant="outline" className="w-full gap-2">
                                 <ArrowLeft className="w-4 h-4" />
-                                Quay lại đăng nhập
+                                Back to login
                             </Button>
                         </Link>
                     </div>
@@ -143,10 +143,10 @@ export default function ResetPassword() {
                         <Lock className="w-8 h-8 text-red-600 dark:text-red-400" />
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Đặt lại mật khẩu
+                        Reset Password
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        Nhập mật khẩu mới cho tài khoản của bạn
+                        Enter a new password for your account
                     </p>
                 </div>
 
@@ -154,14 +154,14 @@ export default function ResetPassword() {
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                             <Lock className="w-4 h-4 inline mr-1" />
-                            Mật khẩu mới
+                            New Password
                         </label>
                         <div className="relative">
                             <Input
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                                placeholder="Enter new password (minimum 6 characters)"
                                 className="h-12 pr-11"
                                 disabled={isLoading}
                                 required
@@ -179,14 +179,14 @@ export default function ResetPassword() {
 
                     <div>
                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Xác nhận mật khẩu mới
+                            Confirm New Password
                         </label>
                         <div className="relative">
                             <Input
                                 type={showConfirmPassword ? 'text' : 'password'}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Nhập lại mật khẩu mới"
+                                placeholder="Confirm your new password"
                                 className="h-12 pr-11"
                                 disabled={isLoading}
                                 required
@@ -209,12 +209,12 @@ export default function ResetPassword() {
                         {isLoading ? (
                             <div className="flex items-center gap-2">
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                Đang xử lý...
+                                Processing...
                             </div>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Lock className="w-5 h-5" />
-                                Đặt lại mật khẩu
+                                Reset Password
                             </div>
                         )}
                     </Button>
@@ -226,7 +226,7 @@ export default function ResetPassword() {
                         className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 flex items-center justify-center gap-2"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay lại đăng nhập
+                        Back to login
                     </Link>
                 </div>
             </Card>

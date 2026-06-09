@@ -93,8 +93,8 @@ export function ModuleAccordion({
                                         {module.title}
                                     </h3>
                                     <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                                        {module.contents.length} bài học
-                                        {totalDuration > 0 && ` • ${Math.floor(totalDuration / 60)} phút`}
+                                        {module.contents.length} lessons
+                                        {totalDuration > 0 && ` • ${Math.floor(totalDuration / 60)} minutes`}
                                     </p>
                                 </div>
                             </div>
@@ -142,7 +142,7 @@ export function ModuleAccordion({
                                                     {content.isFreePreview && (
                                                         <>
                                                             <span>•</span>
-                                                            <span className="text-green-600 dark:text-green-400">Xem miễn phí</span>
+                                                            <span className="text-green-600 dark:text-green-400">Free Preview</span>
                                                         </>
                                                     )}
                                                     {content.durationInSeconds && (

@@ -11,11 +11,11 @@ import { Pagination } from '../../components/ui/Pagination';
 type CourseStatus = 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
 
 const STATUS_LABELS: Record<CourseStatus, string> = {
-    DRAFT: 'Bản nháp',
-    PENDING_REVIEW: 'Chờ duyệt',
-    APPROVED: 'Đã duyệt',
-    REJECTED: 'Bị từ chối',
-    PUBLISHED: 'Đã xuất bản',
+    DRAFT: 'Draft',
+    PENDING_REVIEW: 'Pending Review',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected',
+    PUBLISHED: 'Published',
 };
 
 const STATUS_COLORS: Record<CourseStatus, string> = {
@@ -49,22 +49,22 @@ export default function ManageCourses() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
-            showSuccessAlert('Thành công', 'Đã xóa khóa học');
+            showSuccessAlert('Success', 'Course deleted successfully');
         },
         onError: (error: any) => {
             // Surface server-side message (e.g., cannot delete because course has enrollments)
             const apiMessage =
                 error.response?.data?.error ||
                 error.response?.data?.message ||
-                'Không thể xóa khóa học';
-            showErrorAlert('Lỗi', apiMessage);
+                'Could not delete course';
+            showErrorAlert('Error', apiMessage);
         },
     });
 
     const handleDelete = async (courseId: number, title: string) => {
         const result = await showConfirmAlert(
-            'Xóa khóa học',
-            `Bạn có chắc chắn muốn xóa khóa học "${title}"?`
+            'Delete Course',
+            `Are you sure you want to delete the course "${title}"?`
         );
         if (result.isConfirmed) {
             deleteMutation.mutate(courseId);
@@ -76,10 +76,10 @@ export default function ManageCourses() {
             <div className="container mx-auto max-w-6xl">
                 <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại
+                    Back
                 </Button>
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-5 sm:mb-8">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Quản lý Khóa học</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">Manage Courses</h1>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                             onClick={() => navigate('/admin/courses/review')}
@@ -87,14 +87,14 @@ export default function ManageCourses() {
                             className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/30 w-full sm:w-auto"
                         >
                             <ClipboardCheck className="mr-2 h-4 w-4" />
-                            Duyệt khóa học
+                            Review Courses
                         </Button>
                         <Button
                             onClick={() => navigate('/admin/courses/create')}
                             className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                         >
                             <Plus className="mr-2 h-4 w-4" />
-                            Tạo khóa học mới
+                            Create New Course
                         </Button>
                     </div>
                 </div>
@@ -112,21 +112,21 @@ export default function ManageCourses() {
                                         )}
                                     </div>
                                     <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 break-words">
-                                        Giảng viên: {course.teacher?.firstName} {course.teacher?.lastName} •{' '}
-                                        Danh mục: {course.category?.name} •{' '}
+                                        Instructor: {course.teacher?.firstName} {course.teacher?.lastName} •{' '}
+                                        Category: {course.category?.name} •{' '}
                                         Enrollments: {course._count?.enrollments}
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between gap-2 sm:gap-3 lg:justify-end">
                                     <p className="font-bold text-red-600 text-sm sm:text-base">
-                                        {course.price === 0 ? 'Miễn phí' : `${course.price.toLocaleString()} VND`}
+                                        {course.price === 0 ? 'Free' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(course.price)}
                                     </p>
                                     <div className="flex items-center gap-2">
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={() => navigate(`/admin/courses/${course.id}/manage`)}
-                                            title="Quản lý nội dung"
+                                            title="Manage Content"
                                         >
                                             <FolderOpen className="h-4 w-4" />
                                         </Button>
@@ -134,7 +134,7 @@ export default function ManageCourses() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => navigate(`/admin/courses/${course.id}/edit`)}
-                                            title="Sửa"
+                                            title="Edit"
                                         >
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -143,7 +143,7 @@ export default function ManageCourses() {
                                             size="sm"
                                             onClick={() => handleDelete(course.id, course.title)}
                                             disabled={deleteMutation.isPending}
-                                            title="Xóa"
+                                            title="Delete"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

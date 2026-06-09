@@ -79,21 +79,21 @@ export default function Home() {
                         {/* Badge */}
                         <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm text-white text-xs sm:text-sm font-medium border border-white/20">
                             <Sparkles className="h-4 w-4 shrink-0" />
-                            <span>Nền tảng học trực tuyến hàng đầu Việt Nam</span>
+                            <span>Vietnam's leading online learning platform</span>
                         </div>
 
                         {/* Heading */}
                         <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white leading-tight">
-                            Khám phá tri thức
+                            Discover knowledge
                             <span className="block text-red-100">
-                                không giới hạn
+                                without limits
                             </span>
                         </h1>
 
                         {/* Description */}
                         <p className="text-base sm:text-lg md:text-xl text-red-100 max-w-2xl mx-auto px-2">
-                            Hàng ngàn khóa học chất lượng cao từ các chuyên gia hàng đầu.
-                            Học bất cứ lúc nào, bất cứ nơi đâu với E-Learning Platform.
+                            Thousands of high-quality courses from leading experts.
+                            Learn anytime, anywhere with E-Learning Platform.
                         </p>
 
                         {/* Search Bar */}
@@ -102,7 +102,7 @@ export default function Home() {
                                 <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                                 <Input
                                     type="text"
-                                    placeholder="Tìm kiếm khóa học..."
+                                    placeholder="Search for courses..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleKeyPress}
@@ -113,7 +113,7 @@ export default function Home() {
                                     size="sm"
                                     className="absolute right-2 top-1/2 -translate-y-1/2 bg-white text-red-700 hover:bg-red-50 sm:h-10"
                                 >
-                                    Tìm kiếm
+                                    Search
                                 </Button>
                             </div>
                         </div>
@@ -125,7 +125,7 @@ export default function Home() {
                                     {courses.length}+
                                 </div>
                                 <div className="text-xs sm:text-sm md:text-base text-red-100 mt-1">
-                                    Khóa học
+                                    Courses
                                 </div>
                             </div>
                             <div className="text-center">
@@ -133,7 +133,7 @@ export default function Home() {
                                     50K+
                                 </div>
                                 <div className="text-xs sm:text-sm md:text-base text-red-100 mt-1">
-                                    Học viên
+                                    Students
                                 </div>
                             </div>
                             <div className="text-center">
@@ -141,7 +141,7 @@ export default function Home() {
                                     4.8/5
                                 </div>
                                 <div className="text-xs sm:text-sm md:text-base text-red-100 mt-1">
-                                    Đánh giá
+                                    Reviews
                                 </div>
                             </div>
                         </div>
@@ -155,10 +155,10 @@ export default function Home() {
                     <div className="container mx-auto px-4 sm:px-6">
                         <div className="text-center mb-8 sm:mb-12">
                             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
-                                Danh mục phổ biến
+                                Popular Categories
                             </h2>
                             <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                                Khám phá các chủ đề bạn quan tâm
+                                Explore topics you are interested in
                             </p>
                         </div>
 
@@ -216,11 +216,10 @@ export default function Home() {
                                         <button
                                             key={pageNum}
                                             onClick={() => setCurrentCategoryPage(pageNum)}
-                                            className={`h-2 rounded-full transition-all duration-300 ${
-                                                currentCategoryPage === pageNum
+                                            className={`h-2 rounded-full transition-all duration-300 ${currentCategoryPage === pageNum
                                                     ? 'w-6 bg-red-600'
                                                     : 'w-2 bg-zinc-300 dark:bg-zinc-700 hover:bg-zinc-400 dark:hover:bg-zinc-600'
-                                            }`}
+                                                }`}
                                             aria-label={`Go to page ${pageNum}`}
                                         />
                                     );
@@ -237,15 +236,15 @@ export default function Home() {
                     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8 sm:mb-12">
                         <div>
                             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
-                                Khóa học nổi bật
+                                Featured Courses
                             </h2>
                             <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                                Các khóa học được yêu thích nhất
+                                Most popular courses
                             </p>
                         </div>
                         <Link to="/courses" className="self-start sm:self-auto">
                             <Button variant="outline" className="gap-2 border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
-                                Xem tất cả
+                                View All
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                         </Link>
@@ -267,7 +266,7 @@ export default function Home() {
                         <div className="text-center py-20">
                             <BookOpen className="h-16 w-16 text-zinc-300 dark:text-zinc-700 mx-auto mb-4" />
                             <p className="text-zinc-600 dark:text-zinc-400">
-                                Chưa có khóa học nào
+                                No courses available yet
                             </p>
                         </div>
                     ) : (
@@ -285,10 +284,10 @@ export default function Home() {
                 <div className="container mx-auto px-4 sm:px-6">
                     <div className="text-center mb-8 sm:mb-12">
                         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
-                            Tại sao chọn chúng tôi?
+                            Why Choose Us?
                         </h2>
                         <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">
-                            Nền tảng học tập hiện đại với nhiều tính năng ưu việt
+                            Modern learning platform with outstanding features
                         </p>
                     </div>
 
@@ -298,10 +297,10 @@ export default function Home() {
                                 <Target className="h-7 w-7 text-white" />
                             </div>
                             <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
-                                Học theo lộ trình
+                                Guided Learning Paths
                             </h3>
                             <p className="text-zinc-600 dark:text-zinc-400">
-                                Lộ trình học tập rõ ràng, từng bước từ cơ bản đến nâng cao
+                                Clear learning roadmaps, step-by-step from beginner to advanced
                             </p>
                         </Card>
 
@@ -310,10 +309,10 @@ export default function Home() {
                                 <Zap className="h-7 w-7 text-white" />
                             </div>
                             <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
-                                Học mọi lúc mọi nơi
+                                Learn Anytime, Anywhere
                             </h3>
                             <p className="text-zinc-600 dark:text-zinc-400">
-                                Truy cập khóa học bất cứ khi nào, trên mọi thiết bị
+                                Access courses whenever you want, on any device
                             </p>
                         </Card>
 
@@ -322,10 +321,10 @@ export default function Home() {
                                 <Award className="h-7 w-7 text-white" />
                             </div>
                             <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">
-                                Chứng chỉ hoàn thành
+                                Completion Certificate
                             </h3>
                             <p className="text-zinc-600 dark:text-zinc-400">
-                                Nhận chứng chỉ sau khi hoàn thành khóa học
+                                Receive a certificate upon completing your courses
                             </p>
                         </Card>
                     </div>
@@ -336,10 +335,10 @@ export default function Home() {
             <section className="py-12 sm:py-20 bg-gradient-to-br from-[#2b0000] via-[#6d0202] to-[#060606]">
                 <div className="container mx-auto px-4 sm:px-6 text-center">
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 sm:mb-4">
-                        Bắt đầu hành trình học tập ngay hôm nay
+                        Start your learning journey today
                     </h2>
                     <p className="text-red-100 text-sm sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto">
-                        Tham gia cùng hàng ngàn học viên đang học tập và phát triển kỹ năng mỗi ngày
+                        Join thousands of students learning and developing skills every day
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                         <Link to="/register">
@@ -347,12 +346,12 @@ export default function Home() {
                                 size="lg"
                                 className="bg-white text-red-700 hover:bg-red-100 shadow-lg shadow-red-900/30 border border-red-200 dark:border-red-500/40 dark:bg-white dark:text-red-700 dark:hover:bg-red-100"
                             >
-                                Đăng ký ngay
+                                Register Now
                             </Button>
                         </Link>
                         <Link to="/login">
                             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                                Đăng nhập
+                                Login
                             </Button>
                         </Link>
                     </div>

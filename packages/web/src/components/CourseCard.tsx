@@ -40,9 +40,9 @@ export function CourseCard({ course }: CourseCardProps) {
         .filter(Boolean)
         .join(' ') || course.teacher.username;
 
-    const formattedPrice = new Intl.NumberFormat('vi-VN', {
+    const formattedPrice = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'VND'
+        currency: 'USD'
     }).format(course.price);
 
     return (
@@ -106,7 +106,7 @@ export function CourseCard({ course }: CourseCardProps) {
                         {(course.totalEnrollments !== undefined || course._count?.enrollments !== undefined) && (
                             <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
                                 <Users className="h-4 w-4" />
-                                <span>{course._count?.enrollments ?? course.totalEnrollments ?? 0} học viên</span>
+                                <span>{course._count?.enrollments ?? course.totalEnrollments ?? 0} students</span>
                             </div>
                         )}
                     </div>
@@ -114,13 +114,13 @@ export function CourseCard({ course }: CourseCardProps) {
                     {/* Price & Button */}
                     <div className="flex items-center justify-between pt-3">
                         <div className="text-xl font-bold text-red-600 dark:text-red-400">
-                            {course.price === 0 ? 'Miễn phí' : formattedPrice}
+                            {course.price === 0 ? 'Free' : formattedPrice}
                         </div>
                         <Button
                             size="sm"
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                            Xem chi tiết
+                            View Details
                         </Button>
                     </div>
                 </div>

@@ -61,7 +61,7 @@ export function CourseCreateForm() {
         },
         onSuccess: () => {
             setFormError(null);
-            setFormSuccess('Tạo khoá học thành công!');
+            setFormSuccess('Course created successfully!');
             form.reset({
                 title: '',
                 description: '',
@@ -71,7 +71,7 @@ export function CourseCreateForm() {
             });
         },
         onError: (error) => {
-            let message = 'Không thể tạo khoá học. Vui lòng thử lại.';
+            let message = 'Unable to create course. Please try again.';
 
             if (error instanceof AxiosError) {
                 const responseData = error.response?.data as { message?: string; error?: string } | undefined;
@@ -93,9 +93,9 @@ export function CourseCreateForm() {
     return (
         <section className="space-y-6">
             <header className="space-y-1">
-                <h2 className="text-2xl font-semibold text-zinc-900">Tạo khoá học mới</h2>
+                <h2 className="text-2xl font-semibold text-zinc-900">Create New Course</h2>
                 <p className="text-sm text-zinc-500">
-                    Điền thông tin bên dưới để xuất bản khoá học dành cho học viên.
+                    Fill in the information below to publish a course for students.
                 </p>
             </header>
 
@@ -116,13 +116,13 @@ export function CourseCreateForm() {
                     <FormField
                         control={form.control}
                         name="title"
-                        rules={{ required: 'Vui lòng nhập tiêu đề khoá học' }}
+                        rules={{ required: 'Please enter course title' }}
                         render={({ field }: { field: ControllerRenderProps<CourseFormValues, 'title'> }) => (
                             <FormItem>
-                                <FormLabel>Tiêu đề khoá học</FormLabel>
+                                <FormLabel>Course Title</FormLabel>
                                 <FormControl>
                                     <Input
-                                        placeholder="Nhập tiêu đề"
+                                        placeholder="Enter title"
                                         disabled={createCourseMutation.isPending}
                                         {...field}
                                     />
@@ -135,14 +135,14 @@ export function CourseCreateForm() {
                     <FormField
                         control={form.control}
                         name="description"
-                        rules={{ required: 'Vui lòng nhập mô tả khoá học' }}
+                        rules={{ required: 'Please enter course description' }}
                         render={({ field }: { field: ControllerRenderProps<CourseFormValues, 'description'> }) => (
                             <FormItem>
-                                <FormLabel>Mô tả</FormLabel>
+                                <FormLabel>Description</FormLabel>
                                 <FormControl>
                                     <textarea
                                         className="min-h-[120px] w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
-                                        placeholder="Giới thiệu tổng quan về khoá học"
+                                        placeholder="Provide a general introduction of the course"
                                         disabled={createCourseMutation.isPending}
                                         {...field}
                                     />
@@ -156,18 +156,18 @@ export function CourseCreateForm() {
                         control={form.control}
                         name="price"
                         rules={{
-                            required: 'Vui lòng nhập học phí',
-                            validate: (value) => (Number(value) >= 0 ? true : 'Học phí phải lớn hơn hoặc bằng 0'),
+                            required: 'Please enter price',
+                            validate: (value) => (Number(value) >= 0 ? true : 'Price must be greater than or equal to 0'),
                         }}
                         render={({ field }: { field: ControllerRenderProps<CourseFormValues, 'price'> }) => (
                             <FormItem>
-                                <FormLabel>Học phí (USD)</FormLabel>
+                                <FormLabel>Price (USD)</FormLabel>
                                 <FormControl>
                                     <Input
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        placeholder="Ví dụ: 49.99"
+                                        placeholder="Example: 49.99"
                                         disabled={createCourseMutation.isPending}
                                         {...field}
                                     />
@@ -180,10 +180,10 @@ export function CourseCreateForm() {
                     <FormField
                         control={form.control}
                         name="categoryId"
-                        rules={{ required: 'Vui lòng chọn danh mục' }}
+                        rules={{ required: 'Please select category' }}
                         render={({ field }: { field: ControllerRenderProps<CourseFormValues, 'categoryId'> }) => (
                             <FormItem>
-                                <FormLabel>Danh mục</FormLabel>
+                                <FormLabel>Category</FormLabel>
                                 <FormControl>
                                     <select
                                         className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
@@ -193,7 +193,7 @@ export function CourseCreateForm() {
                                         onBlur={field.onBlur}
                                     >
                                         <option value="" disabled>
-                                            {categoriesQuery.isLoading ? 'Đang tải danh mục...' : 'Chọn danh mục'}
+                                            {categoriesQuery.isLoading ? 'Loading categories...' : 'Select category'}
                                         </option>
                                         {categoriesQuery.data?.map((category) => (
                                             <option key={category.id} value={category.id.toString()}>
@@ -204,7 +204,7 @@ export function CourseCreateForm() {
                                 </FormControl>
                                 {categoriesQuery.isError && (
                                     <p className="text-xs text-red-500">
-                                        Không thể tải danh mục. Hãy thử làm mới trang.
+                                        Unable to load categories. Please refresh the page.
                                     </p>
                                 )}
                                 <FormMessage />
@@ -217,7 +217,7 @@ export function CourseCreateForm() {
                         name="imageUrl"
                         render={({ field }: { field: ControllerRenderProps<CourseFormValues, 'imageUrl'> }) => (
                             <FormItem>
-                                <FormLabel>Ảnh khoá học</FormLabel>
+                                <FormLabel>Course Thumbnail</FormLabel>
                                 <FormControl>
                                     <CourseImageUpload
                                         value={field.value}
@@ -236,7 +236,7 @@ export function CourseCreateForm() {
                         className="w-full sm:w-auto"
                         disabled={createCourseMutation.isPending}
                     >
-                        {createCourseMutation.isPending ? 'Đang tạo khoá học...' : 'Tạo khoá học'}
+                        {createCourseMutation.isPending ? 'Creating course...' : 'Create Course'}
                     </Button>
                 </form>
             </Form>

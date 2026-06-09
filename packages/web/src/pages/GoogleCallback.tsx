@@ -21,13 +21,13 @@ export default function GoogleCallback() {
         const errorParam = searchParams.get('error');
 
         if (errorParam) {
-            setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+            setError('Google login failed. Please try again.');
             setTimeout(() => navigate('/login'), 3000);
             return;
         }
 
         if (!token) {
-            setError('Không tìm thấy token. Vui lòng thử lại.');
+            setError('Token not found. Please try again.');
             setTimeout(() => navigate('/login'), 3000);
             return;
         }
@@ -38,7 +38,7 @@ export default function GoogleCallback() {
 
             // Check if token is expired
             if (decoded.exp * 1000 < Date.now()) {
-                setError('Token đã hết hạn. Vui lòng đăng nhập lại.');
+                setError('Token has expired. Please login again.');
                 setTimeout(() => navigate('/login'), 3000);
                 return;
             }
@@ -69,7 +69,7 @@ export default function GoogleCallback() {
             }
         } catch (err) {
             console.error('Token decode error:', err);
-            setError('Token không hợp lệ. Vui lòng thử lại.');
+            setError('Invalid token. Please try again.');
             setTimeout(() => navigate('/login'), 3000);
         }
     }, [searchParams, navigate, setUser]);
@@ -79,15 +79,15 @@ export default function GoogleCallback() {
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
                 <div className="text-center">
                     <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </div>
                     <h1 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                        Đăng nhập thất bại
+                        Login failed
                     </h1>
                     <p className="text-zinc-600 dark:text-zinc-400">{error}</p>
-                    <p className="text-sm text-zinc-500 mt-2">Đang chuyển hướng...</p>
+                    <p className="text-sm text-zinc-500 mt-2">Redirecting...</p>
                 </div>
             </div>
         );
@@ -98,9 +98,9 @@ export default function GoogleCallback() {
             <div className="text-center">
                 <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                 <h1 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-                    Đang đăng nhập...
+                    Logging in...
                 </h1>
-                <p className="text-zinc-600 dark:text-zinc-400">Vui lòng đợi trong giây lát</p>
+                <p className="text-zinc-600 dark:text-zinc-400">Please wait a moment</p>
             </div>
         </div>
     );

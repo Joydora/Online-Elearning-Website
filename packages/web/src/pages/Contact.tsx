@@ -22,13 +22,13 @@ export default function Contact() {
         try {
             await apiClient.post('/contact', formData);
             showSuccessAlert(
-                'Gửi thành công!',
-                'Chúng tôi đã nhận được yêu cầu hỗ trợ của bạn. Vui lòng kiểm tra email để xác nhận. Chúng tôi sẽ phản hồi trong vòng 24 giờ.'
+                'Sent successfully!',
+                'We have received your support request. Please check your email for confirmation. We will respond within 24 hours.'
             );
             setFormData({ name: '', email: '', subject: '', message: '' });
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Không thể gửi yêu cầu hỗ trợ. Vui lòng thử lại sau.';
-            showErrorAlert('Lỗi', errorMessage);
+            const errorMessage = error.response?.data?.error || 'Could not send support request. Please try again later.';
+            showErrorAlert('Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -39,25 +39,25 @@ export default function Contact() {
             icon: Mail,
             title: 'Email',
             content: 'support@elearning.vn',
-            description: 'Gửi email cho chúng tôi',
+            description: 'Send us an email',
         },
         {
             icon: Phone,
             title: 'Hotline',
             content: '1900 1234',
-            description: 'Thứ 2 - Thứ 7, 8:00 - 22:00',
+            description: 'Mon - Sat, 8:00 - 22:00',
         },
         {
             icon: MapPin,
-            title: 'Địa chỉ',
-            content: '123 Đường ABC, Quận 1',
-            description: 'TP. Hồ Chí Minh, Việt Nam',
+            title: 'Address',
+            content: '123 ABC Street, District 1',
+            description: 'Ho Chi Minh City, Vietnam',
         },
         {
             icon: Clock,
-            title: 'Giờ làm việc',
+            title: 'Business Hours',
             content: '8:00 - 22:00',
-            description: 'Thứ 2 - Thứ 7',
+            description: 'Mon - Sat',
         },
     ];
 
@@ -67,9 +67,9 @@ export default function Contact() {
             <section className="py-12 sm:py-16 bg-red-600">
                 <div className="container mx-auto px-4 sm:px-6 text-center text-white">
                     <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 sm:mb-6 opacity-80" />
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Liên hệ với chúng tôi</h1>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Contact Us</h1>
                     <p className="text-base sm:text-xl text-red-100 max-w-2xl mx-auto">
-                        Bạn có câu hỏi hoặc cần hỗ trợ? Đội ngũ của chúng tôi luôn sẵn sàng giúp đỡ bạn.
+                        Do you have questions or need support? Our team is always ready to help you.
                     </p>
                 </div>
             </section>
@@ -99,19 +99,19 @@ export default function Contact() {
                         {/* Form */}
                         <Card className="p-5 sm:p-8">
                             <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
-                                Gửi tin nhắn cho chúng tôi
+                                Send Us a Message
                             </h2>
                             <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                                 <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                            Họ và tên
+                                            Full Name
                                         </label>
                                         <Input
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            placeholder="Nguyễn Văn A"
+                                            placeholder="John Doe"
                                             required
                                         />
                                     </div>
@@ -130,24 +130,24 @@ export default function Contact() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Chủ đề
+                                        Subject
                                     </label>
                                     <Input
                                         type="text"
                                         value={formData.subject}
                                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                        placeholder="Tôi cần hỗ trợ về..."
+                                        placeholder="I need help with..."
                                         required
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Nội dung
+                                        Message
                                     </label>
                                     <textarea
                                         value={formData.message}
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                        placeholder="Mô tả chi tiết vấn đề của bạn..."
+                                        placeholder="Describe your issue in detail..."
                                         rows={5}
                                         required
                                         className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
@@ -161,12 +161,12 @@ export default function Contact() {
                                     {isSubmitting ? (
                                         <div className="flex items-center gap-2">
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            Đang gửi...
+                                            Sending...
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2">
                                             <Send className="h-5 w-5" />
-                                            Gửi tin nhắn
+                                            Send Message
                                         </div>
                                     )}
                                 </Button>
@@ -177,22 +177,22 @@ export default function Contact() {
                         <div className="space-y-6">
                             <Card className="overflow-hidden">
                                 <iframe
-                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4946681025395!2d106.69877427486823!3d10.771596789387625!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f385570472f%3A0x1787491df0ed8d6a!2zQuG6v24gTmjDoCBSb25n!5e0!3m2!1svi!2s!4v1699000000000!5m2!1svi!2s"
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4946681025395!2d106.69877427486823!3d10.771596789387625!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f385570472f%3A0x1787491df0ed8d6a!2zQuG6v24gTmjDo CBSb25n!5e0!3m2!1svi!2s!4v1699000000000!5m2!1svi!2s"
                                     width="100%"
                                     height="350"
                                     style={{ border: 0 }}
                                     allowFullScreen
                                     loading="lazy"
                                     referrerPolicy="no-referrer-when-downgrade"
-                                    title="Vị trí văn phòng"
+                                    title="Office Location"
                                 />
                             </Card>
                             <Card className="p-5 sm:p-6 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800">
                                 <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
-                                    Cần hỗ trợ gấp?
+                                    Need Urgent Help?
                                 </h3>
                                 <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mb-3 sm:mb-4">
-                                    Gọi ngay hotline để được hỗ trợ nhanh nhất
+                                    Call our hotline for immediate support
                                 </p>
                                 <a href="tel:19001234">
                                     <Button className="bg-red-600 hover:bg-red-700">

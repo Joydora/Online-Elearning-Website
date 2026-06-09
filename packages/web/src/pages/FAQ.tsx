@@ -24,111 +24,111 @@ export default function FAQ() {
         {
             id: 'general',
             icon: HelpCircle,
-            title: 'Câu hỏi chung',
+            title: 'General Questions',
             items: [
                 {
-                    question: 'E-Learning là gì?',
-                    answer: 'E-Learning là nền tảng học trực tuyến hàng đầu Việt Nam, cung cấp hàng nghìn khóa học chất lượng từ các giảng viên uy tín trong nhiều lĩnh vực khác nhau.',
+                    question: 'What is E-Learning?',
+                    answer: 'E-Learning is Vietnam\'s leading online learning platform, providing thousands of high-quality courses from reputable instructors in various fields.',
                 },
                 {
-                    question: 'Tôi có thể học trên những thiết bị nào?',
-                    answer: 'Bạn có thể học trên mọi thiết bị có kết nối internet: máy tính, laptop, tablet, điện thoại thông minh. Chúng tôi có ứng dụng riêng cho iOS và Android.',
+                    question: 'Which devices can I learn on?',
+                    answer: 'You can learn on any device with an internet connection: computers, laptops, tablets, and smartphones. We also have dedicated apps for iOS and Android.',
                 },
                 {
-                    question: 'Khóa học có thời hạn không?',
-                    answer: 'Sau khi mua, bạn có quyền truy cập khóa học vĩnh viễn. Bạn có thể học bất cứ lúc nào, ở bất cứ đâu, không giới hạn số lần xem.',
+                    question: 'Do courses expire?',
+                    answer: 'Once purchased, you get lifetime access to the course. You can learn anytime, anywhere, with no limit on views.',
                 },
                 {
-                    question: 'Tôi có nhận được chứng chỉ sau khi hoàn thành khóa học không?',
-                    answer: 'Có! Sau khi hoàn thành khóa học, bạn sẽ nhận được chứng chỉ điện tử xác nhận hoàn thành. Chứng chỉ này có thể chia sẻ trên LinkedIn hoặc in ra.',
+                    question: 'Will I receive a certificate after completing a course?',
+                    answer: 'Yes! After completing a course, you will receive a digital certificate verifying your completion. This certificate can be shared on LinkedIn or printed.',
                 },
             ],
         },
         {
             id: 'courses',
             icon: BookOpen,
-            title: 'Về khóa học',
+            title: 'About Courses',
             items: [
                 {
-                    question: 'Làm sao để tìm khóa học phù hợp?',
-                    answer: 'Bạn có thể sử dụng thanh tìm kiếm, lọc theo danh mục, hoặc xem các khóa học được đề xuất dựa trên sở thích của bạn. Mỗi khóa học đều có mô tả chi tiết và đánh giá từ học viên.',
+                    question: 'How do I find a suitable course?',
+                    answer: 'You can use the search bar, filter by category, or view recommended courses based on your interests. Each course has a detailed description and reviews from students.',
                 },
                 {
-                    question: 'Khóa học có được cập nhật không?',
-                    answer: 'Có! Giảng viên thường xuyên cập nhật nội dung khóa học để đảm bảo thông tin luôn mới nhất. Bạn sẽ được truy cập tất cả các bản cập nhật miễn phí.',
+                    question: 'Are courses updated?',
+                    answer: 'Yes! Instructors regularly update course content to ensure it remains current. You will get access to all updates for free.',
                 },
                 {
-                    question: 'Tôi có thể xem trước khóa học trước khi mua không?',
-                    answer: 'Có, hầu hết các khóa học đều có video xem trước miễn phí. Bạn có thể xem để đánh giá chất lượng và phong cách giảng dạy trước khi quyết định mua.',
+                    question: 'Can I preview a course before buying?',
+                    answer: 'Yes, most courses have free preview videos. You can watch these to assess the quality and teaching style before deciding to purchase.',
                 },
                 {
-                    question: 'Làm sao để đặt câu hỏi cho giảng viên?',
-                    answer: 'Mỗi khóa học đều có phần Q&A nơi bạn có thể đặt câu hỏi. Giảng viên và cộng đồng học viên sẽ hỗ trợ trả lời câu hỏi của bạn.',
+                    question: 'How do I ask the instructor questions?',
+                    answer: 'Each course has a Q&A section where you can post questions. The instructor and student community will assist in answering them.',
                 },
             ],
         },
         {
             id: 'payment',
             icon: CreditCard,
-            title: 'Thanh toán',
+            title: 'Payment',
             items: [
                 {
-                    question: 'Các hình thức thanh toán được chấp nhận?',
-                    answer: 'Chúng tôi chấp nhận: Thẻ tín dụng/ghi nợ (Visa, Mastercard, JCB), Ví điện tử (MoMo, ZaloPay, VNPay), Chuyển khoản ngân hàng, và nhiều hình thức khác.',
+                    question: 'What payment methods are accepted?',
+                    answer: 'We accept credit/debit cards (Visa, Mastercard, JCB), bank transfers, and local digital wallets (Stripe checkout).',
                 },
                 {
-                    question: 'Thanh toán có an toàn không?',
-                    answer: 'Tuyệt đối an toàn! Chúng tôi sử dụng cổng thanh toán Stripe với tiêu chuẩn bảo mật PCI-DSS cao nhất. Thông tin thẻ của bạn được mã hóa và bảo vệ.',
+                    question: 'Is the payment secure?',
+                    answer: 'Absolutely secure! We use the Stripe payment gateway with the highest PCI-DSS security standards. Your card details are encrypted and protected.',
                 },
                 {
-                    question: 'Tôi có thể yêu cầu hoàn tiền không?',
-                    answer: 'Có, chúng tôi có chính sách hoàn tiền trong vòng 30 ngày nếu bạn không hài lòng với khóa học. Vui lòng liên hệ hỗ trợ để được hướng dẫn.',
+                    question: 'Can I request a refund?',
+                    answer: 'Yes, we have a 30-day refund policy if you are not satisfied with the course. Please contact support for assistance.',
                 },
                 {
-                    question: 'Có mã giảm giá không?',
-                    answer: 'Có! Chúng tôi thường xuyên có các chương trình khuyến mãi. Đăng ký nhận bản tin để không bỏ lỡ các ưu đãi hấp dẫn.',
+                    question: 'Are there any discount codes?',
+                    answer: 'Yes! We regularly offer promotions. Subscribe to our newsletter to stay updated on special offers.',
                 },
             ],
         },
         {
             id: 'account',
             icon: User,
-            title: 'Tài khoản',
+            title: 'Account',
             items: [
                 {
-                    question: 'Làm sao để đăng ký tài khoản?',
-                    answer: 'Click vào nút "Đăng ký" ở góc phải màn hình, nhập email và mật khẩu. Bạn cũng có thể đăng ký nhanh bằng tài khoản Google.',
+                    question: 'How do I register an account?',
+                    answer: 'Click the "Sign Up" button on the top right, enter your email and password. You can also sign up quickly using your Google account.',
                 },
                 {
-                    question: 'Tôi quên mật khẩu, phải làm sao?',
-                    answer: 'Click vào "Quên mật khẩu" ở trang đăng nhập, nhập email đã đăng ký. Chúng tôi sẽ gửi link đặt lại mật khẩu cho bạn.',
+                    question: 'I forgot my password, what should I do?',
+                    answer: 'Click "Forgot Password" on the login page, enter your registered email. We will send you a link to reset your password.',
                 },
                 {
-                    question: 'Làm sao để thay đổi thông tin cá nhân?',
-                    answer: 'Đăng nhập vào tài khoản, vào phần "Cài đặt" hoặc "Hồ sơ" để cập nhật thông tin cá nhân, ảnh đại diện, và các cài đặt khác.',
+                    question: 'How do I change my personal details?',
+                    answer: 'Log into your account, go to "Settings" or "Profile" to update your personal details, avatar, and other preferences.',
                 },
                 {
-                    question: 'Tôi có thể xóa tài khoản không?',
-                    answer: 'Có, bạn có thể yêu cầu xóa tài khoản bất cứ lúc nào. Vui lòng liên hệ đội ngũ hỗ trợ để được hướng dẫn chi tiết.',
+                    question: 'Can I delete my account?',
+                    answer: 'Yes, you can request account deletion at any time. Please contact support for detailed guidance.',
                 },
             ],
         },
         {
             id: 'privacy',
             icon: Shield,
-            title: 'Bảo mật & Quyền riêng tư',
+            title: 'Security & Privacy',
             items: [
                 {
-                    question: 'Thông tin cá nhân của tôi có được bảo mật không?',
-                    answer: 'Có! Chúng tôi cam kết bảo mật thông tin cá nhân của bạn theo tiêu chuẩn cao nhất. Xem chi tiết tại trang Chính sách bảo mật.',
+                    question: 'Is my personal information secure?',
+                    answer: 'Yes! We are committed to protecting your personal data in accordance with the highest standards. See details in our Privacy Policy page.',
                 },
                 {
-                    question: 'E-Learning có chia sẻ thông tin của tôi cho bên thứ ba không?',
-                    answer: 'Không! Chúng tôi không bao giờ bán hoặc chia sẻ thông tin cá nhân của bạn cho bên thứ ba vì mục đích thương mại.',
+                    question: 'Does E-Learning share my information with third parties?',
+                    answer: 'No! We never sell or share your personal data with third parties for commercial purposes.',
                 },
                 {
-                    question: 'Làm sao để bảo vệ tài khoản của tôi?',
-                    answer: 'Sử dụng mật khẩu mạnh, bật xác thực 2 lớp, không chia sẻ thông tin đăng nhập, và đăng xuất khi sử dụng thiết bị công cộng.',
+                    question: 'How can I protect my account?',
+                    answer: 'Use a strong password, enable two-factor authentication, do not share your login credentials, and log out when using public devices.',
                 },
             ],
         },
@@ -157,9 +157,9 @@ export default function FAQ() {
             <section className="py-12 sm:py-16 bg-red-600">
                 <div className="container mx-auto px-4 sm:px-6 text-center text-white">
                     <HelpCircle className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 sm:mb-6 opacity-80" />
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Câu hỏi thường gặp</h1>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Frequently Asked Questions</h1>
                     <p className="text-base sm:text-xl text-red-100 max-w-2xl mx-auto mb-6 sm:mb-8">
-                        Tìm câu trả lời cho các thắc mắc phổ biến về E-Learning
+                        Find answers to common questions about E-Learning
                     </p>
 
                     {/* Search */}
@@ -167,7 +167,7 @@ export default function FAQ() {
                         <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-zinc-400" />
                         <Input
                             type="text"
-                            placeholder="Tìm kiếm câu hỏi..."
+                            placeholder="Search questions..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10 sm:pl-12 h-12 sm:h-14 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
@@ -183,7 +183,7 @@ export default function FAQ() {
                         {/* Categories Sidebar */}
                         <div className="lg:w-64 shrink-0">
                             <Card className="p-4 lg:sticky lg:top-24">
-                                <h3 className="font-semibold text-zinc-900 dark:text-white mb-3 sm:mb-4">Danh mục</h3>
+                                <h3 className="font-semibold text-zinc-900 dark:text-white mb-3 sm:mb-4">Categories</h3>
                                 <nav className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1">
                                     {categories.map(cat => (
                                         <button
@@ -239,10 +239,10 @@ export default function FAQ() {
                                 <Card className="p-8 sm:p-12 text-center">
                                     <Search className="h-12 w-12 mx-auto mb-4 text-zinc-400" />
                                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
-                                        Không tìm thấy kết quả
+                                        No Results Found
                                     </h3>
                                     <p className="text-zinc-600 dark:text-zinc-400">
-                                        Thử tìm kiếm với từ khóa khác hoặc liên hệ hỗ trợ
+                                        Try searching with different keywords or contact support
                                     </p>
                                 </Card>
                             )}

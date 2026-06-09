@@ -66,12 +66,12 @@ export default function EditCourse() {
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
-            showErrorAlert('Lỗi', 'Vui lòng chọn file ảnh');
+            showErrorAlert('Error', 'Please select an image file');
             return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            showErrorAlert('Lỗi', 'Kích thước ảnh tối đa là 5MB');
+            showErrorAlert('Error', 'Maximum image size is 5MB');
             return;
         }
 
@@ -86,7 +86,7 @@ export default function EditCourse() {
 
             form.setValue('thumbnailUrl', data.url);
         } catch (error) {
-            showErrorAlert('Lỗi', 'Không thể upload ảnh');
+            showErrorAlert('Error', 'Unable to upload image');
         } finally {
             setUploading(false);
         }
@@ -146,14 +146,14 @@ export default function EditCourse() {
         },
         onSuccess: async () => {
             await showSuccessAlert(
-                'Cập nhật khóa học thành công!',
-                'Thông tin khóa học đã được cập nhật.'
+                'Course updated successfully!',
+                'Course details have been updated.'
             );
             navigate('/dashboard');
         },
         onError: (error: any) => {
-            const message = error.response?.data?.error || 'Đã có lỗi xảy ra. Vui lòng thử lại.';
-            showErrorAlert('Lỗi cập nhật khóa học', message);
+            const message = error.response?.data?.error || 'An error occurred. Please try again.';
+            showErrorAlert('Error updating course', message);
         },
     });
 
@@ -166,7 +166,7 @@ export default function EditCourse() {
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                 <div className="text-center">
                     <Loader2 className="h-12 w-12 animate-spin text-red-600 mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải dữ liệu...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading...</p>
                 </div>
             </div>
         );
@@ -176,9 +176,9 @@ export default function EditCourse() {
         return (
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center">
                 <div className="text-center">
-                    <p className="text-xl text-zinc-900 dark:text-white mb-4">Không tìm thấy khóa học</p>
+                    <p className="text-xl text-zinc-900 dark:text-white mb-4">Course not found</p>
                     <Button onClick={() => navigate('/dashboard')}>
-                        Quay lại Dashboard
+                        Back to Dashboard
                     </Button>
                 </div>
             </div>
@@ -196,14 +196,14 @@ export default function EditCourse() {
                         className="mb-3 sm:mb-4 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại Dashboard
+                        Back to Dashboard
                     </Button>
 
                     <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Chỉnh sửa khóa học
+                        Edit Course
                     </h1>
                     <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">
-                        Cập nhật thông tin cho khóa học: <span className="font-semibold">{course.title}</span>
+                        Update details for course: <span className="font-semibold">{course.title}</span>
                     </p>
                 </div>
 
@@ -216,20 +216,20 @@ export default function EditCourse() {
                                 control={form.control}
                                 name="title"
                                 rules={{
-                                    required: 'Vui lòng nhập tên khóa học',
+                                    required: 'Please enter the course title',
                                     minLength: {
                                         value: 5,
-                                        message: 'Tên khóa học phải có ít nhất 5 ký tự'
+                                        message: 'Course title must be at least 5 characters'
                                     }
                                 }}
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                            Tên khóa học <span className="text-red-500">*</span>
+                                            Course Title <span className="text-red-500">*</span>
                                         </FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="Ví dụ: Khóa học TypeScript từ cơ bản đến nâng cao"
+                                                placeholder="Example: TypeScript from Beginner to Advanced"
                                                 className="h-12"
                                                 {...field}
                                             />
@@ -244,20 +244,20 @@ export default function EditCourse() {
                                 control={form.control}
                                 name="description"
                                 rules={{
-                                    required: 'Vui lòng nhập mô tả khóa học',
+                                    required: 'Please enter the course description',
                                     minLength: {
                                         value: 20,
-                                        message: 'Mô tả phải có ít nhất 20 ký tự'
+                                        message: 'Description must be at least 20 characters'
                                     }
                                 }}
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                            Mô tả khóa học <span className="text-red-500">*</span>
+                                            Course Description <span className="text-red-500">*</span>
                                         </FormLabel>
                                         <FormControl>
                                             <textarea
-                                                placeholder="Mô tả chi tiết về khóa học, nội dung, đối tượng phù hợp..."
+                                                placeholder="Detailed description of the course, content, target audience..."
                                                 className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[120px]"
                                                 {...field}
                                             />
@@ -274,17 +274,17 @@ export default function EditCourse() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                            Syllabus / Mục lục môn học
+                                            Syllabus / Course Outline
                                         </FormLabel>
                                         <FormControl>
                                             <textarea
-                                                placeholder="Nhập mục lục, mục tiêu, phạm vi kiến thức. AI Teaching Assistant sẽ chỉ trả lời trong phạm vi này."
+                                                placeholder="Enter outline, objectives, and scope of knowledge. The AI Teaching Assistant will only answer within this scope."
                                                 className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[160px]"
                                                 {...field}
                                             />
                                         </FormControl>
                                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                                            Khi lưu syllabus, hệ thống sẽ re-ingest dữ liệu cho AI Teaching Assistant.
+                                            When saving syllabus, the system will re-ingest data for the AI Teaching Assistant.
                                         </p>
                                         <FormMessage />
                                     </FormItem>
@@ -296,13 +296,13 @@ export default function EditCourse() {
                                 control={form.control}
                                 name="categoryId"
                                 rules={{
-                                    required: 'Vui lòng chọn danh mục',
-                                    validate: (value) => value > 0 || 'Vui lòng chọn danh mục'
+                                    required: 'Please select a category',
+                                    validate: (value) => value > 0 || 'Please select a category'
                                 }}
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                            Danh mục <span className="text-red-500">*</span>
+                                            Category <span className="text-red-500">*</span>
                                         </FormLabel>
                                         <FormControl>
                                             <select
@@ -310,7 +310,7 @@ export default function EditCourse() {
                                                 {...field}
                                                 onChange={(e) => field.onChange(parseInt(e.target.value))}
                                             >
-                                                <option value="0">Chọn danh mục</option>
+                                                <option value="0">Select Category</option>
                                                 {categories.map((category) => (
                                                     <option key={category.id} value={category.id}>
                                                         {category.name}
@@ -328,30 +328,30 @@ export default function EditCourse() {
                                 control={form.control}
                                 name="price"
                                 rules={{
-                                    required: 'Vui lòng nhập giá khóa học',
+                                    required: 'Please enter the course price',
                                     min: {
                                         value: 0,
-                                        message: 'Giá phải lớn hơn hoặc bằng 0'
+                                        message: 'Price must be greater than or equal to 0'
                                     }
                                 }}
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                            Giá (VND) <span className="text-red-500">*</span>
+                                            Price (USD) <span className="text-red-500">*</span>
                                         </FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                placeholder="0 (để miễn phí)"
+                                                placeholder="0 (for Free)"
                                                 className="h-12"
                                                 min="0"
-                                                step="1"
+                                                step="0.01"
                                                 {...field}
                                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                             />
                                         </FormControl>
                                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                                            Nhập 0 nếu khóa học miễn phí. Ví dụ: 100000, 250000, 500000
+                                            Enter 0 if the course is free. Example: 9.99, 19.99, 49.99
                                         </p>
                                         <FormMessage />
                                     </FormItem>
@@ -365,12 +365,12 @@ export default function EditCourse() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                                Số ngày học thử
+                                                Trial Duration (Days)
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
-                                                    placeholder="VD: 7"
+                                                    placeholder="e.g. 7"
                                                     min="1"
                                                     className="h-12"
                                                     value={field.value ?? ''}
@@ -378,7 +378,7 @@ export default function EditCourse() {
                                                 />
                                             </FormControl>
                                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                Để trống nếu không cho học thử.
+                                                Leave blank if no trial period is offered.
                                             </p>
                                             <FormMessage />
                                         </FormItem>
@@ -390,12 +390,12 @@ export default function EditCourse() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                                Thời hạn truy cập sau khi mua
+                                                Access Duration (Days)
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="number"
-                                                    placeholder="Để trống = không giới hạn"
+                                                    placeholder="Leave blank = unlimited"
                                                     min="1"
                                                     className="h-12"
                                                     value={field.value ?? ''}
@@ -403,7 +403,7 @@ export default function EditCourse() {
                                                 />
                                             </FormControl>
                                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                Ví dụ 30 nghĩa là học viên có 30 ngày truy cập sau khi mua.
+                                                Example: 30 means students have 30 days of access after purchase.
                                             </p>
                                             <FormMessage />
                                         </FormItem>
@@ -414,7 +414,7 @@ export default function EditCourse() {
                             {/* Thumbnail Upload */}
                             <div>
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Ảnh thumbnail
+                                    Thumbnail Image
                                 </label>
                                 {form.watch('thumbnailUrl') ? (
                                     <div className="relative w-full max-w-md">
@@ -440,9 +440,9 @@ export default function EditCourse() {
                                                 <>
                                                     <Image className="w-10 h-10 text-zinc-400 mb-3" />
                                                     <p className="text-sm text-zinc-500">
-                                                        <span className="font-semibold text-red-600">Nhấn để upload</span> hoặc kéo thả
+                                                        <span className="font-semibold text-red-600">Click to upload</span> or drag and drop
                                                     </p>
-                                                    <p className="text-xs text-zinc-400 mt-1">PNG, JPG (tối đa 5MB)</p>
+                                                    <p className="text-xs text-zinc-400 mt-1">PNG, JPG (max 5MB)</p>
                                                 </>
                                             )}
                                         </div>
@@ -460,8 +460,7 @@ export default function EditCourse() {
                             {/* Info Box */}
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                                    <strong>Lưu ý:</strong> Thay đổi thông tin cơ bản sẽ không ảnh hưởng đến
-                                    các chương và nội dung học tập đã tạo trước đó.
+                                    <strong>Note:</strong> Changing basic information will not affect previously created modules and learning content.
                                 </p>
                             </div>
 
@@ -474,7 +473,7 @@ export default function EditCourse() {
                                     disabled={updateMutation.isPending}
                                     className="w-full sm:flex-1 h-12 border-zinc-300 dark:border-zinc-700"
                                 >
-                                    Hủy
+                                    Cancel
                                 </Button>
                                 <Button
                                     type="submit"
@@ -484,12 +483,12 @@ export default function EditCourse() {
                                     {updateMutation.isPending ? (
                                         <>
                                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                            Đang cập nhật...
+                                            Updating...
                                         </>
                                     ) : (
                                         <>
                                             <Save className="mr-2 h-5 w-5" />
-                                            Lưu thay đổi
+                                            Save Changes
                                         </>
                                     )}
                                 </Button>

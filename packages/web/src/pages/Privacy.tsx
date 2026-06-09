@@ -2,143 +2,143 @@ import { Shield, AlertCircle, Lock, Eye, Database, Bell } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export default function Privacy() {
-    const lastUpdated = '01/11/2024';
+    const lastUpdated = 'November 1, 2024';
 
     const highlights = [
-        { icon: Lock, title: 'Bảo mật dữ liệu', description: 'Mã hóa SSL/TLS tiêu chuẩn ngân hàng' },
-        { icon: Eye, title: 'Không theo dõi', description: 'Không bán dữ liệu cho bên thứ ba' },
-        { icon: Database, title: 'Quyền kiểm soát', description: 'Bạn có toàn quyền với dữ liệu của mình' },
-        { icon: Bell, title: 'Thông báo minh bạch', description: 'Luôn cập nhật về thay đổi chính sách' },
+        { icon: Lock, title: 'Data Security', description: 'Bank-grade SSL/TLS encryption' },
+        { icon: Eye, title: 'No Tracking', description: 'No selling data to third parties' },
+        { icon: Database, title: 'Control', description: 'You have full control over your data' },
+        { icon: Bell, title: 'Transparent Notifications', description: 'Always updated on policy changes' },
     ];
 
     const sections = [
         {
-            title: '1. Thông tin chúng tôi thu thập',
+            title: '1. Information We Collect',
             content: `
-**Thông tin bạn cung cấp:**
-• Thông tin đăng ký: tên, email, mật khẩu
-• Thông tin hồ sơ: ảnh đại diện, tiểu sử, liên kết mạng xã hội
-• Thông tin thanh toán: được xử lý an toàn qua cổng thanh toán của bên thứ ba
-• Nội dung bạn tạo: bình luận, đánh giá, câu hỏi
+**Information you provide:**
+• Registration information: name, email, password
+• Profile information: avatar, bio, social media links
+• Payment information: processed securely via third-party payment gateways
+• Content you create: comments, reviews, questions
 
-**Thông tin tự động thu thập:**
-• Thông tin thiết bị: loại thiết bị, hệ điều hành, trình duyệt
-• Thông tin sử dụng: trang đã xem, thời gian học, tiến độ khóa học
-• Địa chỉ IP và vị trí địa lý (ở cấp quốc gia/thành phố)
-• Cookie và công nghệ tương tự`,
+**Information automatically collected:**
+• Device information: device type, operating system, browser
+• Usage information: pages viewed, learning time, course progress
+• IP address and geographic location (at country/city level)
+• Cookies and similar technologies`,
         },
         {
-            title: '2. Cách chúng tôi sử dụng thông tin',
+            title: '2. How We Use Information',
             content: `
-Chúng tôi sử dụng thông tin của bạn để:
-• Cung cấp và cải thiện dịch vụ
-• Cá nhân hóa trải nghiệm học tập và đề xuất khóa học phù hợp
-• Xử lý thanh toán và giao dịch
-• Gửi thông báo quan trọng về tài khoản và khóa học
-• Gửi bản tin và thông tin khuyến mãi (nếu bạn đăng ký)
-• Phân tích và cải thiện chất lượng dịch vụ
-• Phát hiện và ngăn chặn gian lận, lạm dụng
-• Tuân thủ các yêu cầu pháp lý`,
+We use your information to:
+• Provide and improve our services
+• Personalize the learning experience and recommend suitable courses
+• Process payments and transactions
+• Send important notifications about accounts and courses
+• Send newsletters and promotions (if subscribed)
+• Analyze and improve service quality
+• Detect and prevent fraud, abuse
+• Comply with legal requirements`,
         },
         {
-            title: '3. Chia sẻ thông tin',
+            title: '3. Information Sharing',
             content: `
-**Chúng tôi KHÔNG:**
-• Bán thông tin cá nhân của bạn
-• Chia sẻ thông tin với bên thứ ba cho mục đích quảng cáo
+**We DO NOT:**
+• Sell your personal information
+• Share information with third parties for advertising purposes
 
-**Chúng tôi có thể chia sẻ thông tin với:**
-• Nhà cung cấp dịch vụ: xử lý thanh toán, hosting, phân tích (họ chỉ được sử dụng thông tin để cung cấp dịch vụ cho chúng tôi)
-• Giảng viên: tên và tiến độ học của bạn trong khóa học của họ
-• Cơ quan pháp luật: khi được yêu cầu theo quy định pháp luật
-• Đối tác kinh doanh: trong trường hợp sáp nhập, mua lại (với thông báo trước)`,
+**We may share information with:**
+• Service providers: payment processing, hosting, analytics (they may only use information to provide services to us)
+• Instructors: your name and progress in their courses
+• Legal authorities: when required by law
+• Business partners: in case of mergers, acquisitions (with prior notice)`,
         },
         {
-            title: '4. Bảo mật dữ liệu',
+            title: '4. Data Security',
             content: `
-Chúng tôi áp dụng các biện pháp bảo mật nghiêm ngặt:
-• Mã hóa SSL/TLS cho tất cả kết nối
-• Mã hóa dữ liệu nhạy cảm khi lưu trữ
-• Kiểm tra bảo mật định kỳ
-• Kiểm soát truy cập nghiêm ngặt cho nhân viên
-• Sao lưu dữ liệu thường xuyên
-• Giám sát 24/7 phát hiện xâm nhập
+We apply strict security measures:
+• SSL/TLS encryption for all connections
+• Encryption of sensitive data at rest
+• Regular security audits
+• Strict access controls for employees
+• Regular data backups
+• 24/7 intrusion detection monitoring
 
-Tuy nhiên, không có phương pháp truyền tải qua Internet hoặc lưu trữ điện tử nào an toàn 100%. Chúng tôi khuyến khích bạn sử dụng mật khẩu mạnh và bật xác thực 2 lớp.`,
+However, no method of transmission over the Internet or electronic storage is 100% secure. We encourage you to use a strong password and enable two-factor authentication.`,
         },
         {
-            title: '5. Cookie và công nghệ theo dõi',
+            title: '5. Cookies and Tracking Technologies',
             content: `
-**Cookie cần thiết:**
-• Duy trì phiên đăng nhập
-• Ghi nhớ tùy chọn của bạn
-• Đảm bảo bảo mật
+**Necessary cookies:**
+• Maintain session login
+• Remember your preferences
+• Ensure security
 
-**Cookie phân tích (có thể từ chối):**
-• Hiểu cách bạn sử dụng trang web
-• Cải thiện trải nghiệm người dùng
+**Analytics cookies (can be declined):**
+• Understand how you use the website
+• Improve user experience
 
-**Cookie quảng cáo (có thể từ chối):**
-• Hiển thị quảng cáo phù hợp
-• Đo lường hiệu quả quảng cáo
+**Advertising cookies (can be declined):**
+• Display relevant advertisements
+• Measure advertising effectiveness
 
-Bạn có thể quản lý cookie trong cài đặt trình duyệt hoặc qua banner cookie của chúng tôi.`,
+You can manage cookies in your browser settings or via our cookie banner.`,
         },
         {
-            title: '6. Quyền của bạn',
+            title: '6. Your Rights',
             content: `
-Bạn có quyền:
-• **Truy cập**: Yêu cầu bản sao thông tin cá nhân của bạn
-• **Chỉnh sửa**: Cập nhật hoặc sửa thông tin không chính xác
-• **Xóa**: Yêu cầu xóa tài khoản và dữ liệu của bạn
-• **Hạn chế**: Yêu cầu hạn chế xử lý dữ liệu
-• **Di chuyển**: Nhận dữ liệu của bạn ở định dạng có thể đọc được
-• **Phản đối**: Phản đối một số loại xử lý dữ liệu
-• **Rút lại đồng ý**: Rút lại đồng ý bất cứ lúc nào
+You have the right to:
+• **Access**: Request a copy of your personal information
+• **Rectification**: Update or correct inaccurate information
+• **Erasure**: Request deletion of your account and data
+• **Restriction**: Request restriction of processing your data
+• **Portability**: Receive your data in a readable format
+• **Object**: Object to certain types of data processing
+• **Withdraw Consent**: Withdraw consent at any time
 
-Để thực hiện quyền của bạn, liên hệ: privacy@elearning.vn`,
+To exercise your rights, contact: privacy@elearning.vn`,
         },
         {
-            title: '7. Lưu giữ dữ liệu',
+            title: '7. Data Retention',
             content: `
-• Thông tin tài khoản: Lưu giữ trong suốt thời gian tài khoản hoạt động
-• Sau khi xóa tài khoản: Dữ liệu sẽ được xóa trong vòng 30 ngày, ngoại trừ:
-  - Hồ sơ giao dịch (theo yêu cầu pháp luật kế toán)
-  - Dữ liệu cần thiết để giải quyết tranh chấp
-• Dữ liệu phân tích ẩn danh có thể được lưu giữ lâu hơn`,
+• Account information: Retained as long as the account is active
+• After account deletion: Data will be deleted within 30 days, except for:
+  - Transaction records (as required by accounting law)
+  - Data necessary to resolve disputes
+• Anonymous analysis data may be retained longer`,
         },
         {
-            title: '8. Bảo vệ trẻ em',
+            title: '8. Children Protection',
             content: `
-• E-Learning không dành cho trẻ em dưới 13 tuổi
-• Người dùng từ 13-16 tuổi cần có sự đồng ý của phụ huynh
-• Nếu phát hiện đã vô tình thu thập thông tin của trẻ dưới 13 tuổi, chúng tôi sẽ xóa ngay lập tức
-• Phụ huynh có thể liên hệ để yêu cầu xóa thông tin con em`,
+• E-Learning is not intended for children under 13
+• Users aged 13-16 need parental consent
+• If we discover that we have unintentionally collected information from a child under 13, we will delete it immediately
+• Parents can contact us to request deletion of their child's information`,
         },
         {
-            title: '9. Chuyển giao quốc tế',
+            title: '9. International Transfers',
             content: `
-Dữ liệu của bạn có thể được xử lý tại các máy chủ nằm ngoài Việt Nam. Khi chuyển giao dữ liệu quốc tế, chúng tôi đảm bảo các biện pháp bảo vệ thích hợp theo quy định pháp luật.`,
+Your data may be processed on servers located outside Vietnam. When transferring data internationally, we ensure appropriate safeguards in accordance with legal regulations.`,
         },
         {
-            title: '10. Thay đổi chính sách',
+            title: '10. Policy Changes',
             content: `
-• Chúng tôi có thể cập nhật chính sách này định kỳ
-• Thay đổi quan trọng sẽ được thông báo qua email
-• Ngày cập nhật cuối cùng luôn hiển thị ở đầu trang
-• Tiếp tục sử dụng dịch vụ sau thay đổi đồng nghĩa bạn chấp nhận chính sách mới`,
+• We may update this policy periodically
+• Significant changes will be notified via email
+• The last updated date is always displayed at the top of the page
+• Continued use of the service after changes constitutes acceptance of the new policy`,
         },
         {
-            title: '11. Liên hệ',
+            title: '11. Contact',
             content: `
-Nếu có câu hỏi về chính sách bảo mật, vui lòng liên hệ:
+If you have any questions about the privacy policy, please contact:
 
-**Bộ phận Bảo mật Dữ liệu**
+**Data Protection Department**
 • Email: privacy@elearning.vn
 • Hotline: 1900 1234
-• Địa chỉ: 123 Đường ABC, Quận 1, TP. Hồ Chí Minh, Việt Nam
+• Address: 123 ABC Street, District 1, Ho Chi Minh City, Vietnam
 
-Chúng tôi sẽ phản hồi trong vòng 30 ngày làm việc.`,
+We will respond within 30 working days.`,
         },
     ];
 
@@ -148,9 +148,9 @@ Chúng tôi sẽ phản hồi trong vòng 30 ngày làm việc.`,
             <section className="py-16 bg-red-600">
                 <div className="container mx-auto px-4 text-center text-white">
                     <Shield className="h-16 w-16 mx-auto mb-6 opacity-80" />
-                    <h1 className="text-4xl md:text-5xl font-bold mb-4">Chính sách bảo mật</h1>
+                    <h1 className="text-4xl md:text-5xl font-bold mb-4">Privacy Policy</h1>
                     <p className="text-xl text-red-100 max-w-2xl mx-auto">
-                        Chúng tôi cam kết bảo vệ quyền riêng tư của bạn
+                        We are committed to protecting your privacy
                     </p>
                 </div>
             </section>
@@ -180,7 +180,7 @@ Chúng tôi sẽ phản hồi trong vòng 30 ngày làm việc.`,
                         <div className="flex items-center gap-3">
                             <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-500" />
                             <p className="text-sm text-blue-800 dark:text-blue-200">
-                                Cập nhật lần cuối: <strong>{lastUpdated}</strong>. Vui lòng đọc kỹ để hiểu cách chúng tôi thu thập, sử dụng và bảo vệ thông tin của bạn.
+                                Last updated: <strong>{lastUpdated}</strong>. Please read carefully to understand how we collect, use, and protect your information.
                             </p>
                         </div>
                     </Card>

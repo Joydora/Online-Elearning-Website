@@ -36,7 +36,7 @@ export function CourseImageUpload({ value, onChange }: CourseImageUploadProps) {
             onChange(data.secure_url);
         },
         onError: (error) => {
-            let message = 'Không thể tải tệp lên. Vui lòng thử lại.';
+            let message = 'Unable to upload file. Please try again.';
 
             if (error instanceof AxiosError) {
                 const responseMessage = (error.response?.data as { message?: string; error?: string })?.message;
@@ -95,10 +95,10 @@ export function CourseImageUpload({ value, onChange }: CourseImageUploadProps) {
                             onClick={handleTriggerUpload}
                             disabled={uploadMutation.isPending}
                         >
-                            Thay đổi ảnh
+                            Change image
                         </Button>
                         <Button type="button" variant="ghost" onClick={handleRemoveImage}>
-                            Xoá ảnh
+                            Delete image
                         </Button>
                     </div>
                 </div>
@@ -109,12 +109,12 @@ export function CourseImageUpload({ value, onChange }: CourseImageUploadProps) {
                     onClick={handleTriggerUpload}
                     disabled={uploadMutation.isPending}
                 >
-                    Tải ảnh từ máy
+                    Upload image from computer
                 </Button>
             )}
 
             {uploadMutation.isPending && (
-                <p className="text-xs text-zinc-500">Đang tải tệp lên Cloudinary...</p>
+                <p className="text-xs text-zinc-500">Uploading file to Cloudinary...</p>
             )}
 
             {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}

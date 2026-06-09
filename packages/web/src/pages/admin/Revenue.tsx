@@ -108,11 +108,11 @@ export default function AdminRevenue() {
             await apiClient.post('/admin/revenue/payout', { ids });
         },
         onSuccess: async () => {
-            await showSuccessAlert('Thành công', 'Đã đánh dấu thanh toán thành công.');
+            await showSuccessAlert('Success', 'Payout marked as paid successfully.');
             setSelectedIds([]);
             queryClient.invalidateQueries({ queryKey: ['admin-revenue'] });
         },
-        onError: () => showErrorAlert('Lỗi', 'Không thể cập nhật trạng thái thanh toán.'),
+        onError: () => showErrorAlert('Error', 'Could not update payout status.'),
     });
 
     const handleExport = async () => {
@@ -132,7 +132,7 @@ export default function AdminRevenue() {
             a.click();
             URL.revokeObjectURL(url);
         } catch {
-            showErrorAlert('Lỗi', 'Không thể xuất CSV.');
+            showErrorAlert('Error', 'Could not export CSV.');
         }
     };
 
@@ -145,18 +145,18 @@ export default function AdminRevenue() {
         setSelectedIds(prev => prev.length === heldIds.length ? [] : heldIds);
     };
 
-    const fmt = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+    const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 
     return (
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                     <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" />
-                    Quản lý doanh thu
+                    Revenue Management
                 </h1>
                 <Button onClick={handleExport} variant="outline" className="gap-2 w-full sm:w-auto">
                     <Download className="w-4 h-4" />
-                    Xuất CSV
+                    Export CSV
                 </Button>
             </div>
 
@@ -167,7 +167,7 @@ export default function AdminRevenue() {
                         onChange={(e) => { setTeacherId(e.target.value); setSelectedIds([]); }}
                         className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                     >
-                        <option value="">Tất cả giảng viên</option>
+                        <option value="">All Instructors</option>
                         {teachers.map((teacher) => {
                             const name = [teacher.firstName, teacher.lastName].filter(Boolean).join(' ') || teacher.username;
                             return (
@@ -182,7 +182,7 @@ export default function AdminRevenue() {
                         onChange={(e) => { setCourseId(e.target.value); setSelectedIds([]); }}
                         className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                     >
-                        <option value="">Tất cả khóa học</option>
+                        <option value="">All Courses</option>
                         {courses.map((course) => (
                             <option key={course.id} value={course.id}>
                                 {course.title}
@@ -203,7 +203,7 @@ export default function AdminRevenue() {
                             setSelectedIds([]);
                         }}
                     >
-                        Xóa lọc
+                        Clear Filters
                     </Button>
                 </div>
             </Card>
@@ -212,9 +212,9 @@ export default function AdminRevenue() {
             {data?.summary && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
                     {[
-                        { label: 'Doanh thu nền tảng', value: data.summary.platformFee, color: 'text-blue-600' },
-                        { label: 'Phần GV', value: data.summary.teacherShare, color: 'text-green-600' },
-                        { label: 'Tổng doanh thu', value: data.summary.grossAmount, color: 'text-yellow-600' },
+                        { label: 'Platform Revenue', value: data.summary.platformFee, color: 'text-blue-600' },
+                        { label: 'Instructor Share', value: data.summary.teacherShare, color: 'text-green-600' },
+                        { label: 'Gross Revenue', value: data.summary.grossAmount, color: 'text-yellow-600' },
                     ].map(({ label, value, color }) => (
                         <Card key={label} className="p-4 sm:p-5">
                             <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
@@ -233,7 +233,7 @@ export default function AdminRevenue() {
                             onClick={() => { setStatusFilter(s); setSelectedIds([]); }}
                             className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-colors ${statusFilter === s ? 'bg-red-600 text-white border-red-600' : 'border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                         >
-                            {s === 'ALL' ? 'Tất cả' : s === 'HELD' ? 'Đang giữ' : 'Đã TT'}
+                            {s === 'ALL' ? 'All' : s === 'HELD' ? 'Held' : 'Paid'}
                         </button>
                     ))}
                 </div>
@@ -246,12 +246,12 @@ export default function AdminRevenue() {
                             className="bg-green-600 hover:bg-green-700 gap-2"
                         >
                             <CheckSquare className="w-4 h-4" />
-                            Đánh dấu TT ({selectedIds.length})
+                            Mark as Paid ({selectedIds.length})
                         </Button>
                     )}
                     {(data?.rows ?? []).some(e => e.payoutStatus === 'HELD') && (
                         <button onClick={selectAllHeld} className="text-xs sm:text-sm text-red-600 hover:underline">
-                            {selectedIds.length > 0 ? 'Bỏ chọn tất cả' : 'Chọn tất cả HELD'}
+                            {selectedIds.length > 0 ? 'Clear Selection' : 'Select All HELD'}
                         </button>
                     )}
                 </div>
@@ -259,7 +259,7 @@ export default function AdminRevenue() {
 
             {/* Table */}
             {isLoading ? (
-                <div className="text-center py-12 text-zinc-500">Đang tải...</div>
+                <div className="text-center py-12 text-zinc-500">Loading...</div>
             ) : (
                 <>
                     <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -267,12 +267,12 @@ export default function AdminRevenue() {
                             <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                                 <tr>
                                     <th className="py-3 px-4 text-left w-8"></th>
-                                    <th className="py-3 px-4 text-left">Khóa học</th>
-                                    <th className="py-3 px-4 text-left">Giảng viên</th>
-                                    <th className="py-3 px-4 text-right">Nền tảng</th>
-                                    <th className="py-3 px-4 text-right">Giảng viên</th>
-                                    <th className="py-3 px-4 text-center">Trạng thái</th>
-                                    <th className="py-3 px-4 text-left">Ngày</th>
+                                    <th className="py-3 px-4 text-left">Course</th>
+                                    <th className="py-3 px-4 text-left">Instructor</th>
+                                    <th className="py-3 px-4 text-right">Platform</th>
+                                    <th className="py-3 px-4 text-right">Instructor</th>
+                                    <th className="py-3 px-4 text-center">Status</th>
+                                    <th className="py-3 px-4 text-left">Date</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
@@ -304,17 +304,17 @@ export default function AdminRevenue() {
                                         <td className="py-3 px-4 text-right text-green-600 font-medium">{fmt(entry.teacherShare)}</td>
                                         <td className="py-3 px-4 text-center">
                                             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${entry.payoutStatus === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                                                {entry.payoutStatus === 'PAID' ? 'Đã TT' : 'Đang giữ'}
+                                                {entry.payoutStatus === 'PAID' ? 'Paid' : 'Held'}
                                             </span>
                                         </td>
                                         <td className="py-3 px-4 text-zinc-500 dark:text-zinc-400 text-xs">
-                                            {new Date(entry.createdAt).toLocaleDateString('vi-VN')}
+                                            {new Date(entry.createdAt).toLocaleDateString('en-US')}
                                         </td>
                                     </tr>
                                 )})}
                                 {(data?.rows ?? []).length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="py-12 text-center text-zinc-500">Chưa có dữ liệu doanh thu</td>
+                                        <td colSpan={7} className="py-12 text-center text-zinc-500">No revenue data available</td>
                                     </tr>
                                 )}
                             </tbody>

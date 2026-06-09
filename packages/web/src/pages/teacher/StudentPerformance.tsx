@@ -74,7 +74,7 @@ export default function StudentPerformance() {
     });
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -107,7 +107,7 @@ export default function StudentPerformance() {
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-zinc-600 dark:text-zinc-400">Đang tải thông tin hiệu suất...</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Loading performance data...</p>
                 </div>
             </div>
         );
@@ -117,7 +117,7 @@ export default function StudentPerformance() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
                 <div className="text-center">
-                    <p className="text-zinc-600 dark:text-zinc-400">Không tìm thấy thông tin hiệu suất</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">Performance data not found</p>
                 </div>
             </div>
         );
@@ -131,14 +131,14 @@ export default function StudentPerformance() {
                     <Link to={`/courses/${courseId}/students`}>
                         <Button variant="ghost" className="mb-3 sm:mb-4 gap-2">
                             <ArrowLeft className="w-4 h-4" />
-                            Quay lại danh sách học viên
+                            Back to Enrolled Students
                         </Button>
                     </Link>
                     <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white mb-2">
-                        Hiệu suất học viên
+                        Student Performance
                     </h1>
                     <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 break-words">
-                        Chi tiết hiệu suất học tập của {performance.student.fullName}
+                        Detailed learning performance of {performance.student.fullName}
                     </p>
                 </div>
 
@@ -162,7 +162,7 @@ export default function StudentPerformance() {
                             </div>
                         </div>
                         <div className="sm:text-right">
-                            <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-500 mb-1">Ngày đăng ký</div>
+                            <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-500 mb-1">Enrollment Date</div>
                             <div className="text-sm sm:text-base text-zinc-900 dark:text-white font-medium">
                                 {formatDate(performance.enrollment.enrollmentDate)}
                             </div>
@@ -178,7 +178,7 @@ export default function StudentPerformance() {
                                 <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
                             <div className="min-w-0">
-                                <div className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Tiến độ tổng thể</div>
+                                <div className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Overall Progress</div>
                                 <div className="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">
                                     {performance.enrollment.progress.toFixed(1)}%
                                 </div>
@@ -198,14 +198,14 @@ export default function StudentPerformance() {
                                 <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
                             <div className="min-w-0">
-                                <div className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Nội dung đã hoàn thành</div>
+                                <div className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Completed Content</div>
                                 <div className="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">
                                     {performance.contentProgress.completedContents}/{performance.contentProgress.totalContents}
                                 </div>
                             </div>
                         </div>
                         <div className="text-xs sm:text-sm text-green-700 dark:text-green-300">
-                            {performance.contentProgress.progress.toFixed(1)}% hoàn thành
+                            {performance.contentProgress.progress.toFixed(1)}% completed
                         </div>
                     </Card>
 
@@ -215,14 +215,14 @@ export default function StudentPerformance() {
                                 <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
                             <div className="min-w-0">
-                                <div className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Quiz đã làm</div>
+                                <div className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Quizzes Taken</div>
                                 <div className="text-2xl sm:text-3xl font-bold text-purple-900 dark:text-purple-100">
                                     {performance.quizStats.length}
                                 </div>
                             </div>
                         </div>
                         <div className="text-xs sm:text-sm text-purple-700 dark:text-purple-300">
-                            {performance.quizStats.filter((q) => q.totalAttempts > 0).length} quiz có điểm
+                            {performance.quizStats.filter((q) => q.totalAttempts > 0).length} graded quizzes
                         </div>
                     </Card>
                 </div>
@@ -233,7 +233,7 @@ export default function StudentPerformance() {
                         <div className="p-4 sm:p-6 border-b border-zinc-200 dark:border-zinc-800">
                             <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                                 <BarChart3 className="w-5 h-5" />
-                                Kết quả Quiz
+                                Quiz Results
                             </h2>
                         </div>
                         <div className="p-4 sm:p-6">
@@ -251,20 +251,20 @@ export default function StudentPerformance() {
                                                 </h3>
                                             </div>
                                             <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-500 shrink-0">
-                                                {quiz.totalAttempts} lần làm
+                                                {quiz.totalAttempts} attempts
                                             </div>
                                         </div>
                                         {quiz.bestScore !== null && (
                                             <div className="grid grid-cols-2 gap-4 mt-3">
                                                 <div>
-                                                    <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-1">Điểm cao nhất</div>
+                                                    <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-1">Highest Score</div>
                                                     <div className={`text-2xl font-bold ${getScoreColor(quiz.bestScore)}`}>
                                                         {quiz.bestScore.toFixed(1)}%
                                                     </div>
                                                 </div>
                                                 {quiz.averageScore !== null && (
                                                     <div>
-                                                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-1">Điểm trung bình</div>
+                                                        <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-1">Average Score</div>
                                                         <div className={`text-2xl font-bold ${getScoreColor(quiz.averageScore)}`}>
                                                             {quiz.averageScore.toFixed(1)}%
                                                         </div>
@@ -274,7 +274,7 @@ export default function StudentPerformance() {
                                         )}
                                         {quiz.attempts.length > 0 && (
                                             <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                                                <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-2">Lịch sử làm bài:</div>
+                                                <div className="text-xs text-zinc-500 dark:text-zinc-500 mb-2">Quiz History:</div>
                                                 <div className="space-y-2">
                                                     {quiz.attempts.slice(0, 5).map((attempt) => (
                                                         <div
@@ -282,10 +282,10 @@ export default function StudentPerformance() {
                                                             className="flex items-center justify-between text-sm"
                                                         >
                                                             <div className="flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-zinc-400" />
-                                                                <span className="text-zinc-600 dark:text-zinc-400">
-                                                                    {formatDate(attempt.createdAt)}
-                                                                </span>
+                                                                 <Clock className="w-4 h-4 text-zinc-400" />
+                                                                 <span className="text-zinc-600 dark:text-zinc-400">
+                                                                     {formatDate(attempt.createdAt)}
+                                                                 </span>
                                                             </div>
                                                             <span className={`font-semibold ${getScoreColor(attempt.score)}`}>
                                                                 {attempt.score.toFixed(1)}%
@@ -294,7 +294,7 @@ export default function StudentPerformance() {
                                                     ))}
                                                     {quiz.attempts.length > 5 && (
                                                         <div className="text-xs text-zinc-500 dark:text-zinc-500 text-center">
-                                                            ... và {quiz.attempts.length - 5} lần làm khác
+                                                            ... and {quiz.attempts.length - 5} other attempts
                                                         </div>
                                                     )}
                                                 </div>
@@ -312,7 +312,7 @@ export default function StudentPerformance() {
                     <div className="p-4 sm:p-6 border-b border-zinc-200 dark:border-zinc-800">
                         <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                             <FileText className="w-5 h-5" />
-                            Tiến độ nội dung
+                            Content Progress
                         </h2>
                     </div>
                     <div className="p-4 sm:p-6">

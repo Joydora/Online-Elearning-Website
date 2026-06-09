@@ -31,10 +31,10 @@ export default function ManageUsers() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-            showSuccessAlert('Thành công', 'Đã xóa người dùng');
+            showSuccessAlert('Success', 'User deleted successfully');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.message || 'Không thể xóa người dùng');
+            showErrorAlert('Error', error.response?.data?.message || 'Could not delete user');
         },
     });
 
@@ -44,17 +44,17 @@ export default function ManageUsers() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-            showSuccessAlert('Thành công', 'Đã cập nhật quyền người dùng');
+            showSuccessAlert('Success', 'User role updated successfully');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi', error.response?.data?.message || 'Không thể cập nhật quyền');
+            showErrorAlert('Error', error.response?.data?.message || 'Could not update user role');
         },
     });
 
     const handleDelete = async (userId: number, username: string) => {
         const result = await showConfirmAlert(
-            'Xóa người dùng',
-            `Bạn có chắc chắn muốn xóa tài khoản "${username}"?`
+            'Delete User',
+            `Are you sure you want to delete the user account "${username}"?`
         );
         if (result.isConfirmed) {
             deleteMutation.mutate(userId);
@@ -66,9 +66,9 @@ export default function ManageUsers() {
             <div className="container mx-auto max-w-6xl">
                 <Button variant="ghost" onClick={() => navigate('/admin')} className="mb-3 sm:mb-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Quay lại
+                    Back
                 </Button>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-8 text-zinc-900 dark:text-white">Quản lý Người dùng</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-8 text-zinc-900 dark:text-white">Manage Users</h1>
 
                 {/* Mobile card view */}
                 <div className="md:hidden space-y-3">
@@ -105,7 +105,7 @@ export default function ManageUsers() {
                                     <option value="ADMIN" disabled>ADMIN</option>
                                 </select>
                                 <span className="text-zinc-500 dark:text-zinc-400">
-                                    Khóa học: {user._count?.coursesAsTeacher || 0} / Đăng ký: {user._count?.enrollments || 0}
+                                    Courses: {user._count?.coursesAsTeacher || 0} / Enrollments: {user._count?.enrollments || 0}
                                 </span>
                             </div>
                         </Card>

@@ -24,7 +24,7 @@ class RAGService {
 
     private stringifySyllabus(syllabus: unknown): string {
         if (!syllabus || (typeof syllabus === 'object' && Object.keys(syllabus).length === 0)) {
-            return 'Chưa có syllabus chi tiết.';
+            return 'Detailed syllabus is not available yet.';
         }
 
         if (typeof syllabus === 'string') {
@@ -119,10 +119,10 @@ class RAGService {
 
         await vectorStoreService.addDocument(
             `
-Khóa học: ${course.title}
-Giảng viên: ${teacherName}
-Danh mục: ${course.category.name}
-Mô tả: ${course.description}
+Course: ${course.title}
+Instructor: ${teacherName}
+Category: ${course.category.name}
+Description: ${course.description}
 Syllabus:
 ${syllabusText}
             `.trim(),
@@ -139,9 +139,9 @@ ${syllabusText}
         for (const module of course.modules) {
             await vectorStoreService.addDocument(
                 `
-Khóa học: ${course.title}
-Chương ${module.order}: ${module.title}
-Syllabus liên quan:
+Course: ${course.title}
+Module ${module.order}: ${module.title}
+Related syllabus:
 ${syllabusText}
                 `.trim(),
                 {
@@ -156,18 +156,18 @@ ${syllabusText}
 
             for (const content of module.contents) {
                 const questionText = content.questions
-                    .map((question, index) => `Câu hỏi ${index + 1}: ${question.questionText}`)
+                    .map((question, index) => `Question ${index + 1}: ${question.questionText}`)
                     .join('\n');
 
                 await vectorStoreService.addDocument(
                     `
-Khóa học: ${course.title}
-Chương: ${module.title}
-Bài học: ${content.title}
-Loại: ${content.contentType}
-Thứ tự: ${content.order}
-${questionText ? `Câu hỏi quiz hiện có:\n${questionText}` : ''}
-Syllabus khóa học:
+Course: ${course.title}
+Module: ${module.title}
+Lesson: ${content.title}
+Type: ${content.contentType}
+Order: ${content.order}
+${questionText ? `Existing quiz questions:\n${questionText}` : ''}
+Course syllabus:
 ${syllabusText}
                     `.trim(),
                     {
@@ -234,11 +234,11 @@ ${syllabusText}
         for (const course of courses) {
             // 1. Course overview document
             const courseContent = `
-Khóa học: ${course.title}
-Giảng viên: ${course.teacher.firstName} ${course.teacher.lastName} (${course.teacher.username})
-Danh mục: ${course.category.name}
-Mô tả: ${course.description}
-Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
+Course: ${course.title}
+Instructor: ${course.teacher.firstName} ${course.teacher.lastName} (${course.teacher.username})
+Category: ${course.category.name}
+Description: ${course.description}
+Price: ${course.price === 0 ? 'Free' : `$${course.price}`}
             `.trim();
 
             await vectorStoreService.addDocument(courseContent, {
@@ -254,9 +254,9 @@ Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
             // 2. Module documents
             for (const module of course.modules) {
                 const moduleContent = `
-Khóa học: ${course.title}
-Chương: ${module.title}
-Thứ tự: ${module.order}
+Course: ${course.title}
+Module: ${module.title}
+Order: ${module.order}
                 `.trim();
 
                 await vectorStoreService.addDocument(moduleContent, {
@@ -271,11 +271,11 @@ Thứ tự: ${module.order}
                 // 3. Content documents
                 for (const content of module.contents) {
                     const contentText = `
-Khóa học: ${course.title}
-Chương: ${module.title}
-Bài học: ${content.title}
-Loại: ${content.contentType}
-Thứ tự: ${content.order}
+Course: ${course.title}
+Module: ${module.title}
+Lesson: ${content.title}
+Type: ${content.contentType}
+Order: ${content.order}
                     `.trim();
 
                     await vectorStoreService.addDocument(contentText, {
@@ -323,20 +323,20 @@ Thứ tự: ${content.order}
 
         // 2. Prepare context from retrieved documents
         const context = searchResults
-            .map((result, idx) => `[Tài liệu ${idx + 1}]\n${result.document.content}`)
+            .map((result, idx) => `[Document ${idx + 1}]\n${result.document.content}`)
             .join('\n\n');
 
         // 3. Create prompt for LLM
-        const prompt = `Bạn là một trợ lý AI thông minh cho nền tảng học trực tuyến E-Learning. Nhiệm vụ của bạn là trả lời câu hỏi của người dùng dựa trên thông tin về các khóa học.
+        const prompt = `You are a smart AI assistant for E-Learning online learning platform. Your task is to answer user questions based on the course information.
 
-Thông tin khóa học:
+Course information:
 ${context}
 
-Câu hỏi: ${question}
+Question: ${question}
 
-Hãy trả lời câu hỏi một cách chính xác, hữu ích và thân thiện. Nếu thông tin không có trong tài liệu, hãy nói rõ và đề xuất người dùng tìm hiểu thêm. Trả lời bằng tiếng Việt.
+Please answer the question accurately, helpfully, and friendly. If the information is not available in the documents, state it clearly and suggest the user find out more. Answer in English.
 
-Trả lời:`;
+Answer:`;
 
         // 4. Generate answer using LLM
         const response = await this.ollama.generate({
@@ -379,20 +379,20 @@ Trả lời:`;
 
         // 2. Prepare context
         const context = searchResults
-            .map((result, idx) => `[Tài liệu ${idx + 1}]\n${result.document.content}`)
+            .map((result, idx) => `[Document ${idx + 1}]\n${result.document.content}`)
             .join('\n\n');
 
         // 3. Create prompt
-        const prompt = `Bạn là một trợ lý AI thông minh cho nền tảng học trực tuyến E-Learning. Nhiệm vụ của bạn là trả lời câu hỏi của người dùng dựa trên thông tin về các khóa học.
+        const prompt = `You are a smart AI assistant for E-Learning online learning platform. Your task is to answer user questions based on the course information.
 
-Thông tin khóa học:
+Course information:
 ${context}
 
-Câu hỏi: ${question}
+Question: ${question}
 
-Hãy trả lời câu hỏi một cách chính xác, hữu ích và thân thiện. Nếu thông tin không có trong tài liệu, hãy nói rõ và đề xuất người dùng tìm hiểu thêm. Trả lời bằng tiếng Việt.
+Please answer the question accurately, helpfully, and friendly. If the information is not available in the documents, state it clearly and suggest the user find out more. Answer in English.
 
-Trả lời:`;
+Answer:`;
 
         // 4. Stream response
         const stream = await this.ollama.generate({
@@ -457,36 +457,36 @@ Trả lời:`;
         }
 
         const searchQuery = currentContent
-            ? `${input.question}\nBài đang xem: ${currentContent.title}`
+            ? `${input.question}\nCurrently viewing lesson: ${currentContent.title}`
             : input.question;
 
         const searchResults = await vectorStoreService.search(searchQuery, 6, { namespace });
         const context = searchResults
-            .map((result, index) => `[Nguồn ${index + 1}]\n${result.document.content}`)
+            .map((result, index) => `[Source ${index + 1}]\n${result.document.content}`)
             .join('\n\n');
 
-        const prompt = `Bạn là giảng viên môn "${course.title}", không phải chatbot chung.
+        const prompt = `You are the instructor for the course "${course.title}", not a general chatbot.
 
-PHẠM VI SYLLABUS:
+SYLLABUS SCOPE:
 ${this.stringifySyllabus(course.syllabus)}
 
-NGỮ CẢNH KHÓA HỌC:
+COURSE CONTEXT:
 ${course.description}
 
-${currentContent ? `BÀI HỌC ĐANG XEM: ${currentContent.module.title} - ${currentContent.title} (${currentContent.contentType})` : ''}
+${currentContent ? `CURRENTLY VIEWING LESSON: ${currentContent.module.title} - ${currentContent.title} (${currentContent.contentType})` : ''}
 
-TÀI LIỆU TRUY XUẤT:
-${context || 'Không có tài liệu truy xuất phù hợp.'}
+RETRIEVED DOCUMENTS:
+${context || 'No matching documents retrieved.'}
 
-QUY TẮC:
-1. Chỉ trả lời trong phạm vi syllabus và tài liệu khóa học ở trên.
-2. Nếu câu hỏi nằm ngoài syllabus, nói rõ rằng nội dung đó nằm ngoài phạm vi môn học.
-3. Trả lời như một giảng viên: chính xác, dễ hiểu, có ví dụ ngắn khi phù hợp.
-4. Trả lời bằng tiếng Việt.
+RULES:
+1. Only answer within the scope of the syllabus and course materials above.
+2. If the question is outside the syllabus, state clearly that it is outside the course scope.
+3. Answer as an instructor: accurately, comprehensibly, with short examples when appropriate.
+4. Answer in English.
 
-CÂU HỎI CỦA HỌC VIÊN: ${input.question}
+STUDENT QUESTION: ${input.question}
 
-TRẢ LỜI:`;
+ANSWER:`;
 
         const response = await this.ollama.generate({
             model: this.model,
@@ -545,28 +545,28 @@ TRẢ LỜI:`;
         }
 
         const query = currentContent
-            ? `Tạo câu hỏi quiz cho bài ${currentContent.title}`
-            : `Tạo câu hỏi quiz cho khóa học ${course.title}`;
+            ? `Create quiz questions for lesson ${currentContent.title}`
+            : `Create quiz questions for course ${course.title}`;
         const searchResults = await vectorStoreService.search(query, 5, { namespace });
         const context = searchResults.map((result) => result.document.content).join('\n\n');
 
-        const prompt = `Bạn là giảng viên môn "${course.title}".
+        const prompt = `You are the instructor for the course "${course.title}".
 
 SYLLABUS:
 ${this.stringifySyllabus(course.syllabus)}
 
-${currentContent ? `Bài học cần gợi ý quiz: ${currentContent.module.title} - ${currentContent.title} (${currentContent.contentType})` : ''}
+${currentContent ? `Lesson for quiz suggestions: ${currentContent.module.title} - ${currentContent.title} (${currentContent.contentType})` : ''}
 
-NGỮ CẢNH:
+CONTEXT:
 ${context}
 
-Hãy tạo 5 câu hỏi trắc nghiệm gợi ý trong phạm vi syllabus. Mỗi câu gồm:
-- Câu hỏi
-- 4 lựa chọn A/B/C/D
-- Đáp án đúng
-- Giải thích ngắn
+Please generate 5 multiple choice questions within the scope of the syllabus. Each question should include:
+- Question
+- 4 options A/B/C/D
+- Correct answer
+- Short explanation
 
-Trả lời bằng tiếng Việt, định dạng Markdown.`;
+Answer in English, using Markdown format.`;
 
         const response = await this.ollama.generate({
             model: this.model,
