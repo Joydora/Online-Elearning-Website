@@ -87,7 +87,13 @@ export async function getAllCategories() {
 
 export async function getAllCourses() {
     return prisma.course.findMany({
-        where: { status: CourseStatus.PUBLISHED },
+        where: {
+            status: CourseStatus.PUBLISHED,
+            teacher: {
+                deletedAt: null,
+                isPermanentlyDeleted: false,
+            },
+        },
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
     });

@@ -3,10 +3,12 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function getTeacherProfile(teacherId: number) {
-    const teacher = await prisma.user.findUnique({
+    const teacher = await prisma.user.findFirst({
         where: { 
             id: teacherId,
             role: 'TEACHER',
+            deletedAt: null,
+            isPermanentlyDeleted: false,
         },
         select: {
             id: true,
@@ -87,6 +89,8 @@ export async function getAllTeachers() {
     const teachers = await prisma.user.findMany({
         where: {
             role: 'TEACHER',
+            deletedAt: null,
+            isPermanentlyDeleted: false,
         },
         select: {
             id: true,

@@ -8,6 +8,7 @@ import {
     getAllUsersController,
     updateUserRoleController,
     deleteUserController,
+    restoreUserController,
     createUserController,
     getAllCoursesAdminController,
     createCourseAdminController,
@@ -45,6 +46,7 @@ router.get('/admin/users', ...adminOnly, getAllUsersController);
 router.post('/admin/users', ...adminOnly, createUserController);
 router.put('/admin/users/:id/role', ...adminOnly, updateUserRoleController);
 router.delete('/admin/users/:id', ...adminOnly, deleteUserController);
+router.post('/admin/users/:id/restore', ...adminOnly, restoreUserController);
 
 // Course Management
 router.get('/admin/courses', ...adminOnly, getAllCoursesAdminController);

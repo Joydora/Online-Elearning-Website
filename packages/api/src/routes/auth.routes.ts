@@ -37,6 +37,10 @@ router.get('/google/callback',
                 return res.redirect(`${FRONTEND_URL}/login?error=no_user`);
             }
 
+            if (user.deletedAt || user.isPermanentlyDeleted) {
+                return res.redirect(`${FRONTEND_URL}/auth/google/callback?error=account_deleted&reason=${encodeURIComponent(user.deletionReason || '')}`);
+            }
+
             // Generate JWT token
             const token = jwt.sign(
                 {

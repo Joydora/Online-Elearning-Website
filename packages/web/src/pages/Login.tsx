@@ -23,6 +23,7 @@ type LoginResponse = {
     message: string;
     user: User;
     token: string;
+    teacherApplicationStatus?: string | null;
 };
 
 export default function Login() {
@@ -61,7 +62,23 @@ export default function Login() {
 
             const isTeacher = data.user.role === 'TEACHER';
             const isAdmin = data.user.role === 'ADMIN';
-            navigate(isAdmin ? '/admin' : isTeacher ? '/dashboard' : '/');
+            const hasPendingApplication = data.teacherApplicationStatus === 'PENDING' || data.teacherApplicationStatus === 'REJECTED';
+
+            if (isAdmin) {
+                navigate('/admin');
+            } else if (isTeacher) {
+                // Approved teachers have application status APPROVED or null (direct teachers)
+                if (hasPendingApplication) {
+                    navigate('/teacher/pending');
+                } else {
+                    navigate('/dashboard');
+                }
+            } else if (hasPendingApplication) {
+                // Student with a pending teacher application
+                navigate('/teacher/pending');
+            } else {
+                navigate('/');
+            }
         },
         onError: (error) => {
             let message = 'Login failed. Please try again.';

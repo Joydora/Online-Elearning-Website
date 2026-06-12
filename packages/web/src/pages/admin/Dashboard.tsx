@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign, ClipboardCheck, ShieldCheck } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { Users, BookOpen, GraduationCap, FolderTree, TrendingUp, UserCheck, UserCog, Tag, DollarSign, ClipboardCheck, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -26,6 +27,41 @@ type AdminStats = {
 };
 
 export default function AdminDashboard() {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(true);
+
+    const updateArrows = () => {
+        if (scrollContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            setShowLeftArrow(scrollLeft > 5);
+            setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 5);
+        }
+    };
+
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', updateArrows);
+            updateArrows();
+            window.addEventListener('resize', updateArrows);
+        }
+        return () => {
+            if (container) {
+                container.removeEventListener('scroll', updateArrows);
+            }
+            window.removeEventListener('resize', updateArrows);
+        };
+    }, []);
+
+    const scroll = (direction: 'left' | 'right') => {
+        if (scrollContainerRef.current) {
+            const { clientWidth } = scrollContainerRef.current;
+            const scrollAmount = direction === 'left' ? -clientWidth / 2 : clientWidth / 2;
+            scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+    };
+
     const { data: stats, isLoading } = useQuery<AdminStats>({
         queryKey: ['admin-stats'],
         queryFn: async () => {
@@ -159,56 +195,96 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 sm:gap-4 mb-6 sm:mb-8">
-                    <Link to="/admin/users">
-                        <Button className="w-full h-16 sm:h-20 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <Users className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Manage Users</span>
-                        </Button>
-                    </Link>
+                {/* Quick Actions Carousel */}
+                <div className="relative group mb-6 sm:mb-8 px-4 sm:px-6">
+                    <style>{`
+                        .scrollbar-none::-webkit-scrollbar {
+                            display: none;
+                        }
+                    `}</style>
 
-                    <Link to="/admin/courses">
-                        <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <BookOpen className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Manage Courses</span>
-                        </Button>
-                    </Link>
+                    {/* Left Scroll Arrow */}
+                    {showLeftArrow && (
+                        <button
+                            onClick={() => scroll('left')}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 focus:outline-none transition-all duration-200 hover:scale-105"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </button>
+                    )}
 
-                    <Link to="/admin/courses/review">
-                        <Button className="w-full h-16 sm:h-20 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <ClipboardCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Review Courses{stats?.pendingCourses ? ` (${stats.pendingCourses})` : ''}</span>
-                        </Button>
-                    </Link>
+                    {/* Right Scroll Arrow */}
+                    {showRightArrow && (
+                        <button
+                            onClick={() => scroll('right')}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shadow-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 focus:outline-none transition-all duration-200 hover:scale-105"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </button>
+                    )}
 
-                    <Link to="/admin/categories">
-                        <Button className="w-full h-16 sm:h-20 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <FolderTree className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Manage Categories</span>
-                        </Button>
-                    </Link>
+                    {/* Scrollable Row */}
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex overflow-x-auto scrollbar-none scroll-smooth gap-3 sm:gap-4 py-2 px-1"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                        <Link to="/admin/users" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <Users className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Manage Users</span>
+                            </Button>
+                        </Link>
 
-                    <Link to="/admin/promotions">
-                        <Button className="w-full h-16 sm:h-20 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <Tag className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Promotions</span>
-                        </Button>
-                    </Link>
+                        <Link to="/admin/courses" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <BookOpen className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Manage Courses</span>
+                            </Button>
+                        </Link>
 
-                    <Link to="/admin/revenue">
-                        <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <DollarSign className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Revenue</span>
-                        </Button>
-                    </Link>
+                        <Link to="/admin/courses/review" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <ClipboardCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Review Courses{stats?.pendingCourses ? ` (${stats.pendingCourses})` : ''}</span>
+                            </Button>
+                        </Link>
 
-                    <Link to="/admin/audit-logs">
-                        <Button className="w-full h-16 sm:h-20 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm whitespace-normal">
-                            <ShieldCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                            <span>Audit Logs</span>
-                        </Button>
-                    </Link>
+                        <Link to="/admin/categories" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <FolderTree className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Manage Categories</span>
+                            </Button>
+                        </Link>
+
+                        <Link to="/admin/promotions" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <Tag className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Promotions</span>
+                            </Button>
+                        </Link>
+
+                        <Link to="/admin/revenue" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <DollarSign className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Revenue</span>
+                            </Button>
+                        </Link>
+
+                        <Link to="/admin/audit-logs" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <ShieldCheck className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Audit Logs</span>
+                            </Button>
+                        </Link>
+
+                        <Link to="/admin/teacher-applications" className="w-[150px] sm:w-[170px] shrink-0">
+                            <Button className="w-full h-16 sm:h-20 bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm whitespace-normal shadow-sm transition-all hover:scale-[1.02] duration-200">
+                                <GraduationCap className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+                                <span>Instructor Applications</span>
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Recent Users */}

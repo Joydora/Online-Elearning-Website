@@ -58,6 +58,12 @@ enum NotificationType {
   DISCUSSION_REPLY
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id             Int     @id @default(autoincrement())
   email          String  @unique
@@ -89,6 +95,11 @@ model User {
   notifications       Notification[]
   notificationPreferences UserNotificationPreference[]
   adminAuditLogs      AdminAuditLog[] @relation("AdminAuditActor")
+  teacherApplication  TeacherApplication?
+
+  deletedAt            DateTime?
+  deletionReason       String?
+  isPermanentlyDeleted Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -520,4 +531,18 @@ model UserNotificationPreference {
 
   @@unique([userId, type])
   @@index([userId])
+}
+
+model TeacherApplication {
+  id              Int               @id @default(autoincrement())
+  userId          Int               @unique
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String
+  qualifications  String
+  cvUrl           String?
+  topics          String
+  status          ApplicationStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }

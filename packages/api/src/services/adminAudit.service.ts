@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 type AuditInput = {
     adminId?: number | null;
     action: string;
-    resource: 'USER' | 'COURSE' | 'PROMOTION' | 'PAYOUT';
+    resource: 'USER' | 'COURSE' | 'PROMOTION' | 'PAYOUT' | 'TEACHER_APPLICATION';
     resourceId?: string | number;
     description?: string;
     before?: Prisma.InputJsonValue;

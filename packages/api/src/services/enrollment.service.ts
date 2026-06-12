@@ -19,7 +19,12 @@ export async function getEnrolledStudents(courseId: number, teacherId: number) {
     }
 
     const enrollments = await prisma.enrollment.findMany({
-        where: { courseId },
+        where: {
+            courseId,
+            student: {
+                isPermanentlyDeleted: false,
+            },
+        },
         include: {
             student: {
                 select: {
@@ -29,6 +34,7 @@ export async function getEnrolledStudents(courseId: number, teacherId: number) {
                     firstName: true,
                     lastName: true,
                     createdAt: true,
+                    deletedAt: true,
                 },
             },
             payment: {
@@ -57,6 +63,7 @@ export async function getEnrolledStudents(courseId: number, teacherId: number) {
                 .filter(Boolean)
                 .join(' ') || enrollment.student.username,
             joinedAt: enrollment.student.createdAt,
+            deletedAt: enrollment.student.deletedAt,
         },
         payment: enrollment.payment
             ? {

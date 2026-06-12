@@ -35,16 +35,22 @@ export type RegisterInput = {
     firstName?: string | null;
     lastName?: string | null;
     role?: Role;
+    isInstructor?: boolean;
+    bio?: string;
+    qualifications?: string;
+    cvUrl?: string;
+    topics?: string;
 };
 
 export type LoginResult = {
     token: string;
     user: SafeUser;
+    teacherApplicationStatus?: string | null;
 };
 
 export type SafeUser = Omit<User, 'hashedPassword'>;
 
-function excludePassword(user: User): SafeUser {
+function excludePassword<T extends { hashedPassword: string }>(user: T): Omit<T, 'hashedPassword'> {
     const { hashedPassword, ...safeUser } = user;
     return safeUser;
 }
@@ -60,22 +66,54 @@ export async function register(userData: RegisterInput): Promise<SafeUser & { ve
         throw new Error('Email or username already in use');
     }
 
+    if (userData.isInstructor) {
+        if (!userData.bio || userData.bio.trim().length < 30) {
+            throw new Error('Bio must be at least 30 characters.');
+        }
+        if (!userData.qualifications || userData.qualifications.trim().length < 20) {
+            throw new Error('Qualifications / Experience must be at least 20 characters.');
+        }
+        if (!userData.topics || !userData.topics.trim()) {
+            throw new Error('Teaching topics are required.');
+        }
+        if (userData.cvUrl && !userData.cvUrl.startsWith('http://') && !userData.cvUrl.startsWith('https://')) {
+            throw new Error('CV/Portfolio URL must be valid (start with http:// or https://).');
+        }
+    }
+
     const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
     const verificationToken = generateVerificationToken();
     const verificationTokenExpiry = getTokenExpiry();
 
-    const user = await prisma.user.create({
-        data: {
-            email: userData.email,
-            username: userData.username,
-            hashedPassword,
-            firstName: userData.firstName ?? null,
-            lastName: userData.lastName ?? null,
-            role: userData.role ?? Role.STUDENT,
-            isVerified: false,
-            verificationToken,
-            verificationTokenExpiry,
-        },
+    const user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+            data: {
+                email: userData.email,
+                username: userData.username,
+                hashedPassword,
+                firstName: userData.firstName ?? null,
+                lastName: userData.lastName ?? null,
+                role: Role.STUDENT, // Starts as student pending admin approval
+                isVerified: false,
+                verificationToken,
+                verificationTokenExpiry,
+            },
+        });
+
+        if (userData.isInstructor) {
+            await tx.teacherApplication.create({
+                data: {
+                    userId: newUser.id,
+                    bio: userData.bio!.trim(),
+                    qualifications: userData.qualifications!.trim(),
+                    cvUrl: userData.cvUrl ? userData.cvUrl.trim() : null,
+                    topics: userData.topics!.trim(),
+                    status: 'PENDING',
+                },
+            });
+        }
+
+        return newUser;
     });
 
     // Send verification email (async, don't block registration)
@@ -96,10 +134,19 @@ export async function login(emailOrUsername: string, password: string): Promise<
                 { username: emailOrUsername },
             ],
         },
+        include: {
+            teacherApplication: {
+                select: { status: true },
+            },
+        },
     });
 
     if (!user) {
         throw new Error('Invalid email/username or password');
+    }
+
+    if (user.deletedAt || user.isPermanentlyDeleted) {
+        throw new Error(`ACCOUNT_DELETED:${user.deletionReason || ''}`);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.hashedPassword);
@@ -120,6 +167,7 @@ export async function login(emailOrUsername: string, password: string): Promise<
     return {
         token,
         user: excludePassword(user),
+        teacherApplicationStatus: user.teacherApplication?.status ?? null,
     };
 }
 

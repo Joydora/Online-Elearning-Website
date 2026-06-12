@@ -30,6 +30,7 @@ type EnrolledStudent = {
         email: string;
         fullName: string;
         joinedAt: string;
+        deletedAt: string | null;
     };
     payment: {
         amount: number;
@@ -219,71 +220,83 @@ export default function EnrolledStudents() {
                         <>
                         {/* Mobile cards */}
                         <div className="lg:hidden divide-y divide-zinc-200 dark:divide-zinc-800">
-                            {paginatedStudents.map((enrollment) => (
-                                <div key={enrollment.enrollmentId} className="p-4 space-y-3">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold shrink-0">
-                                            {enrollment.student.fullName.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-semibold text-zinc-900 dark:text-white break-words">
-                                                {enrollment.student.fullName}
-                                            </p>
-                                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                                @{enrollment.student.username}
-                                            </p>
-                                            <p className="text-xs text-zinc-600 dark:text-zinc-400 break-all mt-0.5">
-                                                <Mail className="inline w-3 h-3 mr-1" />
-                                                {enrollment.student.email}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" />
-                                        {formatDate(enrollment.enrollmentDate)}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
-                                            <div
-                                                className={`h-2 rounded-full transition-all ${enrollment.progress >= 80 ? 'bg-green-500' : enrollment.progress >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                                style={{ width: `${enrollment.progress}%` }}
-                                            />
-                                        </div>
-                                        <span className={`text-xs font-semibold ${getProgressColor(enrollment.progress)}`}>
-                                            {enrollment.progress.toFixed(1)}%
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                                        {enrollment.payment ? (
-                                            <div>
-                                                <div className="font-medium text-zinc-900 dark:text-white">
-                                                    {formatPrice(enrollment.payment.amount)}
-                                                </div>
-                                                <div className={enrollment.payment.status === 'SUCCESSFUL' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
-                                                    {enrollment.payment.status === 'SUCCESSFUL' ? 'Paid' : 'Pending'}
-                                                </div>
+                            {paginatedStudents.map((enrollment) => {
+                                const isDeleted = !!enrollment.student.deletedAt;
+                                return (
+                                    <div key={enrollment.enrollmentId} className="p-4 space-y-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className={`w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold shrink-0 ${isDeleted ? 'blur-[1px] opacity-60' : ''}`}>
+                                                {isDeleted ? '?' : enrollment.student.fullName.charAt(0).toUpperCase()}
                                             </div>
-                                        ) : (
-                                            <span className="text-zinc-500 dark:text-zinc-500">Free</span>
-                                        )}
-                                        {enrollment.completionDate ? (
-                                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                                                <CheckCircle className="w-3 h-3" /> Completed
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-semibold text-zinc-900 dark:text-white break-words flex flex-wrap items-center gap-1.5">
+                                                    {isDeleted ? (
+                                                        <span className="text-zinc-400 italic font-medium">User unavailable</span>
+                                                    ) : (
+                                                        enrollment.student.fullName
+                                                    )}
+                                                    {isDeleted && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                                            Locked
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <p className={`text-xs text-zinc-500 dark:text-zinc-400 ${isDeleted ? 'blur-[3px] select-none opacity-40' : ''}`}>
+                                                    @{enrollment.student.username}
+                                                </p>
+                                                <p className={`text-xs text-zinc-600 dark:text-zinc-400 break-all mt-0.5 ${isDeleted ? 'blur-[3px] select-none opacity-40' : ''}`}>
+                                                    <Mail className="inline w-3 h-3 mr-1" />
+                                                    {enrollment.student.email}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                                            <Calendar className="w-3 h-3" />
+                                            {formatDate(enrollment.enrollmentDate)}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                                                <div
+                                                    className={`h-2 rounded-full transition-all ${enrollment.progress >= 80 ? 'bg-green-500' : enrollment.progress >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                    style={{ width: `${enrollment.progress}%` }}
+                                                />
+                                            </div>
+                                            <span className={`text-xs font-semibold ${getProgressColor(enrollment.progress)}`}>
+                                                {enrollment.progress.toFixed(1)}%
                                             </span>
-                                        ) : (
-                                            <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-                                                <Clock className="w-3 h-3" /> In Progress
-                                            </span>
-                                        )}
+                                        </div>
+                                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                            {enrollment.payment ? (
+                                                <div>
+                                                    <div className="font-medium text-zinc-900 dark:text-white">
+                                                        {formatPrice(enrollment.payment.amount)}
+                                                    </div>
+                                                    <div className={enrollment.payment.status === 'SUCCESSFUL' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
+                                                        {enrollment.payment.status === 'SUCCESSFUL' ? 'Paid' : 'Pending'}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-zinc-500 dark:text-zinc-500">Free</span>
+                                            )}
+                                            {enrollment.completionDate ? (
+                                                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                                    <CheckCircle className="w-3 h-3" /> Completed
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+                                                    <Clock className="w-3 h-3" /> In Progress
+                                                </span>
+                                            )}
+                                        </div>
+                                        <Link to={`/courses/${courseId}/students/${enrollment.student.id}/performance`} className="block">
+                                            <Button variant="outline" size="sm" className="w-full gap-2" disabled={isDeleted}>
+                                                <BarChart3 className="w-4 h-4" />
+                                                View Performance
+                                            </Button>
+                                        </Link>
                                     </div>
-                                    <Link to={`/courses/${courseId}/students/${enrollment.student.id}/performance`} className="block">
-                                        <Button variant="outline" size="sm" className="w-full gap-2">
-                                            <BarChart3 className="w-4 h-4" />
-                                            View Performance
-                                        </Button>
-                                    </Link>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Desktop table */}
@@ -315,93 +328,105 @@ export default function EnrolledStudents() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
-                                    {paginatedStudents.map((enrollment) => (
-                                        <tr key={enrollment.enrollmentId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold">
-                                                        {enrollment.student.fullName.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                                                            {enrollment.student.fullName}
+                                    {paginatedStudents.map((enrollment) => {
+                                        const isDeleted = !!enrollment.student.deletedAt;
+                                        return (
+                                            <tr key={enrollment.enrollmentId} className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${isDeleted ? 'bg-red-50/10 dark:bg-red-950/5' : ''}`}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-semibold ${isDeleted ? 'blur-[1px] opacity-60' : ''}`}>
+                                                            {isDeleted ? '?' : enrollment.student.fullName.charAt(0).toUpperCase()}
                                                         </div>
-                                                        <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                            @{enrollment.student.username}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                                                    <Mail className="w-4 h-4" />
-                                                    {enrollment.student.email}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-400">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4" />
-                                                    {formatDate(enrollment.enrollmentDate)}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex-1 w-32 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
-                                                        <div
-                                                            className={`h-2 rounded-full transition-all ${enrollment.progress >= 80
-                                                                    ? 'bg-green-500'
-                                                                    : enrollment.progress >= 50
-                                                                        ? 'bg-yellow-500'
-                                                                        : 'bg-red-500'
-                                                                }`}
-                                                            style={{ width: `${enrollment.progress}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className={`text-sm font-semibold ${getProgressColor(enrollment.progress)}`}>
-                                                        {enrollment.progress.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {enrollment.payment ? (
-                                                    <div>
-                                                        <div className="text-sm font-medium text-zinc-900 dark:text-white">
-                                                            {formatPrice(enrollment.payment.amount)}
-                                                        </div>
-                                                        <div className={`text-xs ${enrollment.payment.status === 'SUCCESSFUL'
-                                                                ? 'text-green-600 dark:text-green-400'
-                                                                : 'text-yellow-600 dark:text-yellow-400'
-                                                            }`}>
-                                                            {enrollment.payment.status === 'SUCCESSFUL' ? 'Paid' : 'Pending'}
+                                                        <div>
+                                                            <div className="text-sm font-medium text-zinc-900 dark:text-white flex items-center gap-1.5">
+                                                                {isDeleted ? (
+                                                                    <span className="text-zinc-400 italic font-medium">User unavailable</span>
+                                                                ) : (
+                                                                    enrollment.student.fullName
+                                                                )}
+                                                                {isDeleted && (
+                                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">
+                                                                        Locked
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className={`text-sm text-zinc-500 dark:text-zinc-400 ${isDeleted ? 'blur-[3px] select-none opacity-40' : ''}`}>
+                                                                @{enrollment.student.username}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-sm text-zinc-500 dark:text-zinc-500">Free</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {enrollment.completionDate ? (
-                                                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                                                        <CheckCircle className="w-4 h-4" />
-                                                        <span>Completed</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className={`flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 ${isDeleted ? 'blur-[3px] select-none opacity-40' : ''}`}>
+                                                        <Mail className="w-4 h-4" />
+                                                        {enrollment.student.email}
                                                     </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
-                                                        <Clock className="w-4 h-4" />
-                                                        <span>In Progress</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-400">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-4 h-4" />
+                                                        {formatDate(enrollment.enrollmentDate)}
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <Link to={`/courses/${courseId}/students/${enrollment.student.id}/performance`}>
-                                                    <Button variant="outline" size="sm" className="gap-2">
-                                                        <BarChart3 className="w-4 h-4" />
-                                                        View Performance
-                                                    </Button>
-                                                </Link>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex-1 w-32 bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                                                            <div
+                                                                className={`h-2 rounded-full transition-all ${enrollment.progress >= 80
+                                                                        ? 'bg-green-500'
+                                                                        : enrollment.progress >= 50
+                                                                            ? 'bg-yellow-500'
+                                                                            : 'bg-red-500'
+                                                                    }`}
+                                                                style={{ width: `${enrollment.progress}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className={`text-sm font-semibold ${getProgressColor(enrollment.progress)}`}>
+                                                            {enrollment.progress.toFixed(1)}%
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {enrollment.payment ? (
+                                                        <div>
+                                                            <div className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                                {formatPrice(enrollment.payment.amount)}
+                                                            </div>
+                                                            <div className={`text-xs ${enrollment.payment.status === 'SUCCESSFUL'
+                                                                    ? 'text-green-600 dark:text-green-400'
+                                                                    : 'text-yellow-600 dark:text-yellow-400'
+                                                                }`}>
+                                                                {enrollment.payment.status === 'SUCCESSFUL' ? 'Paid' : 'Pending'}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-zinc-500 dark:text-zinc-500">Free</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {enrollment.completionDate ? (
+                                                        <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                                                            <CheckCircle className="w-4 h-4" />
+                                                            <span>Completed</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
+                                                            <Clock className="w-4 h-4" />
+                                                            <span>In Progress</span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Link to={`/courses/${courseId}/students/${enrollment.student.id}/performance`}>
+                                                        <Button variant="outline" size="sm" className="gap-2" disabled={isDeleted}>
+                                                            <BarChart3 className="w-4 h-4" />
+                                                            View Performance
+                                                        </Button>
+                                                    </Link>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

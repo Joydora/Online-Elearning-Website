@@ -27,9 +27,11 @@ import syllabusRoutes from './routes/syllabus.routes';
 import certificateRoutes from './routes/certificate.routes';
 import discussionRoutes from './routes/discussion.routes';
 import notificationRoutes from './routes/notification.routes';
+import teacherApplicationRoutes from './routes/teacherApplication.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { startEnrollmentExpiryJob } from './jobs/expireEnrollments';
 import { startNotificationEngagementJobs } from './jobs/notificationEngagement';
+import { startCleanupDeletedUsersJob } from './jobs/cleanupDeletedUsers';
 import './config/passport'; // Initialize passport strategies
 
 dotenv.config();
@@ -77,6 +79,7 @@ app.use('/api', syllabusRoutes);
 app.use('/api', certificateRoutes);
 app.use('/api', discussionRoutes);
 app.use('/api', notificationRoutes);
+app.use('/api', teacherApplicationRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');
@@ -100,6 +103,7 @@ const server = app.listen(port, async () => {
 
     startEnrollmentExpiryJob();
     startNotificationEngagementJobs();
+    startCleanupDeletedUsersJob();
 
     // Initialize chatbot in background
     try {

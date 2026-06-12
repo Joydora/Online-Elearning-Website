@@ -21,8 +21,14 @@ export default function GoogleCallback() {
         const errorParam = searchParams.get('error');
 
         if (errorParam) {
-            setError('Google login failed. Please try again.');
-            setTimeout(() => navigate('/login'), 3000);
+            if (errorParam === 'account_deleted') {
+                const reason = searchParams.get('reason') || '';
+                setError(`Your account has been locked. Reason: ${reason || 'No reason specified'}. Please contact Admin to unlock.`);
+                setTimeout(() => navigate('/login'), 6000);
+            } else {
+                setError('Google login failed. Please try again.');
+                setTimeout(() => navigate('/login'), 3000);
+            }
             return;
         }
 

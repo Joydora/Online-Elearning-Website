@@ -208,6 +208,7 @@ export default function CoursePlayer() {
     const [taQuestion, setTaQuestion] = useState('');
     const [taLoading, setTaLoading] = useState(false);
     const [taQuizLoading, setTaQuizLoading] = useState(false);
+    const taMessagesEndRef = useRef<HTMLDivElement>(null);
 
     // Practice states
     const [practiceData, setPracticeData] = useState<PracticeData | null>(null);
@@ -429,6 +430,13 @@ export default function CoursePlayer() {
 
         return () => clearInterval(timer);
     }, [currentContent, currentContentId, completedContentIds, enrollment?.type]);
+
+    // Auto-scroll AI teaching assistant message list to bottom
+    useEffect(() => {
+        if (taMessagesEndRef.current) {
+            taMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [taMessages, taLoading, taQuizLoading]);
 
     // Quiz functions
     const startQuiz = async () => {
@@ -1491,11 +1499,14 @@ export default function CoursePlayer() {
                                     ))
                                 )}
                                 {(taLoading || taQuizLoading) && (
-                                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        AI is thinking...
+                                    <div className="flex items-center gap-2 text-sm text-zinc-400 select-none">
+                                        <div className="h-4 w-4 shrink-0 flex items-center justify-center">
+                                            <Loader2 className="h-4 w-4 animate-spin text-red-500" style={{ willChange: 'transform' }} />
+                                        </div>
+                                        <span>AI is thinking...</span>
                                     </div>
                                 )}
+                                <div ref={taMessagesEndRef} />
                             </div>
 
                             <div className="flex gap-2 mb-2">

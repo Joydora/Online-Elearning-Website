@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useForm, type ControllerRenderProps } from 'react-hook-form';
 import { AxiosError } from 'axios';
-import { Eye, EyeOff, UserPlus, Mail, Lock, User, CheckCircle, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, Mail, Lock, User, CheckCircle, ArrowRight, GraduationCap, Briefcase, Globe, BookOpen } from 'lucide-react';
 import logo from '../logo.png';
 
 import { apiClient } from '../lib/api';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../components/ui/form';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { Button } from '../components/ui/button';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { showErrorAlert, showSuccessAlert } from '../lib/sweetalert';
@@ -20,6 +21,11 @@ type RegisterFormValues = {
     confirmPassword: string;
     firstName: string;
     lastName: string;
+    isInstructor?: boolean;
+    bio?: string;
+    qualifications?: string;
+    cvUrl?: string;
+    topics?: string;
 };
 
 export default function Register() {
@@ -27,6 +33,7 @@ export default function Register() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState('');
+    const [isInstructorRegistered, setIsInstructorRegistered] = useState(false);
 
     const form = useForm<RegisterFormValues>({
         defaultValues: {
@@ -36,37 +43,59 @@ export default function Register() {
             confirmPassword: '',
             firstName: '',
             lastName: '',
+            isInstructor: false,
+            bio: '',
+            qualifications: '',
+            cvUrl: '',
+            topics: '',
         },
     });
+
+    const isInstructor = form.watch('isInstructor');
 
     const registerMutation = useMutation<{ verificationSent: boolean }, unknown, RegisterFormValues>({
         mutationFn: async (values) => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { confirmPassword, ...registerData } = values;
+            // Clean up optional fields if they are student
+            if (!registerData.isInstructor) {
+                delete registerData.bio;
+                delete registerData.qualifications;
+                delete registerData.cvUrl;
+                delete registerData.topics;
+            }
             const { data } = await apiClient.post('/auth/register', registerData);
             return data;
         },
         onSuccess: async (data, variables) => {
             setRegisteredEmail(variables.email);
+            setIsInstructorRegistered(!!variables.isInstructor);
             setRegistrationSuccess(true);
 
-            if (data.verificationSent) {
+            if (variables.isInstructor) {
                 await showSuccessAlert(
-                    'Registration successful!',
-                    'Please check your email to verify your account.'
+                    'Registration Successful!',
+                    'Your account has been created. Your teaching application is pending approval. Please check your email to verify your account.'
                 );
             } else {
-                await showSuccessAlert(
-                    'Registration successful!',
-                    'Account created but verification email could not be sent. Please request a resend.'
-                );
+                if (data.verificationSent) {
+                    await showSuccessAlert(
+                        'Registration successful!',
+                        'Please check your email to verify your account.'
+                    );
+                } else {
+                    await showSuccessAlert(
+                        'Registration successful!',
+                        'Account created but verification email could not be sent. Please request a resend.'
+                    );
+                }
             }
         },
         onError: (error) => {
             let message = 'Registration failed. Please try again.';
 
             if (error instanceof AxiosError) {
-                const responseMessage = (error.response?.data as { message?: string })?.message;
+                const responseMessage = (error.response?.data as { error?: string; message?: string })?.error || (error.response?.data as { message?: string })?.message;
                 message = responseMessage ?? error.message ?? message;
             } else if (error instanceof Error) {
                 message = error.message;
@@ -95,22 +124,30 @@ export default function Register() {
 
                 <div className="relative z-10 container mx-auto flex min-h-screen items-center justify-center px-4 py-10">
                     <div className="w-full max-w-md">
-                        <div className="bg-white dark:bg-zinc-855 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
+                        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-8 text-center">
                             <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                             </div>
 
                             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-                                Registration successful! 🎉
+                                {isInstructorRegistered ? 'Instructor Registration Successful! 🎉' : 'Registration successful! 🎉'}
                             </h1>
 
                             <p className="text-zinc-600 dark:text-zinc-400 mb-2">
                                 We have sent a verification email to:
                             </p>
 
-                            <p className="text-lg font-semibold text-green-600 dark:text-green-400 mb-6">
+                            <p className="text-lg font-semibold text-green-600 dark:text-green-400 mb-4">
                                 {registeredEmail}
                             </p>
+
+                            {isInstructorRegistered && (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 text-left">
+                                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                                        ℹ️ <strong>Notice:</strong> Your instructor application has been submitted and is pending Admin review. You can log in after verifying your email.
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-6">
                                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
@@ -293,6 +330,203 @@ export default function Register() {
                                     />
                                 </div>
 
+                                {/* Instructor Toggle */}
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-zinc-300 dark:border-zinc-600"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-4 bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                                            Account Type
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <FormField
+                                    control={form.control}
+                                    name="isInstructor"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <div
+                                                className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 ${
+                                                    field.value
+                                                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                                                }`}
+                                                onClick={() => field.onChange(!field.value)}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-300 ${
+                                                            field.value
+                                                                ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                                                                : 'bg-zinc-100 dark:bg-zinc-800'
+                                                        }`}>
+                                                            <GraduationCap className={`h-5 w-5 transition-colors duration-300 ${
+                                                                field.value
+                                                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                                                    : 'text-zinc-400 dark:text-zinc-500'
+                                                            }`} />
+                                                        </div>
+                                                        <div>
+                                                            <p className={`font-semibold text-sm transition-colors duration-300 ${
+                                                                field.value
+                                                                    ? 'text-emerald-700 dark:text-emerald-300'
+                                                                    : 'text-zinc-700 dark:text-zinc-300'
+                                                            }`}>
+                                                                Register as Instructor
+                                                            </p>
+                                                            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                Create and sell courses on the platform
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Toggle Switch */}
+                                                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
+                                                        field.value ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'
+                                                    }`}>
+                                                        <div className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ${
+                                                            field.value ? 'translate-x-5' : 'translate-x-0'
+                                                        }`}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Instructor Fields - Animated Section */}
+                                <div
+                                    className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                                        isInstructor ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                                    }`}
+                                >
+                                    <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/10 dark:to-teal-900/10 p-5 space-y-4">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Briefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                            <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                                                Teaching Profile
+                                            </h3>
+                                        </div>
+
+                                        {/* Bio */}
+                                        <FormField
+                                            control={form.control}
+                                            name="bio"
+                                            rules={isInstructor ? {
+                                                required: 'Please enter your bio',
+                                                minLength: { value: 30, message: 'Bio must be at least 30 characters' }
+                                            } : undefined}
+                                            render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'bio'> }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-zinc-700 dark:text-zinc-300 text-sm">
+                                                        Bio / Introduction <span className="text-red-500">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Short bio about yourself, teaching experience, fields of expertise... (minimum 30 characters)"
+                                                            rows={3}
+                                                            disabled={registerMutation.isPending}
+                                                            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600 focus:border-emerald-500 dark:focus:border-emerald-400 transition-colors resize-none"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {/* Qualifications */}
+                                        <FormField
+                                            control={form.control}
+                                            name="qualifications"
+                                            rules={isInstructor ? {
+                                                required: 'Please enter your qualifications',
+                                                minLength: { value: 20, message: 'Qualifications must be at least 20 characters' }
+                                            } : undefined}
+                                            render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'qualifications'> }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-zinc-700 dark:text-zinc-300 text-sm">
+                                                        Qualifications / Experience <span className="text-red-500">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="List your degrees, certifications, teaching experience... (minimum 20 characters)"
+                                                            rows={3}
+                                                            disabled={registerMutation.isPending}
+                                                            className="bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600 focus:border-emerald-500 dark:focus:border-emerald-400 transition-colors resize-none"
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {/* CV URL */}
+                                        <FormField
+                                            control={form.control}
+                                            name="cvUrl"
+                                            rules={isInstructor ? {
+                                                validate: (value) => {
+                                                    if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+                                                        return 'URL must start with http:// or https://';
+                                                    }
+                                                    return true;
+                                                }
+                                            } : undefined}
+                                            render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'cvUrl'> }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-zinc-700 dark:text-zinc-300 text-sm">
+                                                        CV / Portfolio URL <span className="text-zinc-400 text-xs">(optional)</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <div className="relative">
+                                                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+                                                            <Input
+                                                                placeholder="https://linkedin.com/in/your-profile"
+                                                                disabled={registerMutation.isPending}
+                                                                className="pl-10 h-11 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600 focus:border-emerald-500 dark:focus:border-emerald-400 transition-colors"
+                                                                {...field}
+                                                            />
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {/* Topics */}
+                                        <FormField
+                                            control={form.control}
+                                            name="topics"
+                                            rules={isInstructor ? {
+                                                required: 'Please enter your teaching topics',
+                                            } : undefined}
+                                            render={({ field }: { field: ControllerRenderProps<RegisterFormValues, 'topics'> }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-zinc-700 dark:text-zinc-300 text-sm">
+                                                        Teaching Topics <span className="text-red-500">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <div className="relative">
+                                                            <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+                                                            <Input
+                                                                placeholder="e.g. Web Development, Machine Learning, UI/UX Design..."
+                                                                disabled={registerMutation.isPending}
+                                                                className="pl-10 h-11 bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-600 focus:border-emerald-500 dark:focus:border-emerald-400 transition-colors"
+                                                                {...field}
+                                                            />
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Password */}
                                 <FormField
                                     control={form.control}
@@ -378,7 +612,11 @@ export default function Register() {
 
                                 <Button
                                     type="submit"
-                                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                                    className={`w-full h-12 text-white font-semibold rounded-lg transition-colors duration-200 ${
+                                        isInstructor
+                                            ? 'bg-emerald-600 hover:bg-emerald-700'
+                                            : 'bg-red-600 hover:bg-red-700'
+                                    }`}
                                     disabled={registerMutation.isPending}
                                 >
                                     {registerMutation.isPending ? (
@@ -388,8 +626,12 @@ export default function Register() {
                                         </>
                                     ) : (
                                         <>
-                                            <UserPlus className="mr-2 h-5 w-5" />
-                                            Register
+                                            {isInstructor ? (
+                                                <GraduationCap className="mr-2 h-5 w-5" />
+                                            ) : (
+                                                <UserPlus className="mr-2 h-5 w-5" />
+                                            )}
+                                            {isInstructor ? 'Register as Instructor' : 'Register'}
                                         </>
                                     )}
                                 </Button>

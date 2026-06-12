@@ -132,7 +132,9 @@ export async function getAllUsersController(req: Request, res: Response): Promis
     try {
         const { role, search } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            isPermanentlyDeleted: false,
+        };
 
         if (role && typeof role === 'string') {
             where.role = role.toUpperCase() as Role;
@@ -157,6 +159,8 @@ export async function getAllUsersController(req: Request, res: Response): Promis
                 lastName: true,
                 role: true,
                 createdAt: true,
+                deletedAt: true,
+                deletionReason: true,
                 _count: {
                     select: {
                         coursesAsTeacher: true,
@@ -252,8 +256,14 @@ export async function deleteUserController(req: Request, res: Response): Promise
             return res.status(404).json({ error: 'User not found' });
         }
 
-        await prisma.user.delete({
+        const reason = (req.query.reason as string) || 'No reason provided';
+
+        await prisma.user.update({
             where: { id: userId },
+            data: {
+                deletedAt: new Date(),
+                deletionReason: reason,
+            },
         });
 
         await writeAdminAuditLog({
@@ -261,18 +271,77 @@ export async function deleteUserController(req: Request, res: Response): Promise
             action: 'DELETE',
             resource: 'USER',
             resourceId: userId,
-            description: `Deleted user ${user.username}`,
+            description: `Locked user ${user.username} (pending deletion)`,
             before: {
                 username: user.username,
                 email: user.email,
                 role: user.role,
+                deletedAt: user.deletedAt,
+                deletionReason: user.deletionReason,
+            },
+            after: {
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                deletedAt: new Date(),
+                deletionReason: reason,
             },
         });
 
-        return res.status(200).json({ message: 'User deleted successfully' });
+        return res.status(200).json({ message: 'User deleted (locked) successfully' });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to delete user',
+            details: (error as Error).message,
+        });
+    }
+}
+
+export async function restoreUserController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const userId = Number.parseInt(req.params.id, 10);
+
+        if (Number.isNaN(userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const updated = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                deletedAt: null,
+                deletionReason: null,
+            },
+        });
+
+        await writeAdminAuditLog({
+            adminId: authReq.user?.userId,
+            action: 'RESTORE',
+            resource: 'USER',
+            resourceId: userId,
+            description: `Restored user ${user.username}`,
+            before: {
+                deletedAt: user.deletedAt,
+                deletionReason: user.deletionReason,
+            },
+            after: {
+                deletedAt: null,
+                deletionReason: null,
+            },
+        });
+
+        return res.status(200).json({ message: 'User restored successfully', user: updated });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to restore user',
             details: (error as Error).message,
         });
     }

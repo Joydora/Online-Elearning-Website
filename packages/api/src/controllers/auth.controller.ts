@@ -6,7 +6,7 @@ const SEVEN_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function registerController(req: Request, res: Response): Promise<Response> {
     try {
-        const { email, username, password, firstName, lastName, role } = req.body ?? {};
+        const { email, username, password, firstName, lastName, role, isInstructor, bio, qualifications, cvUrl, topics } = req.body ?? {};
 
         if (!email || !username || !password) {
             return res.status(400).json({
@@ -21,6 +21,11 @@ export async function registerController(req: Request, res: Response): Promise<R
             firstName,
             lastName,
             role,
+            isInstructor,
+            bio,
+            qualifications,
+            cvUrl,
+            topics,
         };
 
         const { verificationSent, ...user } = await register(payload);
@@ -52,7 +57,7 @@ export async function loginController(req: Request, res: Response): Promise<Resp
             return res.status(400).json({ error: 'Email/username and password are required' });
         }
 
-        const { token, user } = await login(emailOrUsername, password);
+        const { token, user, teacherApplicationStatus } = await login(emailOrUsername, password);
 
         res.cookie(COOKIE_NAME, token, {
             httpOnly: true,
@@ -65,9 +70,19 @@ export async function loginController(req: Request, res: Response): Promise<Resp
             message: 'Login successful',
             user,
             token, // Return token for frontend to store
+            teacherApplicationStatus,
         });
     } catch (error) {
         const message = (error as Error).message;
+
+        if (message.startsWith('ACCOUNT_DELETED:')) {
+            const reason = message.substring('ACCOUNT_DELETED:'.length);
+            return res.status(403).json({
+                error: 'Account locked',
+                code: 'ACCOUNT_DELETED',
+                message: `Your account has been locked. Reason: ${reason || 'No reason specified'}. Please contact Admin to unlock.`,
+            });
+        }
 
         if (message === 'Invalid email or password' || message === 'Invalid email/username or password') {
             return res.status(401).json({ error: message });

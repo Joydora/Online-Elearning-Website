@@ -1,5 +1,7 @@
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore, type Role } from './stores/useAuthStore';
+import { apiClient } from './lib/api';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Chatbot } from './components/Chatbot';
@@ -25,6 +27,7 @@ import PaymentCancel from './pages/PaymentCancel';
 import MyCourses from './pages/MyCourses';
 import QuizHistory from './pages/QuizHistory';
 import GoogleCallback from './pages/GoogleCallback';
+import TeacherPending from './pages/TeacherPending';
 import Dashboard from './pages/teacher/Dashboard';
 import CreateCourse from './pages/teacher/CreateCourse';
 import EditCourse from './pages/teacher/EditCourse';
@@ -51,6 +54,7 @@ import ManageProjects from './pages/teacher/ManageProjects';
 import SyllabusImport from './pages/teacher/SyllabusImport';
 import TeacherEarnings from './pages/teacher/Earnings';
 import ReviewCourses from './pages/admin/ReviewCourses';
+import ManageTeacherApplications from './pages/admin/ManageTeacherApplications';
 import Notifications from './pages/Notifications';
 
 function MainLayout() {
@@ -90,6 +94,43 @@ function RoleRoute({ requiredRole }: RoleRouteProps) {
 
     if (user?.role !== requiredRole) {
         return <Navigate to="/" replace />;
+    }
+
+    return <Outlet />;
+}
+
+/**
+ * Guard for TEACHER routes: checks if the teacher's application has been approved.
+ * If still PENDING or REJECTED, redirects to the pending page.
+ */
+function ApprovedTeacherGuard() {
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const user = useAuthStore((state) => state.user);
+
+    const { data: application, isLoading } = useQuery({
+        queryKey: ['my-teacher-application-guard'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/teacher-applications/my');
+            return data;
+        },
+        enabled: isAuthenticated && user?.role === 'TEACHER',
+        staleTime: 60_000,
+    });
+
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    if (user?.role !== 'TEACHER') return <Navigate to="/" replace />;
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
+            </div>
+        );
+    }
+
+    // If the teacher has a non-approved application, redirect to pending page
+    if (application && application.status !== 'APPROVED') {
+        return <Navigate to="/teacher/pending" replace />;
     }
 
     return <Outlet />;
@@ -194,6 +235,10 @@ export const router = createBrowserRouter([
                         path: '/notifications',
                         element: <Notifications />,
                     },
+                    {
+                        path: '/teacher/pending',
+                        element: <TeacherPending />,
+                    },
                 ],
             },
             {
@@ -233,48 +278,53 @@ export const router = createBrowserRouter([
                 element: <RoleRoute requiredRole="TEACHER" />,
                 children: [
                     {
-                        path: '/dashboard',
-                        element: <Dashboard />,
-                    },
-                    {
-                        path: '/courses/create',
-                        element: <CreateCourse />,
-                    },
-                    {
-                        path: '/courses/:id/edit',
-                        element: <EditCourse />,
-                    },
-                    {
-                        path: '/courses/:id/manage',
-                        element: <ManageCourse />,
-                    },
-                    {
-                        path: '/quiz/:contentId/manage',
-                        element: <ManageQuiz />,
-                    },
-                    {
-                        path: '/courses/:id/students',
-                        element: <EnrolledStudents />,
-                    },
-                    {
-                        path: '/courses/:id/students/:studentId/performance',
-                        element: <StudentPerformance />,
-                    },
-                    {
-                        path: '/courses/:id/projects',
-                        element: <ManageProjects />,
-                    },
-                    {
-                        path: '/teacher/courses/:courseId/syllabus',
-                        element: <SyllabusImport />,
-                    },
-                    {
-                        path: '/courses/:courseId/syllabus',
-                        element: <SyllabusImport />,
-                    },
-                    {
-                        path: '/teacher/earnings',
-                        element: <TeacherEarnings />,
+                        element: <ApprovedTeacherGuard />,
+                        children: [
+                            {
+                                path: '/dashboard',
+                                element: <Dashboard />,
+                            },
+                            {
+                                path: '/courses/create',
+                                element: <CreateCourse />,
+                            },
+                            {
+                                path: '/courses/:id/edit',
+                                element: <EditCourse />,
+                            },
+                            {
+                                path: '/courses/:id/manage',
+                                element: <ManageCourse />,
+                            },
+                            {
+                                path: '/quiz/:contentId/manage',
+                                element: <ManageQuiz />,
+                            },
+                            {
+                                path: '/courses/:id/students',
+                                element: <EnrolledStudents />,
+                            },
+                            {
+                                path: '/courses/:id/students/:studentId/performance',
+                                element: <StudentPerformance />,
+                            },
+                            {
+                                path: '/courses/:id/projects',
+                                element: <ManageProjects />,
+                            },
+                            {
+                                path: '/teacher/courses/:courseId/syllabus',
+                                element: <SyllabusImport />,
+                            },
+                            {
+                                path: '/courses/:courseId/syllabus',
+                                element: <SyllabusImport />,
+                            },
+                            {
+                                path: '/teacher/earnings',
+                                element: <TeacherEarnings />,
+                            },
+                        ],
                     },
                 ],
             },
@@ -332,6 +382,10 @@ export const router = createBrowserRouter([
                         {
                             path: '/admin/courses/review',
                             element: <ReviewCourses />,
+                        },
+                        {
+                            path: '/admin/teacher-applications',
+                            element: <ManageTeacherApplications />,
                         },
                 ],
             },
