@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient, ContentType, Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
+import { ragService } from '../services/rag.service';
 
 const prisma = new PrismaClient();
 
@@ -400,6 +401,199 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch quiz',
+            details: (error as Error).message,
+        });
+    }
+}
+
+// Generate AI quiz draft
+export async function generateQuizDraftController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const contentId = Number.parseInt(req.params.contentId, 10);
+        const { numQuestions, difficulty } = authReq.body ?? {};
+
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'contentId must be a number' });
+        }
+
+        // Validate options
+        const parsedNumQuestions = Number.parseInt(numQuestions, 10);
+        if (Number.isNaN(parsedNumQuestions) || parsedNumQuestions < 1 || parsedNumQuestions > 15) {
+            return res.status(400).json({ error: 'numQuestions must be an integer between 1 and 15' });
+        }
+
+        const validDifficulties = ['easy', 'medium', 'hard'];
+        const parsedDifficulty = (difficulty || 'medium').toString().toLowerCase();
+        if (!validDifficulties.includes(parsedDifficulty)) {
+            return res.status(400).json({ error: 'difficulty must be one of: easy, medium, hard' });
+        }
+
+        // Verify content is a quiz and teacher/admin owns it
+        const content = await prisma.content.findUnique({
+            where: { id: contentId },
+            select: {
+                contentType: true,
+                module: {
+                    select: {
+                        courseId: true,
+                        course: {
+                            select: { teacherId: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!content) {
+            return res.status(404).json({ error: 'Content not found' });
+        }
+
+        if (content.contentType !== ContentType.QUIZ) {
+            return res.status(400).json({ error: 'Content is not a quiz' });
+        }
+
+        if (authReq.user?.role !== 'ADMIN' && content.module.course.teacherId !== teacherId) {
+            return res.status(403).json({ error: 'You are not the owner of this course' });
+        }
+
+        // Generate quiz questions
+        const result = await ragService.generateQuizJSON({
+            courseId: content.module.courseId,
+            contentId,
+            userId: teacherId,
+            role: authReq.user?.role,
+            numQuestions: parsedNumQuestions,
+            difficulty: parsedDifficulty,
+        });
+
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error('Error in generateQuizDraftController:', error);
+        return res.status(500).json({
+            error: 'Unable to generate quiz suggestions',
+            details: (error as Error).message,
+        });
+    }
+}
+
+type BatchQuestionInput = {
+    questionText: string;
+    options: Array<{
+        optionText: string;
+        isCorrect: boolean;
+    }>;
+};
+
+// Batch create questions for a quiz
+export async function createBatchQuestionsController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const contentId = Number.parseInt(req.params.contentId, 10);
+        const { questions } = authReq.body ?? {};
+
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'contentId must be a number' });
+        }
+
+        if (!Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ error: 'questions must be a non-empty array' });
+        }
+
+        // Verify content is a quiz and teacher/admin owns it
+        const content = await prisma.content.findUnique({
+            where: { id: contentId },
+            select: {
+                contentType: true,
+                module: {
+                    select: {
+                        courseId: true,
+                        course: {
+                            select: { teacherId: true },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!content) {
+            return res.status(404).json({ error: 'Content not found' });
+        }
+
+        if (content.contentType !== ContentType.QUIZ) {
+            return res.status(400).json({ error: 'Content is not a quiz' });
+        }
+
+        if (authReq.user?.role !== 'ADMIN' && content.module.course.teacherId !== teacherId) {
+            return res.status(403).json({ error: 'You are not the owner of this course' });
+        }
+
+        // Save using Prisma transaction
+        const savedQuestions = await prisma.$transaction(async (tx) => {
+            const results = [];
+
+            for (const q of questions as BatchQuestionInput[]) {
+                if (!q.questionText || !Array.isArray(q.options) || q.options.length === 0) {
+                    throw new Error('Each question must have text and options');
+                }
+
+                // Create the question
+                const question = await tx.question.create({
+                    data: {
+                        questionText: q.questionText,
+                        contentId,
+                    },
+                });
+
+                // Create options
+                const optionsData = q.options.map((opt) => ({
+                    optionText: opt.optionText,
+                    isCorrect: Boolean(opt.isCorrect),
+                    questionId: question.id,
+                }));
+
+                await tx.answerOption.createMany({
+                    data: optionsData,
+                });
+
+                // Fetch full question with options to return
+                const fullQuestion = await tx.question.findUnique({
+                    where: { id: question.id },
+                    include: {
+                        options: {
+                            orderBy: { id: 'asc' },
+                        },
+                    },
+                });
+
+                if (fullQuestion) {
+                    results.push(fullQuestion);
+                }
+            }
+
+            return results;
+        });
+
+        return res.status(201).json({
+            message: `Successfully created ${savedQuestions.length} questions`,
+            questions: savedQuestions,
+        });
+    } catch (error) {
+        console.error('Error in createBatchQuestionsController:', error);
+        return res.status(500).json({
+            error: 'Unable to batch create questions',
             details: (error as Error).message,
         });
     }

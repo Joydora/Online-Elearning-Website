@@ -576,6 +576,128 @@ Answer in English, using Markdown format.`;
 
         return { suggestions: response.response };
     }
+
+    async generateQuizJSON(input: {
+        courseId: number;
+        contentId: number;
+        userId: number;
+        role?: Role | string;
+        numQuestions: number;
+        difficulty: string;
+    }): Promise<{
+        questions: Array<{
+            questionText: string;
+            explanation?: string;
+            options: Array<{
+                optionText: string;
+                isCorrect: boolean;
+            }>;
+        }>;
+    }> {
+        await this.assertCourseAccess(input.courseId, input.userId, input.role);
+        const namespace = await this.ensureCourseNamespace(input.courseId);
+
+        const course = await prisma.course.findUnique({
+            where: { id: input.courseId },
+            select: {
+                title: true,
+                syllabus: true,
+            },
+        });
+
+        if (!course) {
+            throw new Error('COURSE_NOT_FOUND');
+        }
+
+        const quizContent = await prisma.content.findUnique({
+            where: { id: input.contentId },
+            select: {
+                title: true,
+                moduleId: true,
+                module: {
+                    select: {
+                        title: true,
+                    },
+                },
+            },
+        });
+
+        if (!quizContent) {
+            throw new Error('QUIZ_NOT_FOUND');
+        }
+
+        const query = `Create quiz questions for lesson/quiz ${quizContent.title} under module ${quizContent.module.title}`;
+        const searchResults = await vectorStoreService.search(query, 6, { namespace });
+        const context = searchResults.map((result) => result.document.content).join('\n\n');
+
+        const systemPrompt = `You are a professional instructor for the course "${course.title}".
+Your task is to generate a quiz based on the course materials and syllabus.
+Difficulty level: ${input.difficulty} (choose questions suitable for this level).
+
+You must return ONLY valid JSON in the exact structure below, with no other text, markdown formatting (like \`\`\`json ... \`\`\` blocks), or explanation outside of it:
+
+{
+  "questions": [
+    {
+      "questionText": "Question text here?",
+      "explanation": "Why this answer is correct",
+      "options": [
+        { "optionText": "Option text 1", "isCorrect": true },
+        { "optionText": "Option text 2", "isCorrect": false },
+        { "optionText": "Option text 3", "isCorrect": false },
+        { "optionText": "Option text 4", "isCorrect": false }
+      ]
+    }
+  ]
+}
+
+Ensure:
+1. Exactly ${input.numQuestions} multiple-choice questions are generated.
+2. Each question has exactly 4 options.
+3. Only ONE option is marked as "isCorrect": true, and the other three options are "isCorrect": false.
+4. The content matches the context material and syllabus scope.
+5. Answer in the same language as the context material or syllabus (primarily Vietnamese if the context is Vietnamese, otherwise English).`;
+
+        const userPrompt = `Generate a quiz with ${input.numQuestions} questions at ${input.difficulty} difficulty.
+        
+Syllabus:
+${this.stringifySyllabus(course.syllabus)}
+
+Module: ${quizContent.module.title}
+Quiz Title: ${quizContent.title}
+
+Context Materials:
+${context || 'No specific document context available.'}
+
+JSON output:`;
+
+        const response = await this.ollama.chat({
+            model: this.model,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            options: { temperature: 0.3 }
+        });
+
+        const content = response.message.content.trim();
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            console.error('Raw Ollama Output:', content);
+            throw new Error('AI did not return valid JSON');
+        }
+
+        try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (!parsed.questions || !Array.isArray(parsed.questions)) {
+                throw new Error('Invalid quiz JSON structure');
+            }
+            return parsed;
+        } catch (error) {
+            console.error('Failed to parse JSON:', jsonMatch[0]);
+            throw new Error(`AI generated invalid JSON: ${(error as Error).message}`);
+        }
+    }
 }
 
 export const ragService = new RAGService();

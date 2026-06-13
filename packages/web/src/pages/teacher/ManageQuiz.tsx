@@ -10,6 +10,7 @@ import {
     X,
     CheckCircle,
     Circle,
+    Sparkles,
 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -76,6 +77,14 @@ export default function ManageQuiz() {
     const [markerTimestampSec, setMarkerTimestampSec] = useState(0);
     const [markerQuestionId, setMarkerQuestionId] = useState<number | null>(null);
     const [markerBlockingMode, setMarkerBlockingMode] = useState<'pause' | 'non-blocking'>('pause');
+    const [showAIForm, setShowAIForm] = useState(false);
+    const [aiNumQuestions, setAiNumQuestions] = useState(5);
+    const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+    const [draftQuestions, setDraftQuestions] = useState<Array<{
+        questionText: string;
+        explanation?: string;
+        options: Array<{ optionText: string; isCorrect: boolean }>;
+    }> | null>(null);
 
     // Fetch quiz with questions
     const { data: quiz, isLoading } = useQuery<QuizDetail>({
@@ -211,6 +220,70 @@ export default function ManageQuiz() {
             showErrorAlert('Error', error.response?.data?.error || 'Failed to delete marker');
         },
     });
+
+    const generateAIMutation = useMutation({
+        mutationFn: async ({ numQuestions, difficulty }: { numQuestions: number; difficulty: string }) => {
+            const { data } = await apiClient.post(`/quiz/${contentId}/generate-ai`, {
+                numQuestions,
+                difficulty,
+            });
+            return data;
+        },
+        onSuccess: (data) => {
+            setDraftQuestions(data.questions);
+            setShowAIForm(false);
+            showSuccessAlert('AI draft questions generated!', 'Please review, edit, and click Save to add them.');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to generate quiz questions');
+        },
+    });
+
+    const saveBatchQuestionsMutation = useMutation({
+        mutationFn: async (questions: typeof draftQuestions) => {
+            const { data } = await apiClient.post(`/quiz/${contentId}/questions/batch`, {
+                questions,
+            });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['quiz-manage', contentId] });
+            setDraftQuestions(null);
+            showSuccessAlert('Questions saved successfully!', '');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to save questions');
+        },
+    });
+
+    const handleDraftQuestionTextChange = (qIndex: number, text: string) => {
+        if (!draftQuestions) return;
+        const updated = [...draftQuestions];
+        updated[qIndex].questionText = text;
+        setDraftQuestions(updated);
+    };
+
+    const handleDraftOptionTextChange = (qIndex: number, oIndex: number, text: string) => {
+        if (!draftQuestions) return;
+        const updated = [...draftQuestions];
+        updated[qIndex].options[oIndex].optionText = text;
+        setDraftQuestions(updated);
+    };
+
+    const handleDraftOptionCorrectChange = (qIndex: number, oIndex: number) => {
+        if (!draftQuestions) return;
+        const updated = [...draftQuestions];
+        updated[qIndex].options.forEach((opt, idx) => {
+            opt.isCorrect = idx === oIndex;
+        });
+        setDraftQuestions(updated);
+    };
+
+    const handleRemoveDraftQuestion = (qIndex: number) => {
+        if (!draftQuestions) return;
+        const updated = draftQuestions.filter((_, idx) => idx !== qIndex);
+        setDraftQuestions(updated.length > 0 ? updated : null);
+    };
 
     const handleDeleteQuestion = async (questionId: number, questionText: string) => {
         const result = await Swal.fire({
@@ -528,20 +601,227 @@ export default function ManageQuiz() {
 
                 {/* Questions List */}
                 <div className="space-y-6">
-                    {/* Add Question Button */}
-                    {!isAddingQuestion ? (
-                        <Card className="p-4 border-dashed border-2 border-zinc-300 dark:border-zinc-700">
-                            <Button
-                                onClick={() => setIsAddingQuestion(true)}
-                                variant="ghost"
-                                className="w-full gap-2 text-zinc-600 dark:text-zinc-400"
-                            >
-                                <Plus className="h-5 w-5" />
-                                Add New Question
-                            </Button>
+                    {/* Add Question / AI Generate Buttons */}
+                    {!isAddingQuestion && !showAIForm && !draftQuestions && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Card className="p-4 border-dashed border-2 border-zinc-300 dark:border-zinc-700">
+                                <Button
+                                    onClick={() => setIsAddingQuestion(true)}
+                                    variant="ghost"
+                                    className="w-full gap-2 text-zinc-600 dark:text-zinc-400"
+                                >
+                                    <Plus className="h-5 w-5" />
+                                    Add New Question
+                                </Button>
+                            </Card>
+                            <Card className="p-4 border-dashed border-2 border-red-300 dark:border-red-900/50 bg-red-50/20 dark:bg-red-950/5">
+                                <Button
+                                    onClick={() => setShowAIForm(true)}
+                                    variant="ghost"
+                                    className="w-full gap-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50/55"
+                                >
+                                    <Sparkles className="h-5 w-5" />
+                                    Generate with AI
+                                </Button>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* AI Configuration Form */}
+                    {showAIForm && (
+                        <Card className="p-4 sm:p-6 border-2 border-red-500 bg-white dark:bg-zinc-900 space-y-4">
+                            <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-700">
+                                <h3 className="font-semibold text-lg text-zinc-900 dark:text-white flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-red-600" />
+                                    Generate Questions with AI
+                                </h3>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowAIForm(false)}
+                                    className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Number of Questions (1-15)
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={15}
+                                        value={aiNumQuestions}
+                                        onChange={(e) => setAiNumQuestions(Math.max(1, Math.min(15, Number(e.target.value))))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                        Difficulty Level
+                                    </label>
+                                    <select
+                                        value={aiDifficulty}
+                                        onChange={(e) => setAiDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                                        className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-900 dark:text-white"
+                                    >
+                                        <option value="easy">Easy</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="hard">Hard</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setShowAIForm(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={() => generateAIMutation.mutate({ numQuestions: aiNumQuestions, difficulty: aiDifficulty })}
+                                    disabled={generateAIMutation.isPending}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                    {generateAIMutation.isPending ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="h-4 w-4 mr-2" />
+                                            Generate
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </Card>
-                    ) : (
-                        <Card className="p-3 sm:p-4 border-2 border-red-500">
+                    )}
+
+                    {/* AI Draft Editor (Unsaved Questions) */}
+                    {draftQuestions && (
+                        <div className="space-y-4 border-2 border-red-500 rounded-xl p-4 bg-red-50/5 dark:bg-red-950/5 mb-8">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-700">
+                                <div>
+                                    <h3 className="font-bold text-lg sm:text-xl text-zinc-900 dark:text-white flex items-center gap-2">
+                                        <Sparkles className="h-5 w-5 text-red-600" />
+                                        AI Quiz Draft (Unsaved)
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                                        Review, edit, and click Save to append these questions to the quiz.
+                                    </p>
+                                </div>
+                                <div className="flex gap-2 shrink-0">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDraftQuestions(null)}
+                                        className="text-xs sm:text-sm"
+                                    >
+                                        Discard
+                                    </Button>
+                                    <Button
+                                        onClick={() => saveBatchQuestionsMutation.mutate(draftQuestions)}
+                                        disabled={saveBatchQuestionsMutation.isPending}
+                                        className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm"
+                                    >
+                                        {saveBatchQuestionsMutation.isPending ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="h-4 w-4 mr-2" />
+                                                Save to Quiz
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {draftQuestions.map((q, qIndex) => (
+                                    <Card key={qIndex} className="p-4 sm:p-5 relative border border-red-200 dark:border-red-900 bg-white dark:bg-zinc-900">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute top-3 right-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+                                            onClick={() => handleRemoveDraftQuestion(qIndex)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1">
+                                                    Question {qIndex + 1}
+                                                </label>
+                                                <Input
+                                                    value={q.questionText}
+                                                    onChange={(e) => handleDraftQuestionTextChange(qIndex, e.target.value)}
+                                                    className="font-medium text-sm sm:text-base pr-10"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+                                                    Options (Mark the correct answer)
+                                                </label>
+                                                <div className="grid gap-2 sm:grid-cols-2">
+                                                    {q.options.map((opt, oIndex) => (
+                                                        <div
+                                                            key={oIndex}
+                                                            className={`flex items-center gap-2 p-2 rounded-lg border ${opt.isCorrect
+                                                                ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800'
+                                                                : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name={`correct-draft-${qIndex}`}
+                                                                checked={opt.isCorrect}
+                                                                onChange={() => handleDraftOptionCorrectChange(qIndex, oIndex)}
+                                                                className="h-4 w-4 text-green-600 focus:ring-green-500"
+                                                            />
+                                                            <Input
+                                                                value={opt.optionText}
+                                                                onChange={(e) => handleDraftOptionTextChange(qIndex, oIndex, e.target.value)}
+                                                                className="h-8 text-xs sm:text-sm flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-1"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {q.explanation && (
+                                                <div>
+                                                    <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1">
+                                                        Explanation
+                                                    </label>
+                                                    <Input
+                                                        value={q.explanation}
+                                                        onChange={(e) => {
+                                                            const updated = [...draftQuestions];
+                                                            updated[qIndex].explanation = e.target.value;
+                                                            setDraftQuestions(updated);
+                                                        }}
+                                                        className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-300"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add Question Card Form (Standard Manual entry) */}
+                    {isAddingQuestion && (
+                        <Card className="p-3 sm:p-4 border-2 border-red-500 bg-white dark:bg-zinc-900">
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <Input
                                     placeholder="Enter question..."
