@@ -11,7 +11,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Button } from '../components/ui/button';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { showErrorAlert, showSuccessAlert } from '../lib/sweetalert';
 
 type RegisterFormValues = {
@@ -197,11 +196,6 @@ export default function Register() {
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-red-400/10 blur-3xl dark:bg-red-600/10"></div>
                 <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-red-400/10 blur-3xl dark:bg-red-600/10"></div>
-            </div>
-
-            {/* Theme Toggle */}
-            <div className="absolute top-6 right-6 z-10">
-                <ThemeToggle />
             </div>
 
             <div className="relative z-10 container mx-auto flex min-h-screen items-center justify-center px-4 py-10">

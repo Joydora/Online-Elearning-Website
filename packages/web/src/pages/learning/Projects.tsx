@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { Github, Send, RefreshCw, Clock, CheckCircle, Loader2, ChevronDown, ChevronUp, ExternalLink, Lock, Unlock, Award, Star, MessageSquare } from 'lucide-react';
+import { Github, Send, RefreshCw, Clock, CheckCircle, Loader2, ChevronDown, ChevronUp, ExternalLink, Lock, Award, Star, MessageSquare } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';

@@ -29,6 +29,7 @@ import discussionRoutes from './routes/discussion.routes';
 import notificationRoutes from './routes/notification.routes';
 import teacherApplicationRoutes from './routes/teacherApplication.routes';
 import referralRoutes from './routes/referral.routes';
+import gamificationRoutes from './routes/gamification.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { startEnrollmentExpiryJob } from './jobs/expireEnrollments';
 import { startNotificationEngagementJobs } from './jobs/notificationEngagement';
@@ -42,8 +43,16 @@ const port = process.env.PORT || 3001;
 const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
 const prisma = new PrismaClient();
 
+const allowedOrigins = [frontendOrigin, 'http://localhost:5174', 'http://localhost:5173'];
+
 app.use(cors({
-    origin: frontendOrigin,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
     credentials: true,
 }));
 app.use(express.json({
@@ -82,6 +91,7 @@ app.use('/api', discussionRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', teacherApplicationRoutes);
 app.use('/api', referralRoutes);
+app.use('/api', gamificationRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');

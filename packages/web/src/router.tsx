@@ -51,6 +51,7 @@ import Progress from './pages/learning/Progress';
 import Certificate from './pages/learning/Certificate';
 import Projects from './pages/learning/Projects';
 import Discussion from './pages/learning/Discussion';
+import Gamification from './pages/Gamification';
 import ManageProjects from './pages/teacher/ManageProjects';
 import SyllabusImport from './pages/teacher/SyllabusImport';
 import TeacherEarnings from './pages/teacher/Earnings';
@@ -282,6 +283,10 @@ export const router = createBrowserRouter([
                     {
                         path: '/quiz-history',
                         element: <QuizHistory />,
+                    },
+                    {
+                        path: '/gamification',
+                        element: <Gamification />,
                     },
                 ],
             },

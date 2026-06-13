@@ -111,6 +111,11 @@ model User {
   promotions          Promotion[]
   promotionsCreated   Promotion[]          @relation("PromotionCreator")
 
+  // Gamification
+  learningStreak      LearningStreak?
+  badges              Badge[]
+  activityLogs        ActivityLog[]
+
   deletedAt            DateTime?
   deletionReason       String?
   isPermanentlyDeleted Boolean   @default(false)
@@ -644,4 +649,47 @@ model Referral {
   updatedAt  DateTime @updatedAt
 
   @@index([referrerId])
+}
+
+// ─── Gamification ───────────────────────────────────────────────
+
+model LearningStreak {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActivityDate DateTime?
+  totalXp          Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([totalXp(sort: Desc)])
+}
+
+model Badge {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeType String   // e.g. "FIRST_LESSON", "STREAK_7", "QUIZ_MASTER"
+  courseId  Int?     // null = global badge, non-null = per-course badge
+  earnedAt  DateTime @default(now())
+  metadata  Json?
+
+  @@unique([userId, badgeType, courseId])
+  @@index([userId])
+}
+
+model ActivityLog {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action   String   // "CONTENT_COMPLETED", "QUIZ_PASSED", "COURSE_COMPLETED"
+  xpEarned Int      @default(0)
+  metadata Json?
+  date     DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([date])
 }

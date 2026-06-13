@@ -1,5 +1,6 @@
 import { PrismaClient, ContentType, EnrollmentType, Role, VideoQuizBlockingMode } from '@prisma/client';
 import { markContentCompleted } from './progress.service';
+import { recordActivity } from './gamification.service';
 
 const prisma = new PrismaClient();
 
@@ -596,6 +597,12 @@ export async function submitQuizAnswers(contentId: number, studentId: number, ra
             })),
         };
     });
+
+    // ─── Gamification: record quiz activity ───
+    const quizXp = score >= 100 ? 30 : 20; // bonus for perfect score
+    recordActivity(studentId, 'QUIZ_PASSED', quizXp, {
+        contentId: quiz.contentId, courseId: quiz.courseId, score,
+    }).catch((err) => console.error('[gamification] quiz recordActivity failed:', err));
 
     return {
         attemptId: attempt.id,

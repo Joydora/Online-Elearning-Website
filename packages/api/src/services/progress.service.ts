@@ -1,6 +1,7 @@
 import { PrismaClient, ContentType, EnrollmentType } from '@prisma/client';
 import { Ollama } from 'ollama';
 import { issueCertificateForEnrollment } from './certificate.service';
+import { recordActivity } from './gamification.service';
 
 const prisma = new PrismaClient();
 const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
@@ -105,10 +106,24 @@ export async function markContentCompleted(
         data: { progress, completionDate: completedAt },
     });
 
+    // ─── Gamification: record activity & award XP ───
+    const xpMap: Record<string, number> = {
+        VIDEO: 10, DOCUMENT: 8, QUIZ: 20, PRACTICE: 25, ASSIGNMENT: 30,
+    };
+    const xpBase = xpMap[content.contentType] ?? 10;
+    recordActivity(studentId, 'CONTENT_COMPLETED', xpBase, {
+        contentId, courseId, contentType: content.contentType,
+    }).catch((err) => console.error('[gamification] recordActivity failed:', err));
+
     if (isCompleted && completedAt) {
         await issueCertificateForEnrollment(enrollment.id).catch((error) => {
             console.error('Unable to issue course certificate:', error);
         });
+
+        // Gamification: course completion bonus
+        recordActivity(studentId, 'COURSE_COMPLETED', 100, { courseId }).catch((err) =>
+            console.error('[gamification] course completion recordActivity failed:', err),
+        );
     }
 
     return { progress, isCompleted };

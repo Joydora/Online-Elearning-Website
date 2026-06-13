@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Menu, X, BookOpen, Trophy, Settings, Bell } from 'lucide-react';
+import { LogOut, LayoutDashboard, Menu, X, BookOpen, Trophy, Settings, Bell, Star } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';
@@ -110,37 +110,40 @@ export function Header() {
         <header className="sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md">
             <nav className="container mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <Link to="/" className="flex items-center gap-3 group">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-800 rounded-xl blur opacity-40 group-hover:opacity-60 transition-opacity"></div>
-                            <img
-                                src={logo}
-                                alt="Logo"
-                                className="relative h-10 w-10 object-contain rounded-xl"
-                            />
-                        </div>
-                        <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-zinc-900 dark:from-red-400 dark:to-zinc-100 bg-clip-text text-transparent">
-                            E-Learning
-                        </span>
-                    </Link>
+                    {/* Left Group: Logo & Nav Links */}
+                    <div className="flex items-center gap-8">
+                        {/* Logo */}
+                        <Link to="/" className="flex items-center gap-3 group">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-800 rounded-xl blur opacity-40 group-hover:opacity-60 transition-opacity"></div>
+                                <img
+                                    src={logo}
+                                    alt="Logo"
+                                    className="relative h-10 w-10 object-contain rounded-xl"
+                                />
+                            </div>
+                            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-red-600 to-zinc-900 dark:from-red-400 dark:to-zinc-100 bg-clip-text text-transparent">
+                                E-Learning
+                            </span>
+                        </Link>
 
-                    {/* Desktop Navigation */}
-                    <div className="hidden md:flex items-center gap-8">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.path}
-                                to={link.path}
-                                className={`text-sm font-medium transition-colors relative group ${isActive(link.path)
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : 'text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400'
-                                    }`}
-                            >
-                                {link.label}
-                                <span className={`absolute -bottom-1 left-0 w-full h-0.5 bg-red-600 dark:bg-red-400 transition-transform ${isActive(link.path) ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
-                                    }`}></span>
-                            </Link>
-                        ))}
+                        {/* Desktop Navigation */}
+                        <div className="hidden md:flex items-center gap-8">
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.path}
+                                    to={link.path}
+                                    className={`text-sm font-medium transition-colors relative group ${isActive(link.path)
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400'
+                                        }`}
+                                >
+                                    {link.label}
+                                    <span className={`absolute -bottom-1 left-0 w-full h-0.5 bg-red-600 dark:bg-red-400 transition-transform ${isActive(link.path) ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                                        }`}></span>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Right Section */}
@@ -150,11 +153,11 @@ export function Header() {
                         {isAuthenticated ? (
                             <div className="hidden md:flex items-center gap-3">
                                 {/* User Info */}
-                                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-red-700 text-white font-semibold text-sm">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-red-700 text-white font-semibold text-sm">
                                         {displayName?.charAt(0).toUpperCase()}
                                     </div>
-                                    <div className="flex flex-col">
+                                    <div className="hidden lg:flex flex-col whitespace-nowrap">
                                         <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                                             {displayName}
                                         </span>
@@ -197,7 +200,7 @@ export function Header() {
                                                 className="gap-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white dark:border-red-500 dark:text-red-400"
                                             >
                                                 <BookOpen className="h-4 w-4" />
-                                                My Courses
+                                                <span className="hidden xl:inline">My Courses</span>
                                             </Button>
                                         </Link>
                                         <Link to="/quiz-history">
@@ -207,7 +210,17 @@ export function Header() {
                                                 className="gap-2 border-amber-600 text-amber-600 hover:bg-amber-600 hover:text-white dark:border-amber-500 dark:text-amber-400"
                                             >
                                                 <Trophy className="h-4 w-4" />
-                                                Quiz History
+                                                <span className="hidden xl:inline">Quiz History</span>
+                                            </Button>
+                                        </Link>
+                                        <Link to="/gamification">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="gap-2 border-orange-500 text-orange-500 hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-500 hover:text-white hover:border-transparent dark:border-orange-400 dark:text-orange-400"
+                                            >
+                                                <Star className="h-4 w-4" />
+                                                <span className="hidden xl:inline">Achievements</span>
                                             </Button>
                                         </Link>
                                     </>
@@ -217,7 +230,7 @@ export function Header() {
                                 <Link to="/notifications">
                                     <Button variant="outline" size="sm" className="gap-2 relative">
                                         <Bell className="h-4 w-4" />
-                                        Notifications
+                                        <span className="hidden lg:inline">Notifications</span>
                                         {unreadNotifications > 0 && (
                                             <span className="absolute -top-2 -right-2 h-5 min-w-5 px-1 rounded-full bg-red-600 text-white text-[10px] leading-5 text-center">
                                                 {unreadNotifications > 99 ? '99+' : unreadNotifications}
@@ -234,7 +247,7 @@ export function Header() {
                                         className="gap-2"
                                     >
                                         <Settings className="h-4 w-4" />
-                                        Profile
+                                        <span className="hidden lg:inline">Profile</span>
                                     </Button>
                                 </Link>
 
@@ -341,6 +354,12 @@ export function Header() {
                                                 <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-amber-600 text-white hover:bg-amber-700 transition-colors flex items-center gap-2 justify-center">
                                                     <Trophy className="h-4 w-4" />
                                                     Quiz History
+                                                </button>
+                                            </Link>
+                                            <Link to="/gamification" onClick={() => setMobileMenuOpen(false)}>
+                                                <button className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-colors flex items-center gap-2 justify-center">
+                                                    <Star className="h-4 w-4" />
+                                                    Achievements
                                                 </button>
                                             </Link>
                                         </>
