@@ -1,39 +1,63 @@
 # Online E-Learning Platform
 
-A full-stack online learning platform built as a graduation project (TLCN). Students can browse courses, watch lessons, take quizzes, submit code exercises, and earn certificates. Teachers create and manage courses; admins moderate content, manage users, and oversee revenue.
+A full-stack, highly interactive Online E-Learning Platform built as a graduation project (TLCN). The system supports a multi-role ecosystem (Students, Teachers, and Admins) with advanced features including video-embedded quizzes, coding practice (Monaco Editor), automated GitHub project submissions, peer-to-peer reviews, gamified learning paths, an AI teaching assistant (RAG), and a complete revenue dashboard.
 
-Monorepo layout: **React** frontend + **Express** API + **PostgreSQL** (Prisma ORM).
+The project is structured as a monorepo featuring a **React** SPA frontend and an **Express** API backend connected to a **PostgreSQL** database using Prisma ORM.
 
 ---
 
 ## Features
 
-### Students
-- Browse and search courses; free preview lessons
-- Enroll via **trial**, **free**, or **paid** (Stripe checkout)
-- Course player: video, documents, quizzes, coding practice (Monaco editor), assignments
-- Track progress, learning path with prerequisites, certificates
-- Course discussions, notifications, AI chatbot (RAG over course content)
-- Quiz history and project submissions (GitHub integration)
+### 🎓 Student Features
+- **Course Catalog**: Browse, search, and filter courses by categories, level of difficulty, and title keywords. Includes free preview lessons for guests.
+- **Flexible Enrollments**: Join via **free** access, a **trial** duration limit, or **paid** enrollments integrated with Stripe Checkout.
+- **Interactive Course Player**:
+  - **Video Lessons**: Track progress and watch completion percentage (`watchedSeconds`).
+  - **Video-Embedded Quizzes**: Pause video playback at specific timestamps to display pop-up quizzes (configurable blocking or non-blocking modes).
+  - **Documents**: View course materials directly within the player.
+  - **Quizzes**: Attempt time-limited, multiple-choice quizzes with history tracking.
+  - **Coding Practice**: Solve coding exercises using an in-browser Monaco Editor that executes code and displays output/feedback.
+- **Project-Based Learning**:
+  - Submit projects by linking a GitHub repository.
+  - Automatic collection of GitHub commit history.
+  - Self-assessment tools and rubric-based feedback.
+  - **Peer Review System**: Double-blind peer evaluations where students grade assignments using predefined rubrics.
+- **Gamification & Engagement**:
+  - **XP & Levels**: Earn experience points (XP) dynamically by completing lessons, coding practices, scoring perfect quizzes, and finishing courses.
+  - **Streaks**: Maintain daily learning streaks to earn multiplier XP bonuses (up to 2.0x XP).
+  - **Badges**: Unlock global achievements (e.g., "Rising Star", "On Fire") and course-specific certificates.
+  - **Leaderboards**: Compete with other learners on weekly, monthly, and all-time leaderboards.
+  - **Heatmap Grid**: Track 90-day learning activity in a GitHub-style grid.
+- **Certificates**: Automatically generate verifiable, uniquely coded shareable certificates of completion once course progress reaches 100%.
+- **Discussion Board**: Engage in module-wise, nested threaded discussions on course lessons.
+- **Referral Program**: Share personal referral links to invite friends and track successful signups.
+- **AI Teaching Assistant**: Consult a chatbot powered by local LLMs (Ollama with RAG) indexing course documents for context-specific explanations.
 
-### Teachers
-- Create and edit courses; upload media (Cloudinary)
-- Manage modules and content (video, document, quiz, practice, assignment)
-- **AI syllabus import** — paste or upload syllabus text, parse into modules/lessons
-- Manage quizzes, grade projects, view enrolled students and performance
-- Revenue dashboard and payout tracking
+### 👨‍🏫 Teacher Features
+- **Teacher Application**: Students can submit applications (bio, qualifications, resume upload) to be promoted to the teacher role.
+- **Course Builder**: Create, edit, and organize modules and contents (video, document, quiz, practice, project assignment).
+- **AI Syllabus Import**: Automatically generate module/lesson structure by pasting raw syllabus text or uploading syllabus documents via LLM parsing.
+- **AI Quiz Generation**: Automatically draft multiple-choice quiz questions or full JSON schemas directly from indexed course materials using local AI.
+- **Interactive Evaluation**:
+  - Grade student projects using custom-defined rubrics.
+  - Setup Monaco practice exercises with expected outputs and templates.
+- **Student Analytics**: Track student enrollment metrics, individual lessons progress, and course metrics.
+- **Earnings & Revenue Ledger**: View gross income, Stripe fees, platform commission rates, net payout share, and track payout statuses (`HELD`/`PAID`).
 
-### Admins
-- Course approval workflow (draft → pending → published / rejected)
-- User and category management, promotions, platform revenue
-- Audit logs
+### 👑 Admin Features
+- **Admin Dashboard**: System-wide statistics showing registrations, general revenue, active courses, and teacher applications.
+- **Course Moderation**: Review submitted course drafts and manage their lifecycle (Draft → Pending Review → Approved/Rejected → Published).
+- **Teacher Onboarding**: Evaluate pending teacher applications and approve/reject candidates.
+- **Coupon & Promotion Engine**: Create customized discount codes (flat or percentage off) with specific start/end dates, usage limits, and course or user exclusions.
+- **User Management**: Modify user roles, edit profiles, and execute user soft-deletion (with cleanup timers) or permanent bans.
+- **Platform Auditing**: Access comprehensive admin audit logs showing system state diffs (before/after data tracking).
 
-### Platform
-- JWT auth (HTTP-only cookie) + **Google OAuth**
-- Email verification and password reset
-- Scheduled jobs: enrollment expiry, notification reminders
-- Optional **Ollama** for AI: syllabus parsing, practice feedback, RAG chatbot
-- Optional **ChromaDB** for vector search
+### 🤖 Platform Core & Automation
+- **Scheduled Jobs (Cron)**: Background tasks managing:
+  - Checking and expiring time-limited course enrollments.
+  - Re-engagement alerts and deadline reminders sent to inactive students.
+  - Automated deletion cleanup for users pending permanent removal.
+- **Security**: JWT-based authentication stored in HTTP-only cookies, password hashing (bcrypt), and secure Google OAuth 2.0.
 
 ---
 
@@ -41,14 +65,14 @@ Monorepo layout: **React** frontend + **Express** API + **PostgreSQL** (Prisma O
 
 | Layer | Technologies |
 |-------|--------------|
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Zustand, Tailwind CSS, Radix UI, Monaco Editor |
-| Backend | Node.js, Express 5, TypeScript, Prisma |
-| Database | PostgreSQL |
-| Payments | Stripe |
-| Media | Cloudinary |
-| AI (optional) | Ollama, ChromaDB |
-| Email | Nodemailer (SMTP) |
-| Testing | Puppeteer E2E (`tests/epics.test.js`) |
+| **Frontend** | React 19, TypeScript, Vite, React Router 7, TanStack Query v5, Zustand, Tailwind CSS, Monaco Editor |
+| **Backend** | Node.js, Express 5, TypeScript, Prisma ORM, Node-Cron, Passport.js (Google OAuth 2.0) |
+| **Database** | PostgreSQL |
+| **Payments** | Stripe API & Webhooks |
+| **Media Uploads** | Cloudinary API |
+| **AI Integrations** | Ollama (Gemma 3, Nomic Embeddings), ChromaDB (Vector Store dependency) |
+| **Email Delivery** | Nodemailer (SMTP) |
+| **E2E Testing** | Puppeteer |
 
 ---
 
@@ -57,22 +81,25 @@ Monorepo layout: **React** frontend + **Express** API + **PostgreSQL** (Prisma O
 ```
 Online-Elearning-Website/
 ├── packages/
-│   ├── api/                 # Express REST API
-│   │   ├── prisma/          # Schema, migrations, seed
+│   ├── api/                 # Express REST API (Backend)
+│   │   ├── prisma/          # Database Schema, migrations, and seed script
 │   │   └── src/
-│   │       ├── controllers/
-│   │       ├── services/
-│   │       ├── routes/
-│   │       └── jobs/
-│   └── web/                 # React SPA (Vite)
+│   │       ├── config/      # Auth strategy configurations (Passport)
+│   │       ├── controllers/ # Request controllers
+│   │       ├── jobs/        # Background cron jobs (expiry, cleanups)
+│   │       ├── middleware/  # Auth & input validation middlewares
+│   │       ├── routes/      # REST endpoint routes
+│   │       └── services/    # Business logic (AI RAG, Stripe, Gamification)
+│   └── web/                 # React Single Page App (Frontend)
 │       └── src/
-│           ├── pages/       # student / teacher / admin / learning
-│           ├── components/
-│           └── stores/
-├── tests/                   # Puppeteer E2E tests
-├── 03-modern-javascript.md  # Sample course content (import guides)
-├── 05-cs50-intro-to-cs.md
-└── ...
+│           ├── components/  # Reusable UI components
+│           ├── pages/       # Layouts (Admin, Student, Teacher, Learning player)
+│           └── stores/      # Zustand global state stores
+├── tests/                   # End-to-End integration test suites
+│   ├── epics.test.js        # Puppeteer E2E covering major user journeys
+│   └── manual.test.js       # Core flows test script
+├── pnpm-workspace.yaml      # Monorepo workspace settings
+└── package.json             # Root monorepo dev scripts
 ```
 
 ---
@@ -82,20 +109,20 @@ Online-Elearning-Website/
 - **Node.js** 18+ (LTS recommended)
 - **pnpm** 8+
 - **PostgreSQL** 14+
-- Optional for full AI features:
-  - [Ollama](https://ollama.com/) with models such as `gemma3:4b`, `nomic-embed-text`
-  - ChromaDB (used by the RAG chatbot)
-- Optional for production-like setup:
-  - Stripe account (payments)
-  - Cloudinary account (file uploads)
-  - SMTP credentials (email)
-  - Google OAuth credentials
+- Optional for AI functionalities:
+  - [Ollama](https://ollama.com/) running locally with `gemma3:4b` and `nomic-embed-text` models.
+- Optional for third-party integrations:
+  - Stripe Account (payment flows)
+  - Cloudinary Account (images and video uploads)
+  - SMTP Credentials (email dispatching)
+  - Google Developer Console credentials (OAuth 2.0)
+  - GitHub Access Token (GitHub project stats)
 
 ---
 
 ## Getting Started
 
-### 1. Clone and install
+### 1. Clone the Repository and Install Dependencies
 
 ```bash
 git clone <your-repo-url>
@@ -103,156 +130,134 @@ cd Online-Elearning-Website
 pnpm install
 ```
 
-### 2. Configure the API
+### 2. Configure the API Environment
 
 ```bash
 cd packages/api
 cp .env.example .env
 ```
 
-Edit `.env` — at minimum set:
+At a minimum, configure the following variables in `packages/api/.env`:
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/elearning?schema=public"
-JWT_SECRET="change-me-to-a-long-random-string"
+JWT_SECRET="generate-a-long-random-string-for-security"
 FRONTEND_URL="http://localhost:5173"
 ```
 
-See [Environment variables](#environment-variables) for the full list.
+Refer to [Environment Variables](#environment-variables) below for details on other optional configurations.
 
-### 3. Database setup
+### 3. Initialize the Database
+
+Run migrations to apply the database schema and populate it with sample courses, users, and quizzes:
 
 ```bash
 cd packages/api
-pnpm prisma migrate deploy
+pnpm prisma migrate dev
 pnpm prisma db seed
 ```
 
-Seed creates demo accounts (password for all: `Password123!`):
+The seed script creates the following demo accounts (all using the password `Password123!`):
 
-| Role | Email |
-|------|-------|
-| Admin | `admin@gmail.com` |
-| Teacher | `nguyenvana@gmail.com` |
-| Student | `student1@gmail.com` |
+| Role | Email | Username |
+|------|-------|----------|
+| **Admin** | `admin@gmail.com` | `admin` |
+| **Teacher** | `nguyenvana@gmail.com` | `nguyenvana` |
+| **Student** | `student1@gmail.com` | `student01` |
 
-### 4. Run development servers
+### 4. Run Development Servers
 
-**Terminal 1 — API** (default port `3001`):
+You can launch both packages from the monorepo root:
 
-```bash
-cd packages/api
-pnpm dev
-```
+- **Launch API (Port `3001`):**
+  ```bash
+  pnpm --filter api dev
+  ```
+- **Launch Web Client (Port `5173`):**
+  ```bash
+  pnpm --filter web dev
+  ```
 
-**Terminal 2 — Web** (default port `5173`):
-
-```bash
-cd packages/web
-pnpm dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-API health check: [http://localhost:3001/api/health](http://localhost:3001/api/health)
-
-### 5. Frontend API URL (optional)
-
-If the API is not on `localhost:3001`, create `packages/web/.env`:
-
-```env
-VITE_API_URL=http://localhost:3001/api
-```
+Open [http://localhost:5173](http://localhost:5173) in your browser.  
+Check backend health status at [http://localhost:3001/api/health](http://localhost:3001/api/health).
 
 ---
 
 ## Environment Variables
 
-### API (`packages/api/.env`)
+### Backend API (`packages/api/.env`)
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET` | Secret for signing JWT tokens |
-| `FRONTEND_URL` | Frontend origin (CORS + redirects) |
-| `PORT` | API port (default `3001`) |
-| `BCRYPT_SALT_ROUNDS` | Password hashing rounds (default `10`) |
-| `STRIPE_SECRET_KEY` | Stripe secret key |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
-| `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` | Payment redirect URLs |
-| `PLATFORM_FEE_PCT` | Platform fee on paid enrollments (default `0.3`) |
-| `CLOUDINARY_*` | Cloudinary upload credentials |
-| `SMTP_*`, `FROM_EMAIL`, `FROM_NAME` | Email delivery |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` | Google OAuth |
-| `OLLAMA_HOST`, `OLLAMA_MODEL`, `OLLAMA_EMBEDDING_MODEL` | Local LLM for AI features |
-| `GITHUB_TOKEN` | GitHub API for project submission checks |
+| `JWT_SECRET` | Secret key for signing authorization tokens |
+| `FRONTEND_URL` | Client application domain (for CORS configurations) |
+| `PORT` | API server port (defaults to `3001`) |
+| `BCRYPT_SALT_ROUNDS` | Rounds of hashing for password encryption (defaults to `10`) |
+| `STRIPE_SECRET_KEY` | Stripe Account Private API Key |
+| `STRIPE_WEBHOOK_SECRET` | Signature token verifying webhook notifications |
+| `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` | Stripe redirection pages |
+| `PLATFORM_FEE_PCT` | Commission rate percentage deducted from paid courses (defaults to `0.3`) |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Media management credentials |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Nodemailer SMTP server configuration |
+| `FROM_EMAIL` / `FROM_NAME` | Mail sender details |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALLBACK_URL` | Google OAuth 2.0 authentication keys |
+| `OLLAMA_HOST` | Host address of local Ollama instance (defaults to `http://127.0.0.1:11434`) |
+| `OLLAMA_MODEL` / `OLLAMA_EMBEDDING_MODEL` | AI models used (defaults to `gemma3:4b` / `nomic-embed-text`) |
+| `GITHUB_TOKEN` | Token used to verify submitted student projects |
 
-### Web (`packages/web/.env`)
+### Frontend Web (`packages/web/.env`)
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_API_URL` | Backend API base URL (default `http://localhost:3001/api`) |
-
----
-
-## Course Content
-
-Markdown files in the repo root document sample courses (CS50, calculus, JavaScript, SQL, HTML/CSS, React) with:
-
-- Course metadata and lesson descriptions
-- **Syllabus** text/JSON for Import Syllabus
-- **Practice exercises** with prompts and starter code
-
-Use them as templates when adding courses manually or via the teacher/admin UI.
+| `VITE_API_URL` | Base API target URL (defaults to `http://localhost:3001/api`) |
 
 ---
 
 ## Testing
 
-E2E tests use Puppeteer. Start both dev servers and the seeded database first:
+The project includes an E2E testing framework powered by Puppeteer. Before running the tests, ensure your local servers are running (`pnpm dev` on both API and Web) and that the database has been seeded.
 
+Run the tests using:
 ```bash
 node tests/epics.test.js
 ```
-
-Tests cover major flows across EPICs 1–7 (enrollment, progress, practice, admin, etc.).
+The test suite covers key user flows (epic 1 to 7) including student course purchasing, video player checkpoints, quizzes, gamified XP rewards, and admin checks.
 
 ---
 
 ## Build for Production
 
+### Compile and Build Frontend
 ```bash
-# Frontend
 cd packages/web
 pnpm build
-pnpm preview   # or serve dist/ with your static host
-
-# API — run with ts-node or compile TypeScript first
-cd packages/api
-pnpm dev       # development
-# Set NODE_ENV=production and configure all env vars on your host
+```
+This builds static assets into the `dist/` directory. You can host this using a static provider or run the built app using the included server utility:
+```bash
+pnpm start
 ```
 
-The web package includes a small Express `server.js` for serving the built SPA in production.
+### Run API in Production
+Set `NODE_ENV=production` and run the start scripts after compiling the TypeScript code:
+```bash
+cd packages/api
+# Ensure environment variables are fully configured on your server
+pnpm dev
+```
 
 ---
 
 ## User Roles
 
-| Role | Access |
-|------|--------|
-| `STUDENT` | Enroll, learn, quiz, practice, discussions, certificates |
-| `TEACHER` | Own courses, content, syllabus import, student analytics |
-| `ADMIN` | Full platform management, course review, audit logs |
+| Role | Authorizations |
+|------|----------------|
+| `STUDENT` | Search and preview courses, complete lessons, take quizzes, run practice code, submit projects, write reviews, post in discussions, earn badges/certificates, manage referrals. |
+| `TEACHER` | Manage courses, build syllabus structures, import syllabus via AI, generate quizzes, review student analytics, review earnings. |
+| `ADMIN` | Manage all system resources, review course publication drafts, approve teacher requests, manage promotions, review admin audit logs, delete/ban users. |
 
 ---
 
 ## License
 
-ISC — see individual package `package.json` files.
-
----
-
-## Acknowledgments
-
-Sample course videos and curricula reference openly licensed content (e.g. freeCodeCamp, Harvard CS50, 3Blue1Brown). Course markdown files in this repo are import guides only; verify URLs and licensing before publishing publicly.
+This project is licensed under the **ISC License** — see individual packages' `package.json` files for more details.
