@@ -232,7 +232,7 @@ export default function ManageTeacherApplications() {
                                                         href={app.cvUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-xs text-blue-600 dark:text-blue-400 hover:underline break-all"
                                                     >
                                                         <Globe className="h-3 w-3" />
                                                         CV/Portfolio
@@ -254,11 +254,11 @@ export default function ManageTeacherApplications() {
                                                 <div className="mt-3 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 space-y-3 border border-zinc-200 dark:border-zinc-700">
                                                     <div>
                                                         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Bio</p>
-                                                        <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{app.bio}</p>
+                                                        <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words">{app.bio}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">Qualifications / Experience</p>
-                                                        <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap">{app.qualifications}</p>
+                                                        <p className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-wrap break-words">{app.qualifications}</p>
                                                     </div>
                                                 </div>
                                             )}

@@ -336,7 +336,7 @@ export default function CourseDetail() {
                                 </h1>
 
                                 {/* Description */}
-                                <p className="text-blue-100 text-sm sm:text-base lg:text-lg break-words">
+                                <p className="text-blue-100 text-sm sm:text-base lg:text-lg break-words whitespace-pre-wrap leading-relaxed">
                                     {course.description}
                                 </p>
 

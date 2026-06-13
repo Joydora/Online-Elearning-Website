@@ -267,7 +267,7 @@ export default function TeacherPending() {
                                         <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                                             Bio
                                         </p>
-                                        <p className="text-sm text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3">
+                                        <p className="text-sm text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3">
                                             {application.bio}
                                         </p>
                                     </div>
@@ -275,7 +275,7 @@ export default function TeacherPending() {
                                         <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                                             Qualifications / Experience
                                         </p>
-                                        <p className="text-sm text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3">
+                                        <p className="text-sm text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3">
                                             {application.qualifications}
                                         </p>
                                     </div>
@@ -288,7 +288,7 @@ export default function TeacherPending() {
                                                 href={application.cvUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                                                className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 break-all"
                                             >
                                                 <Globe className="h-3.5 w-3.5" />
                                                 {application.cvUrl}
