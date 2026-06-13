@@ -1,7 +1,8 @@
 import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { CourseStatus, EnrollmentType, PayoutStatus, PrismaClient } from '@prisma/client';
-import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent } from '../services/enroll.service';
+import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent, calculateRevenueSplit } from '../services/enroll.service';
+import { calculateDiscount } from '../services/promotion.service';
 import { AuthenticatedUser } from '../types/auth';
 
 const prisma = new PrismaClient();
@@ -185,9 +186,43 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
             let tempRewardInfo: { referrerId: number; friendName: string; rewardCode: string } | null = null;
 
             if (course.price > 0) {
-                const grossAmount = course.price;
-                const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
-                const teacherShare = Number((grossAmount - platformFee).toFixed(2));
+                let grossAmount = course.price;
+
+                if (promotionCode) {
+                    const promotion = await tx.promotion.findFirst({
+                        where: {
+                            code: promotionCode.toUpperCase(),
+                            isActive: true,
+                            startDate: { lte: new Date() },
+                            endDate: { gte: new Date() },
+                        },
+                    });
+                    if (promotion) {
+                        const isUserValid = promotion.userId === null || promotion.userId === authReq.user!.userId;
+                        const isCourseValid = promotion.courseId === null || promotion.courseId === courseId;
+                        const hasUsesLeft = promotion.usageLimit === null || promotion.usedCount < promotion.usageLimit;
+                        
+                        if (isUserValid && isCourseValid && hasUsesLeft) {
+                            const { discountedPrice } = calculateDiscount(course.price, promotion);
+                            grossAmount = discountedPrice;
+                            
+                            // Increment usage
+                            await tx.promotion.update({
+                                where: { id: promotion.id },
+                                data: { usedCount: { increment: 1 } },
+                            });
+                        }
+                    }
+                }
+
+                const split = await calculateRevenueSplit(
+                    tx,
+                    grossAmount,
+                    courseId,
+                    authReq.user!.userId,
+                    promotionCode
+                );
+
                 const payment = await tx.payment.upsert({
                     where: { enrollmentId: createdEnrollment.id },
                     create: {
@@ -209,8 +244,11 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
                     where: { enrollmentId: createdEnrollment.id },
                     create: {
                         grossAmount,
-                        platformFee,
-                        teacherShare,
+                        platformFee: split.platformFee,
+                        teacherShare: split.teacherShare,
+                        stripeFee: split.stripeFee,
+                        netRevenue: split.netRevenue,
+                        channel: split.channel,
                         payoutStatus: PayoutStatus.HELD,
                         paymentId: payment.id,
                         enrollmentId: createdEnrollment.id,
@@ -219,8 +257,11 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
                     },
                     update: {
                         grossAmount,
-                        platformFee,
-                        teacherShare,
+                        platformFee: split.platformFee,
+                        teacherShare: split.teacherShare,
+                        stripeFee: split.stripeFee,
+                        netRevenue: split.netRevenue,
+                        channel: split.channel,
                         payoutStatus: PayoutStatus.HELD,
                         paidAt: null,
                         paymentId: payment.id,

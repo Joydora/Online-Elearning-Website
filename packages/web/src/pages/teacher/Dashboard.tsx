@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, Users, FileText, Edit, Trash2, UserCheck, UserCircle, Wallet } from 'lucide-react';
+import { Plus, BookOpen, Users, FileText, Edit, Trash2, UserCheck, UserCircle, Wallet, Tag } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -177,6 +177,12 @@ export default function Dashboard() {
                             <Button variant="outline" className="w-full gap-2">
                                 <Wallet className="h-4 w-4" />
                                 <span>Held Earnings</span>
+                            </Button>
+                        </Link>
+                        <Link to="/teacher/promotions" className="flex-1 sm:flex-initial">
+                            <Button variant="outline" className="w-full gap-2">
+                                <Tag className="h-4 w-4" />
+                                <span>Manage Promotions</span>
                             </Button>
                         </Link>
                         <Link to="/courses/create" className="flex-1 sm:flex-initial">

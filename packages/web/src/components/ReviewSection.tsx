@@ -224,7 +224,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                         </div>
                                     </div>
                                     {userReview.comment && (
-                                        <p className="text-gray-600 dark:text-gray-400 mb-2">
+                                        <p className="text-gray-600 dark:text-gray-400 mb-2 whitespace-pre-wrap break-words">
                                             {userReview.comment}
                                         </p>
                                     )}
@@ -390,7 +390,7 @@ export function ReviewSection({ courseId, isEnrolled }: ReviewSectionProps) {
                                 </div>
                             </div>
                             {review.comment && (
-                                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                                     {review.comment}
                                 </p>
                             )}

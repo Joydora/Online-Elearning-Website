@@ -59,6 +59,12 @@ enum NotificationType {
   REFERRAL_SUCCESS
 }
 
+enum ReferralChannel {
+  ORGANIC
+  TEACHER_PROMO
+  STUDENT_REFERRAL
+}
+
 enum ApplicationStatus {
   PENDING
   APPROVED
@@ -102,6 +108,7 @@ model User {
   referralsGiven      Referral[]           @relation("Referrer")
   referralReceived    Referral?            @relation("Referred")
   promotions          Promotion[]
+  promotionsCreated   Promotion[]          @relation("PromotionCreator")
 
   deletedAt            DateTime?
   deletionReason       String?
@@ -165,6 +172,7 @@ model Course {
   projects       Project[]
   certificates   Certificate[]
   discussionPosts DiscussionPost[]
+  promotions      Promotion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -389,11 +397,14 @@ model Payment {
 
 // EPIC 4: Revenue Ledger
 model RevenueLedger {
-  id           Int          @id @default(autoincrement())
+  id           Int             @id @default(autoincrement())
   grossAmount  Float
   platformFee  Float
   teacherShare Float
-  payoutStatus PayoutStatus @default(HELD)
+  stripeFee    Float           @default(0)
+  netRevenue   Float           @default(0)
+  channel      ReferralChannel @default(ORGANIC)
+  payoutStatus PayoutStatus    @default(HELD)
   paidAt       DateTime?
 
   paymentId Int     @unique
@@ -451,6 +462,12 @@ model Promotion {
 
   userId    Int?
   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId  Int?
+  course    Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  creatorId Int?
+  creator   User?     @relation("PromotionCreator", fields: [creatorId], references: [id], onDelete: SetNull)
 }
 
 // EPIC 6: Project-based Learning

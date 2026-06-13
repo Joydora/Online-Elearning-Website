@@ -13,6 +13,8 @@ export type CreatePromotionInput = {
     startDate: Date;
     endDate: Date;
     isActive?: boolean;
+    courseId?: number;
+    creatorId?: number;
 };
 
 export type UpdatePromotionInput = {
@@ -26,11 +28,13 @@ export type UpdatePromotionInput = {
     startDate?: Date;
     endDate?: Date;
     isActive?: boolean;
+    courseId?: number | null;
 };
 
-// Get all promotions (admin)
-export async function getAllPromotions() {
+// Get all promotions (admin / teacher)
+export async function getAllPromotions(creatorId?: number) {
     return prisma.promotion.findMany({
+        where: creatorId ? { creatorId } : undefined,
         orderBy: { createdAt: 'desc' },
     });
 }
@@ -43,7 +47,7 @@ export async function getPromotionById(promotionId: number) {
 }
 
 // Get active promotion by code (for checkout)
-export async function getActivePromotionByCode(code: string) {
+export async function getActivePromotionByCode(code: string, courseId?: number) {
     const now = new Date();
     const promotion = await prisma.promotion.findFirst({
         where: {
@@ -63,10 +67,15 @@ export async function getActivePromotionByCode(code: string) {
         return null;
     }
 
+    // Verify course restriction if applicable
+    if (promotion.courseId !== null && (courseId === undefined || promotion.courseId !== courseId)) {
+        return null;
+    }
+
     return promotion;
 }
 
-// Create promotion (admin)
+// Create promotion (admin / teacher)
 export async function createPromotion(input: CreatePromotionInput) {
     // Check if code already exists
     const existing = await prisma.promotion.findUnique({
@@ -103,11 +112,13 @@ export async function createPromotion(input: CreatePromotionInput) {
             startDate: input.startDate,
             endDate: input.endDate,
             isActive: input.isActive ?? true,
+            courseId: input.courseId ? Number(input.courseId) : undefined,
+            creatorId: input.creatorId ? Number(input.creatorId) : undefined,
         },
     });
 }
 
-// Update promotion (admin)
+// Update promotion (admin / teacher)
 export async function updatePromotion(promotionId: number, input: UpdatePromotionInput) {
     const promotion = await prisma.promotion.findUnique({
         where: { id: promotionId },
@@ -160,6 +171,7 @@ export async function updatePromotion(promotionId: number, input: UpdatePromotio
             startDate: input.startDate,
             endDate: input.endDate,
             isActive: input.isActive,
+            courseId: input.courseId !== undefined ? (input.courseId ? Number(input.courseId) : null) : undefined,
         },
     });
 }

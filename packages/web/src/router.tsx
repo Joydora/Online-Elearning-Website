@@ -335,6 +335,10 @@ export const router = createBrowserRouter([
                                 path: '/teacher/earnings',
                                 element: <TeacherEarnings />,
                             },
+                            {
+                                path: '/teacher/promotions',
+                                element: <ManagePromotions />,
+                            },
                         ],
                     },
                 ],

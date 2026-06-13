@@ -123,14 +123,18 @@ export default function CourseDetail() {
     });
 
     // Validate promotion code
-    const validatePromotion = async (code: string, price: number) => {
+    const validatePromotion = async (code: string, price: number, courseId?: number) => {
         if (!code.trim()) {
             return null;
         }
 
         try {
             setIsValidatingPromo(true);
-            const { data } = await apiClient.post('/promotions/validate', { code: code.toUpperCase(), price });
+            const { data } = await apiClient.post('/promotions/validate', { 
+                code: code.toUpperCase(), 
+                price,
+                courseId
+            });
             return data;
         } catch (error: any) {
             showErrorAlert('Error!', error.response?.data?.error || 'Invalid promotion code.');
@@ -150,7 +154,8 @@ export default function CourseDetail() {
             return;
         }
 
-        const result = await validatePromotion(promotionCode, course.price);
+        const courseId = course.courseId || course.id;
+        const result = await validatePromotion(promotionCode, course.price, courseId);
         if (result) {
             setAppliedPromotion({
                 code: result.promotion.code,

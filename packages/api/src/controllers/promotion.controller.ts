@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
 import {
     getAllPromotions,
     getPromotionById,
@@ -13,6 +14,8 @@ import {
 import { AuthenticatedUser } from '../types/auth';
 import { writeAdminAuditLog } from '../services/adminAudit.service';
 
+const prisma = new PrismaClient();
+
 function getAdminId(req: Request): number | null {
     const user = (req as Request & { user?: AuthenticatedUser }).user;
     return user?.userId ?? null;
@@ -20,7 +23,19 @@ function getAdminId(req: Request): number | null {
 
 export async function getAllPromotionsController(req: Request, res: Response): Promise<Response> {
     try {
-        const promotions = await getAllPromotions();
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const role = authReq.user?.role;
+        const userId = authReq.user?.userId;
+
+        let promotions;
+        if (role === 'ADMIN') {
+            promotions = await getAllPromotions();
+        } else if (role === 'TEACHER' && userId) {
+            promotions = await getAllPromotions(userId);
+        } else {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
         return res.status(200).json(promotions);
     } catch (error) {
         return res.status(500).json({
@@ -44,6 +59,19 @@ export async function getPromotionByIdController(req: Request, res: Response): P
             return res.status(404).json({ error: 'Promotion not found' });
         }
 
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const role = authReq.user?.role;
+        const userId = authReq.user?.userId;
+
+        if (role === 'TEACHER') {
+            const isCreator = promotion.creatorId === userId;
+            const course = promotion.courseId ? await prisma.course.findUnique({ where: { id: promotion.courseId } }) : null;
+            const isCourseOwner = course?.teacherId === userId;
+            if (!isCreator && !isCourseOwner) {
+                return res.status(403).json({ error: 'Unauthorized' });
+            }
+        }
+
         return res.status(200).json(promotion);
     } catch (error) {
         return res.status(500).json({
@@ -55,7 +83,7 @@ export async function getPromotionByIdController(req: Request, res: Response): P
 
 export async function validatePromotionCodeController(req: Request, res: Response): Promise<Response> {
     try {
-        const { code, price } = req.body;
+        const { code, price, courseId } = req.body;
 
         if (!code || typeof code !== 'string') {
             return res.status(400).json({ error: 'Promotion code is required' });
@@ -65,7 +93,7 @@ export async function validatePromotionCodeController(req: Request, res: Respons
             return res.status(400).json({ error: 'Valid price is required' });
         }
 
-        const promotion = await getActivePromotionByCode(code);
+        const promotion = await getActivePromotionByCode(code, courseId ? Number(courseId) : undefined);
 
         if (!promotion) {
             return res.status(404).json({ error: 'Invalid or expired promotion code' });
@@ -110,26 +138,44 @@ export async function createPromotionController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const role = authReq.user?.role;
+        const userId = authReq.user?.userId;
+
+        // If teacher, they must specify a courseId, and they must own that course!
+        if (role === 'TEACHER') {
+            if (!input.courseId) {
+                return res.status(400).json({ error: 'Teachers must specify a course for this promotion' });
+            }
+            const course = await prisma.course.findUnique({ where: { id: Number(input.courseId) } });
+            if (!course || course.teacherId !== userId) {
+                return res.status(403).json({ error: 'You do not own this course' });
+            }
+        }
+
         const promotion = await createPromotion({
             ...input,
             startDate: new Date(input.startDate),
             endDate: new Date(input.endDate),
+            creatorId: userId ?? undefined,
         });
 
-        await writeAdminAuditLog({
-            adminId: getAdminId(req),
-            action: 'CREATE',
-            resource: 'PROMOTION',
-            resourceId: promotion.id,
-            description: `Created promotion ${promotion.code}`,
-            after: {
-                code: promotion.code,
-                discountType: promotion.discountType,
-                discountValue: promotion.discountValue,
-                startDate: promotion.startDate.toISOString(),
-                endDate: promotion.endDate.toISOString(),
-            },
-        });
+        if (role === 'ADMIN') {
+            await writeAdminAuditLog({
+                adminId: getAdminId(req),
+                action: 'CREATE',
+                resource: 'PROMOTION',
+                resourceId: promotion.id,
+                description: `Created promotion ${promotion.code}`,
+                after: {
+                    code: promotion.code,
+                    discountType: promotion.discountType,
+                    discountValue: promotion.discountValue,
+                    startDate: promotion.startDate.toISOString(),
+                    endDate: promotion.endDate.toISOString(),
+                },
+            });
+        }
 
         return res.status(201).json(promotion);
     } catch (error) {
@@ -158,36 +204,63 @@ export async function updatePromotionController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Promotion ID must be a number' });
         }
 
-        const input = req.body as UpdatePromotionInput;
-        const before = await getPromotionById(promotionId);
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const role = authReq.user?.role;
+        const userId = authReq.user?.userId;
 
+        const before = await getPromotionById(promotionId);
+        if (!before) {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+
+        if (role === 'TEACHER') {
+            const isCreator = before.creatorId === userId;
+            const course = before.courseId ? await prisma.course.findUnique({ where: { id: before.courseId } }) : null;
+            const isCourseOwner = course?.teacherId === userId;
+            if (!isCreator && !isCourseOwner) {
+                return res.status(403).json({ error: 'Unauthorized' });
+            }
+
+            // If teacher wants to update courseId, verify they own the new course
+            const input = req.body as UpdatePromotionInput;
+            if (input.courseId) {
+                const newCourse = await prisma.course.findUnique({ where: { id: Number(input.courseId) } });
+                if (!newCourse || newCourse.teacherId !== userId) {
+                    return res.status(403).json({ error: 'You do not own this course' });
+                }
+            }
+        }
+
+        const input = req.body as UpdatePromotionInput;
         const promotion = await updatePromotion(promotionId, {
             ...input,
             startDate: input.startDate ? new Date(input.startDate) : undefined,
             endDate: input.endDate ? new Date(input.endDate) : undefined,
         });
 
-        await writeAdminAuditLog({
-            adminId: getAdminId(req),
-            action: 'UPDATE',
-            resource: 'PROMOTION',
-            resourceId: promotion.id,
-            description: `Updated promotion ${promotion.code}`,
-            before: before
-                ? {
-                      code: before.code,
-                      discountType: before.discountType,
-                      discountValue: before.discountValue,
-                      isActive: before.isActive,
-                  }
-                : undefined,
-            after: {
-                code: promotion.code,
-                discountType: promotion.discountType,
-                discountValue: promotion.discountValue,
-                isActive: promotion.isActive,
-            },
-        });
+        if (role === 'ADMIN') {
+            await writeAdminAuditLog({
+                adminId: getAdminId(req),
+                action: 'UPDATE',
+                resource: 'PROMOTION',
+                resourceId: promotion.id,
+                description: `Updated promotion ${promotion.code}`,
+                before: before
+                    ? {
+                          code: before.code,
+                          discountType: before.discountType,
+                          discountValue: before.discountValue,
+                          isActive: before.isActive,
+                      }
+                    : undefined,
+                after: {
+                    code: promotion.code,
+                    discountType: promotion.discountType,
+                    discountValue: promotion.discountValue,
+                    isActive: promotion.isActive,
+                },
+            });
+        }
 
         return res.status(200).json(promotion);
     } catch (error) {
@@ -216,24 +289,43 @@ export async function deletePromotionController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Promotion ID must be a number' });
         }
 
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const role = authReq.user?.role;
+        const userId = authReq.user?.userId;
+
         const before = await getPromotionById(promotionId);
+        if (!before) {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+
+        if (role === 'TEACHER') {
+            const isCreator = before.creatorId === userId;
+            const course = before.courseId ? await prisma.course.findUnique({ where: { id: before.courseId } }) : null;
+            const isCourseOwner = course?.teacherId === userId;
+            if (!isCreator && !isCourseOwner) {
+                return res.status(403).json({ error: 'Unauthorized' });
+            }
+        }
+
         await deletePromotion(promotionId);
 
-        await writeAdminAuditLog({
-            adminId: getAdminId(req),
-            action: 'DELETE',
-            resource: 'PROMOTION',
-            resourceId: promotionId,
-            description: `Deleted promotion ${before?.code ?? promotionId}`,
-            before: before
-                ? {
-                      code: before.code,
-                      discountType: before.discountType,
-                      discountValue: before.discountValue,
-                      isActive: before.isActive,
-                  }
-                : undefined,
-        });
+        if (role === 'ADMIN') {
+            await writeAdminAuditLog({
+                adminId: getAdminId(req),
+                action: 'DELETE',
+                resource: 'PROMOTION',
+                resourceId: promotionId,
+                description: `Deleted promotion ${before?.code ?? promotionId}`,
+                before: before
+                    ? {
+                          code: before.code,
+                          discountType: before.discountType,
+                          discountValue: before.discountValue,
+                          isActive: before.isActive,
+                      }
+                    : undefined,
+            });
+        }
 
         return res.status(200).json({ message: 'Promotion deleted successfully' });
     } catch (error) {
@@ -249,4 +341,3 @@ export async function deletePromotionController(req: Request, res: Response): Pr
         });
     }
 }
-

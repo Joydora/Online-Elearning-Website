@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { NotificationType, PrismaClient, PayoutStatus } from '@prisma/client';
+import { NotificationType, PrismaClient, PayoutStatus, ReferralChannel } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import { createNotification } from '../services/notification.service';
 import { writeAdminAuditLog } from '../services/adminAudit.service';
+import { calculateRevenueSplit } from '../services/enroll.service';
 
 const prisma = new PrismaClient();
-const PLATFORM_FEE_PCT = parseFloat(process.env.PLATFORM_FEE_PCT || '0.3');
 
 async function backfillMissingRevenueLedgers(): Promise<void> {
     const enrollments = await prisma.enrollment.findMany({
@@ -36,8 +36,15 @@ async function backfillMissingRevenueLedgers(): Promise<void> {
             const grossAmount = enrollment.payment?.amount && enrollment.payment.amount > 0
                 ? enrollment.payment.amount
                 : enrollment.course.price;
-            const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
-            const teacherShare = Number((grossAmount - platformFee).toFixed(2));
+            
+            // Backfilled items assume ORGANIC traffic channel
+            const split = await calculateRevenueSplit(
+                tx,
+                grossAmount,
+                enrollment.course.id,
+                enrollment.studentId,
+                null
+            );
 
             const payment = enrollment.payment
                 ? await tx.payment.update({
@@ -64,8 +71,11 @@ async function backfillMissingRevenueLedgers(): Promise<void> {
                     courseId: enrollment.course.id,
                     teacherId: enrollment.course.teacherId,
                     grossAmount,
-                    platformFee,
-                    teacherShare,
+                    platformFee: split.platformFee,
+                    teacherShare: split.teacherShare,
+                    stripeFee: split.stripeFee,
+                    netRevenue: split.netRevenue,
+                    channel: split.channel,
                     payoutStatus: PayoutStatus.HELD,
                 },
             });
@@ -110,7 +120,7 @@ export async function getRevenueLedgerController(req: Request, res: Response): P
 
         const summary = await prisma.revenueLedger.aggregate({
             where,
-            _sum: { grossAmount: true, platformFee: true, teacherShare: true },
+            _sum: { grossAmount: true, platformFee: true, teacherShare: true, stripeFee: true, netRevenue: true },
         });
 
         return res.status(200).json({
@@ -122,6 +132,8 @@ export async function getRevenueLedgerController(req: Request, res: Response): P
                 grossAmount: summary._sum.grossAmount ?? 0,
                 platformFee: summary._sum.platformFee ?? 0,
                 teacherShare: summary._sum.teacherShare ?? 0,
+                stripeFee: summary._sum.stripeFee ?? 0,
+                netRevenue: summary._sum.netRevenue ?? 0,
             },
         });
     } catch {
@@ -232,7 +244,7 @@ export async function exportRevenueCSVController(req: Request, res: Response): P
             return s;
         };
 
-        const header = 'ID,Date,Course,Teacher,Email,Gross,PlatformFee,TeacherShare,Status,PaidAt,StripeSession\n';
+        const header = 'ID,Date,Course,Teacher,Email,Gross,StripeFee,NetRevenue,PlatformFee,TeacherShare,Channel,Status,PaidAt,StripeSession\n';
         const csvRows = rows.map((r) => [
             r.id,
             r.createdAt.toISOString(),
@@ -240,8 +252,11 @@ export async function exportRevenueCSVController(req: Request, res: Response): P
             escapeCSV(r.teacher.username),
             escapeCSV(r.teacher.email),
             r.grossAmount,
+            r.stripeFee,
+            r.netRevenue,
             r.platformFee,
             r.teacherShare,
+            r.channel,
             r.payoutStatus,
             r.paidAt?.toISOString() ?? '',
             escapeCSV(r.payment.stripeSessionId),

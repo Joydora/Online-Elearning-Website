@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { PrismaClient, EnrollmentType } from '@prisma/client';
+import { PrismaClient, EnrollmentType, ReferralChannel } from '@prisma/client';
 import crypto from 'crypto';
 import { getActivePromotionByCode, calculateDiscount, incrementPromotionUsage } from './promotion.service';
 
@@ -22,6 +22,75 @@ function calcExpiresAt(accessDurationDays: number | null): Date | null {
 
 function hasActiveAccess(enrollment: { isActive: boolean; expiresAt: Date | null }): boolean {
     return enrollment.isActive && (enrollment.expiresAt === null || enrollment.expiresAt.getTime() > Date.now());
+}
+
+export type RevenueSplitResult = {
+    stripeFee: number;
+    netRevenue: number;
+    channel: ReferralChannel;
+    platformFee: number;
+    teacherShare: number;
+};
+
+export async function calculateRevenueSplit(
+    tx: any,
+    grossAmount: number,
+    courseId: number,
+    studentId: number,
+    promotionCode?: string | null
+): Promise<RevenueSplitResult> {
+    let channel: ReferralChannel = ReferralChannel.ORGANIC;
+
+    if (promotionCode) {
+        const promotion = await tx.promotion.findFirst({
+            where: { code: promotionCode.toUpperCase() },
+        });
+        if (promotion) {
+            if (promotion.userId !== null || promotion.code.startsWith('WEL-') || promotion.code.startsWith('REF-REV-')) {
+                channel = ReferralChannel.STUDENT_REFERRAL;
+            } else if (promotion.creatorId !== null) {
+                const creator = await tx.user.findUnique({
+                    where: { id: promotion.creatorId },
+                    select: { id: true, role: true },
+                });
+                const course = await tx.course.findUnique({
+                    where: { id: courseId },
+                    select: { teacherId: true },
+                });
+                if (creator?.role === 'TEACHER' || promotion.creatorId === course?.teacherId) {
+                    channel = ReferralChannel.TEACHER_PROMO;
+                }
+            }
+        }
+    }
+
+    let stripeFee = 0;
+    if (grossAmount > 0) {
+        stripeFee = Number((grossAmount * 0.029 + 0.30).toFixed(2));
+    }
+    const netRevenue = Number(Math.max(0, grossAmount - stripeFee).toFixed(2));
+
+    let platformFee = 0;
+    let teacherShare = 0;
+
+    if (channel === ReferralChannel.TEACHER_PROMO) {
+        teacherShare = Number((netRevenue * 0.95).toFixed(2));
+        platformFee = Number((netRevenue - teacherShare).toFixed(2));
+    } else if (channel === ReferralChannel.STUDENT_REFERRAL) {
+        teacherShare = Number((netRevenue * 0.60).toFixed(2));
+        platformFee = Number((netRevenue - teacherShare).toFixed(2));
+    } else { // ORGANIC
+        teacherShare = Number((netRevenue * 0.50).toFixed(2));
+        platformFee = Number((netRevenue - teacherShare).toFixed(2));
+    }
+
+    return {
+        stripeFee,
+        netRevenue,
+        channel,
+        platformFee,
+        teacherShare,
+    };
 }
 
 export async function checkoutCourse(options: {
@@ -80,7 +149,7 @@ export async function checkoutCourse(options: {
     let promotionId: number | undefined;
 
     if (options.promotionCode && course.price > 0) {
-        const promotion = await getActivePromotionByCode(options.promotionCode);
+        const promotion = await getActivePromotionByCode(options.promotionCode, options.courseId);
         if (promotion) {
             if (promotion.userId !== null && promotion.userId !== options.studentId) {
                 throw new Error('PROMOTION_NOT_AUTHORIZED');
@@ -273,11 +342,16 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
     }
 
     const grossAmount = (session.amount_total || 0) / 100;
-    const platformFee = parseFloat((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
-    const teacherShare = parseFloat((grossAmount - platformFee).toFixed(2));
 
     // EPIC 2 + EPIC 4: create enrollment + payment + ledger atomically
     const referralRewardInfo = await prisma.$transaction(async (tx) => {
+        const split = await calculateRevenueSplit(
+            tx,
+            grossAmount,
+            courseIdNum,
+            studentIdNum,
+            promotionCode
+        );
         const enrollment = existing
             ? await tx.enrollment.update({
                 where: { id: existing.id },
@@ -320,8 +394,11 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
             where: { enrollmentId: enrollment.id },
             create: {
                 grossAmount,
-                platformFee,
-                teacherShare,
+                platformFee: split.platformFee,
+                teacherShare: split.teacherShare,
+                stripeFee: split.stripeFee,
+                netRevenue: split.netRevenue,
+                channel: split.channel,
                 payoutStatus: 'HELD',
                 paymentId: payment.id,
                 enrollmentId: enrollment.id,
@@ -330,8 +407,11 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
             },
             update: {
                 grossAmount,
-                platformFee,
-                teacherShare,
+                platformFee: split.platformFee,
+                teacherShare: split.teacherShare,
+                stripeFee: split.stripeFee,
+                netRevenue: split.netRevenue,
+                channel: split.channel,
                 payoutStatus: 'HELD',
                 paidAt: null,
                 paymentId: payment.id,

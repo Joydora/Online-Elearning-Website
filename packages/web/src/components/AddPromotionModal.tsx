@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { X, Tag } from 'lucide-react';
 import { apiClient } from '../lib/api';
+import { useAuthStore } from '../stores/useAuthStore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -44,6 +45,24 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
         startDate: '',
         endDate: '',
         isActive: true,
+        courseId: '',
+    });
+
+    const { user } = useAuthStore();
+
+    const { data: courses = [] } = useQuery<any[]>({
+        queryKey: ['courses-for-promotion', user?.role],
+        queryFn: async () => {
+            if (user?.role === 'TEACHER') {
+                const { data } = await apiClient.get('/teacher/courses');
+                return data;
+            } else if (user?.role === 'ADMIN') {
+                const { data } = await apiClient.get('/courses');
+                return data;
+            }
+            return [];
+        },
+        enabled: !!user,
     });
 
     useEffect(() => {
@@ -59,6 +78,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                 startDate: new Date(promotion.startDate).toISOString().slice(0, 16),
                 endDate: new Date(promotion.endDate).toISOString().slice(0, 16),
                 isActive: promotion.isActive,
+                courseId: (promotion as any).courseId?.toString() || '',
             });
         } else {
             // Set default dates for new promotion
@@ -70,6 +90,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                 ...formData,
                 startDate: now.toISOString().slice(0, 16),
                 endDate: nextMonth.toISOString().slice(0, 16),
+                courseId: '',
             });
         }
     }, [promotion]);
@@ -114,6 +135,7 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
             startDate: new Date(formData.startDate).toISOString(),
             endDate: new Date(formData.endDate).toISOString(),
             isActive: formData.isActive,
+            courseId: formData.courseId ? Number(formData.courseId) : undefined,
         };
 
         if (isEditing) {
@@ -151,6 +173,26 @@ export function AddPromotionModal({ promotion, onClose, onSuccess }: AddPromotio
                             disabled={isEditing}
                             className="uppercase"
                         />
+                    </div>
+
+                    {/* Link to Course */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Link to Course {user?.role === 'TEACHER' && '*'}
+                        </label>
+                        <select
+                            value={formData.courseId}
+                            onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            required={user?.role === 'TEACHER'}
+                        >
+                            <option value="">{user?.role === 'TEACHER' ? 'Select a course...' : 'All Courses (Site-wide)'}</option>
+                            {courses.map((course: any) => (
+                                <option key={course.id} value={course.id}>
+                                    {course.title}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Description */}

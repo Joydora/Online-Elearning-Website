@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DollarSign, Download, CheckSquare } from 'lucide-react';
+import { DollarSign, Download, CheckSquare, ChevronRight, ChevronDown } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -12,6 +12,9 @@ type LedgerEntry = {
     id: number;
     grossAmount: number;
     platformFee: number;
+    stripeFee: number;
+    netRevenue: number;
+    channel: 'ORGANIC' | 'TEACHER_PROMO' | 'STUDENT_REFERRAL';
     payoutStatus: 'HELD' | 'PAID';
     teacherShare: number;
     createdAt: string;
@@ -64,6 +67,7 @@ export default function AdminRevenue() {
     const [to, setTo] = useState('');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [page, setPage] = useState(1);
+    const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
 
     // Reset to page 1 when filters change
     useEffect(() => {
@@ -266,6 +270,7 @@ export default function AdminRevenue() {
                         <table className="w-full text-sm">
                             <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                                 <tr>
+                                    <th className="py-3 px-4 text-left w-6"></th>
                                     <th className="py-3 px-4 text-left w-8"></th>
                                     <th className="py-3 px-4 text-left">Course</th>
                                     <th className="py-3 px-4 text-left">Instructor</th>
@@ -280,41 +285,92 @@ export default function AdminRevenue() {
                                     const teacherName = [entry.teacher.firstName, entry.teacher.lastName]
                                         .filter(Boolean)
                                         .join(' ') || entry.teacher.username;
+                                    const isExpanded = expandedRowId === entry.id;
 
                                     return (
-                                    <tr key={entry.id} className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                        <td className="py-3 px-4">
-                                            {entry.payoutStatus === 'HELD' && (
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedIds.includes(entry.id)}
-                                                    onChange={() => toggleSelect(entry.id)}
-                                                    className="rounded"
-                                                />
+                                        <Fragment key={entry.id}>
+                                            <tr 
+                                                className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors"
+                                                onClick={() => setExpandedRowId(isExpanded ? null : entry.id)}
+                                            >
+                                                <td className="py-3 px-4 text-zinc-400 dark:text-zinc-500 w-6">
+                                                    {isExpanded ? (
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    ) : (
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    )}
+                                                </td>
+                                                <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                                                    {entry.payoutStatus === 'HELD' && (
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedIds.includes(entry.id)}
+                                                            onChange={() => toggleSelect(entry.id)}
+                                                            className="rounded"
+                                                        />
+                                                    )}
+                                                </td>
+                                                <td className="py-3 px-4 font-medium text-zinc-900 dark:text-white max-w-xs truncate">
+                                                    {entry.course.title}
+                                                </td>
+                                                <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
+                                                    <div>{teacherName}</div>
+                                                    <div className="text-xs text-zinc-400">{entry.teacher.email}</div>
+                                                </td>
+                                                <td className="py-3 px-4 text-right text-blue-600 font-medium">{fmt(entry.platformFee)}</td>
+                                                <td className="py-3 px-4 text-right text-green-600 font-medium">{fmt(entry.teacherShare)}</td>
+                                                <td className="py-3 px-4 text-center">
+                                                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${entry.payoutStatus === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                                                        {entry.payoutStatus === 'PAID' ? 'Paid' : 'Held'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-zinc-500 dark:text-zinc-400 text-xs">
+                                                    {new Date(entry.createdAt).toLocaleDateString('en-US')}
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr className="bg-zinc-50/50 dark:bg-zinc-850/20">
+                                                    <td colSpan={8} className="px-4 py-3 border-t border-zinc-200 dark:border-zinc-800">
+                                                        <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm text-zinc-800 dark:text-zinc-200">
+                                                            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">
+                                                                Revenue Split Details (Admin View)
+                                                            </h4>
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs sm:text-sm">
+                                                                <div>
+                                                                    <span className="block text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Gross Revenue</span>
+                                                                    <span className="font-semibold">{fmt(entry.grossAmount)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="block text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Stripe Processing Fee (2.9% + $0.30)</span>
+                                                                    <span className="font-semibold text-red-600 dark:text-red-400">-{fmt(entry.stripeFee)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="block text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Net Revenue</span>
+                                                                    <span className="font-semibold">{fmt(entry.netRevenue)}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className="block text-xs text-zinc-500 dark:text-zinc-400 mb-0.5">Referral Channel & Split</span>
+                                                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                                                        {entry.channel === 'TEACHER_PROMO' ? 'Teacher Promo (95% share)' :
+                                                                         entry.channel === 'STUDENT_REFERRAL' ? 'Student Referral (60% share)' :
+                                                                         'Organic Platform (50% share)'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex justify-between text-xs text-zinc-500">
+                                                                <span>Platform Revenue (Admin Share): <strong className="text-blue-600 font-semibold">{fmt(entry.platformFee)}</strong></span>
+                                                                <span>Instructor Share: <strong className="text-green-600 font-semibold">{fmt(entry.teacherShare)}</strong></span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             )}
-                                        </td>
-                                        <td className="py-3 px-4 font-medium text-zinc-900 dark:text-white max-w-xs truncate">
-                                            {entry.course.title}
-                                        </td>
-                                        <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
-                                            <div>{teacherName}</div>
-                                            <div className="text-xs text-zinc-400">{entry.teacher.email}</div>
-                                        </td>
-                                        <td className="py-3 px-4 text-right text-blue-600 font-medium">{fmt(entry.platformFee)}</td>
-                                        <td className="py-3 px-4 text-right text-green-600 font-medium">{fmt(entry.teacherShare)}</td>
-                                        <td className="py-3 px-4 text-center">
-                                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${entry.payoutStatus === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                                                {entry.payoutStatus === 'PAID' ? 'Paid' : 'Held'}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 px-4 text-zinc-500 dark:text-zinc-400 text-xs">
-                                            {new Date(entry.createdAt).toLocaleDateString('en-US')}
-                                        </td>
-                                    </tr>
-                                )})}
+                                        </Fragment>
+                                    );
+                                })}
                                 {(data?.rows ?? []).length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="py-12 text-center text-zinc-500">No revenue data available</td>
+                                        <td colSpan={8} className="py-12 text-center text-zinc-500">No revenue data available</td>
                                     </tr>
                                 )}
                             </tbody>

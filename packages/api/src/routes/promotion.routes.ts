@@ -15,12 +15,12 @@ const router = Router();
 // Public route - Validate promotion code (for checkout)
 router.post('/promotions/validate', optionalAuth, validatePromotionCodeController);
 
-// Admin routes
-router.get('/promotions', isAuthenticated, isAuthorized([Role.ADMIN]), getAllPromotionsController);
-router.get('/promotions/:id', isAuthenticated, isAuthorized([Role.ADMIN]), getPromotionByIdController);
-router.post('/promotions', isAuthenticated, isAuthorized([Role.ADMIN]), createPromotionController);
-router.put('/promotions/:id', isAuthenticated, isAuthorized([Role.ADMIN]), updatePromotionController);
-router.delete('/promotions/:id', isAuthenticated, isAuthorized([Role.ADMIN]), deletePromotionController);
+// Admin / Teacher routes
+router.get('/promotions', isAuthenticated, isAuthorized([Role.ADMIN, Role.TEACHER]), getAllPromotionsController);
+router.get('/promotions/:id', isAuthenticated, isAuthorized([Role.ADMIN, Role.TEACHER]), getPromotionByIdController);
+router.post('/promotions', isAuthenticated, isAuthorized([Role.ADMIN, Role.TEACHER]), createPromotionController);
+router.put('/promotions/:id', isAuthenticated, isAuthorized([Role.ADMIN, Role.TEACHER]), updatePromotionController);
+router.delete('/promotions/:id', isAuthenticated, isAuthorized([Role.ADMIN, Role.TEACHER]), deletePromotionController);
 
 export default router;
 
