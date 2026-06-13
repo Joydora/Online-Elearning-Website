@@ -56,6 +56,7 @@ enum NotificationType {
   REENGAGEMENT_REMINDER
   PROJECT_GRADED
   DISCUSSION_REPLY
+  REFERRAL_SUCCESS
 }
 
 enum ApplicationStatus {
@@ -96,6 +97,11 @@ model User {
   notificationPreferences UserNotificationPreference[]
   adminAuditLogs      AdminAuditLog[] @relation("AdminAuditActor")
   teacherApplication  TeacherApplication?
+
+  referralCode        String?              @unique
+  referralsGiven      Referral[]           @relation("Referrer")
+  referralReceived    Referral?            @relation("Referred")
+  promotions          Promotion[]
 
   deletedAt            DateTime?
   deletionReason       String?
@@ -442,6 +448,9 @@ model Promotion {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userId    Int?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // EPIC 6: Project-based Learning
@@ -545,4 +554,17 @@ model TeacherApplication {
   rejectionReason String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+}
+
+model Referral {
+  id         Int      @id @default(autoincrement())
+  referrerId Int
+  referrer   User     @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId Int      @unique
+  referred   User     @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
+  status     String   @default("PENDING") // PENDING, COMPLETED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([referrerId])
 }

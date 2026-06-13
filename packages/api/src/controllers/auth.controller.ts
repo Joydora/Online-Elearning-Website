@@ -6,7 +6,7 @@ const SEVEN_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function registerController(req: Request, res: Response): Promise<Response> {
     try {
-        const { email, username, password, firstName, lastName, role, isInstructor, bio, qualifications, cvUrl, topics } = req.body ?? {};
+        const { email, username, password, firstName, lastName, role, isInstructor, bio, qualifications, cvUrl, topics, referredByCode } = req.body ?? {};
 
         if (!email || !username || !password) {
             return res.status(400).json({
@@ -26,6 +26,7 @@ export async function registerController(req: Request, res: Response): Promise<R
             qualifications,
             cvUrl,
             topics,
+            referredByCode,
         };
 
         const { verificationSent, ...user } = await register(payload);

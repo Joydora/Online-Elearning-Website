@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
 import { CourseStatus, EnrollmentType, PayoutStatus, PrismaClient } from '@prisma/client';
 import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent } from '../services/enroll.service';
@@ -136,6 +137,8 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
         const courseId = Number.parseInt(req.params.courseId, 10);
         if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
 
+        const promotionCode = req.body?.promotionCode as string | undefined;
+
         const course = await prisma.course.findUnique({
             where: { id: courseId },
             select: {
@@ -156,7 +159,7 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
             return res.status(200).json({ message: 'Already enrolled', enrollment: existing });
         }
 
-        const enrollment = await prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const enrollmentData = {
                 type: course.price > 0 ? EnrollmentType.PAID : EnrollmentType.FREE,
                 enrollmentDate: new Date(),
@@ -178,6 +181,8 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
                         ...enrollmentData,
                     },
                 });
+
+            let tempRewardInfo: { referrerId: number; friendName: string; rewardCode: string } | null = null;
 
             if (course.price > 0) {
                 const grossAmount = course.price;
@@ -223,14 +228,79 @@ export async function confirmEnrollmentController(req: Request, res: Response): 
                         teacherId: course.teacherId,
                     },
                 });
+
+                // Referral tracking and rewards
+                const referral = await tx.referral.findUnique({
+                    where: { referredId: authReq.user!.userId },
+                });
+
+                if (referral && referral.status === 'PENDING') {
+                    await tx.referral.update({
+                        where: { id: referral.id },
+                        data: { status: 'COMPLETED' },
+                    });
+
+                    const rewardCode = `REF-REV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + 30); // 30 days expiry
+
+                    await tx.promotion.create({
+                        data: {
+                            code: rewardCode,
+                            description: `Referral reward for sharing with friend`,
+                            discountType: 'PERCENTAGE',
+                            discountValue: 20,
+                            usageLimit: 1,
+                            startDate: new Date(),
+                            endDate: expiry,
+                            isActive: true,
+                            userId: referral.referrerId,
+                        },
+                    });
+
+                    const referredUser = await tx.user.findUnique({
+                        where: { id: authReq.user!.userId },
+                        select: { username: true, firstName: true, lastName: true },
+                    });
+                    const friendName = referredUser
+                        ? ([referredUser.firstName, referredUser.lastName].filter(Boolean).join(' ') || referredUser.username)
+                        : 'Your friend';
+
+                    tempRewardInfo = {
+                        referrerId: referral.referrerId,
+                        friendName,
+                        rewardCode,
+                    };
+                }
             }
 
-            return createdEnrollment;
+            return { createdEnrollment, tempRewardInfo };
         });
 
-        return res.status(201).json({ message: 'Enrollment confirmed', enrollment });
-    } catch {
-        return res.status(500).json({ error: 'Unable to confirm enrollment' });
+        if (promotionCode) {
+            const { incrementPromotionUsage } = require('../services/promotion.service');
+            await incrementPromotionUsage(promotionCode);
+        }
+
+        if (result.tempRewardInfo) {
+            try {
+                const { createNotification } = require('../services/notification.service');
+                await createNotification({
+                    userId: result.tempRewardInfo.referrerId,
+                    type: 'REFERRAL_SUCCESS',
+                    title: 'Referral Reward Earned! 🎁',
+                    message: `Congratulations! Your friend ${result.tempRewardInfo.friendName} completed their first purchase. You earned a 20% discount coupon code: ${result.tempRewardInfo.rewardCode} (valid for 30 days).`,
+                    sendEmail: true,
+                });
+                console.log(`Sent referral reward notification to referrer ${result.tempRewardInfo.referrerId}`);
+            } catch (err) {
+                console.error('Failed to send referral reward notification:', err);
+            }
+        }
+
+        return res.status(201).json({ message: 'Enrollment confirmed', enrollment: result.createdEnrollment });
+    } catch (error) {
+        return res.status(500).json({ error: 'Unable to confirm enrollment', details: (error as Error).message });
     }
 }
 

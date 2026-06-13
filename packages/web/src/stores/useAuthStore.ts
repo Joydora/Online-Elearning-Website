@@ -12,6 +12,7 @@ export type User = {
     role: Role;
     createdAt: string;
     updatedAt: string;
+    referralCode?: string | null;
 };
 
 type AuthState = {

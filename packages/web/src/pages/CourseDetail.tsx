@@ -112,6 +112,16 @@ export default function CourseDetail() {
         enabled: isAuthenticated && user?.role === 'STUDENT' && !!id,
     });
 
+    // Fetch referrals info for referral code
+    const { data: referralData } = useQuery({
+        queryKey: ['referrals-info-course-detail'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/users/referrals');
+            return data;
+        },
+        enabled: isAuthenticated && user?.role === 'STUDENT',
+    });
+
     // Validate promotion code
     const validatePromotion = async (code: string, price: number) => {
         if (!code.trim()) {
@@ -640,6 +650,35 @@ export default function CourseDetail() {
                                         </li>
                                     </ul>
                                 </Card>
+
+                                {isAuthenticated && user?.role === 'STUDENT' && referralData?.referralCode && (
+                                    <Card className="p-4 sm:p-6 border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-red-50 to-amber-50 dark:from-zinc-850 dark:to-zinc-800 shadow-sm">
+                                        <h3 className="font-semibold text-zinc-900 dark:text-white mb-2 flex items-center gap-2">
+                                            🎁 Refer & Earn 20% Off!
+                                        </h3>
+                                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3 leading-relaxed">
+                                            Share this course with friends. When they buy, they get <strong>10% off</strong> their first purchase, and you earn a <strong>20% discount coupon</strong>!
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                readOnly
+                                                value={`${window.location.origin}/courses/${course.courseId || course.id}?ref=${referralData.referralCode}`}
+                                                className="text-xs bg-white dark:bg-zinc-900 border-zinc-300 focus:ring-red-500"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                className="bg-red-600 hover:bg-red-700 text-white shrink-0 text-xs px-3"
+                                                onClick={() => {
+                                                    const link = `${window.location.origin}/courses/${course.courseId || course.id}?ref=${referralData.referralCode}`;
+                                                    navigator.clipboard.writeText(link);
+                                                    showSuccessAlert('Copied!', 'Referral link copied to clipboard.');
+                                                }}
+                                            >
+                                                Copy
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                )}
                             </div>
                         </div>
                     </div>

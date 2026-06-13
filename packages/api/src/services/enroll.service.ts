@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { PrismaClient, EnrollmentType } from '@prisma/client';
+import crypto from 'crypto';
 import { getActivePromotionByCode, calculateDiscount, incrementPromotionUsage } from './promotion.service';
 
 const prisma = new PrismaClient();
@@ -81,6 +82,9 @@ export async function checkoutCourse(options: {
     if (options.promotionCode && course.price > 0) {
         const promotion = await getActivePromotionByCode(options.promotionCode);
         if (promotion) {
+            if (promotion.userId !== null && promotion.userId !== options.studentId) {
+                throw new Error('PROMOTION_NOT_AUTHORIZED');
+            }
             const discount = calculateDiscount(course.price, promotion);
             finalPrice = discount.discountedPrice;
             discountAmount = discount.discountAmount;
@@ -273,7 +277,7 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
     const teacherShare = parseFloat((grossAmount - platformFee).toFixed(2));
 
     // EPIC 2 + EPIC 4: create enrollment + payment + ledger atomically
-    await prisma.$transaction(async (tx) => {
+    const referralRewardInfo = await prisma.$transaction(async (tx) => {
         const enrollment = existing
             ? await tx.enrollment.update({
                 where: { id: existing.id },
@@ -335,9 +339,73 @@ export async function handleStripeWebhook(payload: Buffer, signature: string | u
                 teacherId: course.teacherId,
             },
         });
+
+        // Referral tracking and rewards
+        const referral = await tx.referral.findUnique({
+            where: { referredId: studentIdNum },
+        });
+
+        let tempRewardInfo: { referrerId: number; friendName: string; rewardCode: string } | null = null;
+
+        if (referral && referral.status === 'PENDING') {
+            await tx.referral.update({
+                where: { id: referral.id },
+                data: { status: 'COMPLETED' },
+            });
+
+            const rewardCode = `REF-REV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+            const expiry = new Date();
+            expiry.setDate(expiry.getDate() + 30); // 30 days expiry
+
+            await tx.promotion.create({
+                data: {
+                    code: rewardCode,
+                    description: `Referral reward for sharing with friend`,
+                    discountType: 'PERCENTAGE',
+                    discountValue: 20,
+                    usageLimit: 1,
+                    startDate: new Date(),
+                    endDate: expiry,
+                    isActive: true,
+                    userId: referral.referrerId,
+                },
+            });
+
+            const referredUser = await tx.user.findUnique({
+                where: { id: studentIdNum },
+                select: { username: true, firstName: true, lastName: true },
+            });
+            const friendName = referredUser
+                ? ([referredUser.firstName, referredUser.lastName].filter(Boolean).join(' ') || referredUser.username)
+                : 'Your friend';
+
+            tempRewardInfo = {
+                referrerId: referral.referrerId,
+                friendName,
+                rewardCode,
+            };
+        }
+
+        return tempRewardInfo;
     });
 
     if (promotionCode) await incrementPromotionUsage(promotionCode);
+
+    if (referralRewardInfo) {
+        try {
+            const { createNotification } = require('./notification.service');
+            await createNotification({
+                userId: referralRewardInfo.referrerId,
+                type: 'REFERRAL_SUCCESS',
+                title: 'Referral Reward Earned! 🎁',
+                message: `Congratulations! Your friend ${referralRewardInfo.friendName} completed their first purchase. You earned a 20% discount coupon code: ${referralRewardInfo.rewardCode} (valid for 30 days).`,
+                sendEmail: true,
+            });
+            console.log(`Sent referral reward notification to referrer ${referralRewardInfo.referrerId}`);
+        } catch (err) {
+            console.error('Failed to send referral reward notification:', err);
+        }
+    }
 
     console.log(`Enrollment + ledger created for student ${studentIdNum} in course ${courseIdNum}`);
 }

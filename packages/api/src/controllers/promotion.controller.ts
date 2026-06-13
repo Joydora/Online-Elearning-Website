@@ -71,6 +71,14 @@ export async function validatePromotionCodeController(req: Request, res: Respons
             return res.status(404).json({ error: 'Invalid or expired promotion code' });
         }
 
+        // Check user ownership if coupon is user-restricted
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const currentUserId = authReq.user?.userId;
+
+        if (promotion.userId !== null && promotion.userId !== currentUserId) {
+            return res.status(403).json({ error: 'This promotion code is not valid for your account' });
+        }
+
         const { discountedPrice, discountAmount } = calculateDiscount(price, promotion);
 
         return res.status(200).json({

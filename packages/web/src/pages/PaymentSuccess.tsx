@@ -13,12 +13,15 @@ export default function PaymentSuccess() {
 
     useEffect(() => {
         const courseId = searchParams.get('courseId');
+        const promo = searchParams.get('promo');
 
         const confirmEnrollment = async () => {
             if (courseId) {
                 try {
-                    await apiClient.post(`/enroll/confirm/${courseId}`);
-                    console.log('Enrollment confirmed for course:', courseId);
+                    await apiClient.post(`/enroll/confirm/${courseId}`, {
+                        promotionCode: promo || undefined,
+                    });
+                    console.log('Enrollment confirmed for course:', courseId, 'promo:', promo);
                 } catch (err: any) {
                     // Ignore if already enrolled
                     if (err.response?.status !== 409) {

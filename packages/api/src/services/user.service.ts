@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -27,6 +28,7 @@ export async function getUserProfile(userId: number) {
             role: true,
             createdAt: true,
             isVerified: true,
+            referralCode: true,
             _count: {
                 select: {
                     enrollments: true,
@@ -51,6 +53,17 @@ export async function getUserProfile(userId: number) {
         return null;
     }
 
+    let referralCode = user.referralCode;
+    if (!referralCode) {
+        const sanitizedUsername = user.username.substring(0, 8).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        referralCode = `REF-${sanitizedUsername}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+        
+        await prisma.user.update({
+            where: { id: userId },
+            data: { referralCode },
+        });
+    }
+
     // Calculate total students for teachers (sum of enrollments in all their courses)
     let totalStudents = 0;
     if (user.role === 'TEACHER' && user.coursesAsTeacher) {
@@ -62,6 +75,7 @@ export async function getUserProfile(userId: number) {
 
     return {
         ...user,
+        referralCode,
         fullName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username,
         totalStudents, // Add total students for teachers
     };

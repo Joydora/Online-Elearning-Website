@@ -11,6 +11,7 @@ const ALL_TYPES: NotificationType[] = [
     NotificationType.REENGAGEMENT_REMINDER,
     NotificationType.PROJECT_GRADED,
     NotificationType.DISCUSSION_REPLY,
+    NotificationType.REFERRAL_SUCCESS,
 ];
 
 const LABEL_EN: Record<NotificationType, string> = {
@@ -18,6 +19,7 @@ const LABEL_EN: Record<NotificationType, string> = {
     [NotificationType.REENGAGEMENT_REMINDER]: 'Re-engagement reminders (learning reminders)',
     [NotificationType.PROJECT_GRADED]: 'Grading and feedback on submissions',
     [NotificationType.DISCUSSION_REPLY]: 'Replies in discussion boards',
+    [NotificationType.REFERRAL_SUCCESS]: 'Referral rewards and updates',
 };
 
 export type NotificationPreferenceRow = {

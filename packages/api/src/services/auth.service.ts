@@ -40,6 +40,7 @@ export type RegisterInput = {
     qualifications?: string;
     cvUrl?: string;
     topics?: string;
+    referredByCode?: string;
 };
 
 export type LoginResult = {
@@ -85,6 +86,9 @@ export async function register(userData: RegisterInput): Promise<SafeUser & { ve
     const verificationToken = generateVerificationToken();
     const verificationTokenExpiry = getTokenExpiry();
 
+    const sanitizedUsername = userData.username.substring(0, 8).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const referralCode = `REF-${sanitizedUsername}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+
     const user = await prisma.$transaction(async (tx) => {
         const newUser = await tx.user.create({
             data: {
@@ -97,6 +101,7 @@ export async function register(userData: RegisterInput): Promise<SafeUser & { ve
                 isVerified: false,
                 verificationToken,
                 verificationTokenExpiry,
+                referralCode,
             },
         });
 
@@ -111,6 +116,51 @@ export async function register(userData: RegisterInput): Promise<SafeUser & { ve
                     status: 'PENDING',
                 },
             });
+        }
+
+        // Handle referral link
+        if (userData.referredByCode) {
+            const referrer = await tx.user.findUnique({
+                where: { referralCode: userData.referredByCode },
+            });
+            if (referrer) {
+                // Link them in Referral table
+                await tx.referral.create({
+                    data: {
+                        referrerId: referrer.id,
+                        referredId: newUser.id,
+                        status: 'PENDING',
+                    },
+                });
+
+                // Generate 10% welcome coupon for the new user (referred friend)
+                const welcomeCode = `WEL-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+                const expiry = new Date();
+                expiry.setDate(expiry.getDate() + 30); // 30 days expiry
+
+                await tx.promotion.create({
+                    data: {
+                        code: welcomeCode,
+                        description: `10% Welcome Discount for using referral link`,
+                        discountType: 'PERCENTAGE',
+                        discountValue: 10,
+                        usageLimit: 1,
+                        startDate: new Date(),
+                        endDate: expiry,
+                        isActive: true,
+                        userId: newUser.id,
+                    },
+                });
+
+                await tx.notification.create({
+                    data: {
+                        userId: newUser.id,
+                        type: 'REFERRAL_SUCCESS',
+                        title: 'Welcome Coupon Earned! 🎁',
+                        message: `Welcome to the platform! Since you registered via a friend's referral link, you received a 10% welcome coupon code: ${welcomeCode} (valid for 30 days). You can use this during checkout.`,
+                    },
+                });
+            }
         }
 
         return newUser;

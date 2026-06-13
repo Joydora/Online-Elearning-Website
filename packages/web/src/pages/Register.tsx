@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useForm, type ControllerRenderProps } from 'react-hook-form';
 import { AxiosError } from 'axios';
@@ -34,6 +34,8 @@ export default function Register() {
     const [registrationSuccess, setRegistrationSuccess] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState('');
     const [isInstructorRegistered, setIsInstructorRegistered] = useState(false);
+    const [searchParams] = useSearchParams();
+    const [referredByCode] = useState(() => searchParams.get('ref') || localStorage.getItem('referredByCode') || '');
 
     const form = useForm<RegisterFormValues>({
         defaultValues: {
@@ -64,7 +66,19 @@ export default function Register() {
                 delete registerData.cvUrl;
                 delete registerData.topics;
             }
-            const { data } = await apiClient.post('/auth/register', registerData);
+            
+            const payload = {
+                ...registerData,
+                referredByCode: referredByCode || undefined
+            };
+            
+            const { data } = await apiClient.post('/auth/register', payload);
+            
+            // Clean up localStorage on successful register call
+            if (referredByCode) {
+                localStorage.removeItem('referredByCode');
+            }
+            
             return data;
         },
         onSuccess: async (data, variables) => {
@@ -215,6 +229,14 @@ export default function Register() {
                                 Fill in the information below to start your learning journey
                             </p>
                         </header>
+
+                        {referredByCode && (
+                            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 text-center">
+                                <p className="text-sm text-emerald-800 dark:text-emerald-300 font-medium">
+                                    🎉 You were invited by a friend! A <strong>10% Welcome Coupon</strong> will be added to your profile immediately after registration.
+                                </p>
+                            </div>
+                        )}
 
                         <Form {...form}>
                             <form className="grid gap-5" onSubmit={onSubmit}>

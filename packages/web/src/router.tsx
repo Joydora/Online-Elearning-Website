@@ -1,4 +1,5 @@
-import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Outlet, createBrowserRouter, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore, type Role } from './stores/useAuthStore';
 import { apiClient } from './lib/api';
@@ -58,6 +59,16 @@ import ManageTeacherApplications from './pages/admin/ManageTeacherApplications';
 import Notifications from './pages/Notifications';
 
 function MainLayout() {
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const ref = searchParams.get('ref');
+        if (ref) {
+            localStorage.setItem('referredByCode', ref);
+            console.log('Saved referral code to localStorage:', ref);
+        }
+    }, [searchParams]);
+
     return (
         <div className="min-h-screen flex flex-col bg-white dark:bg-slate-900">
             <Header />

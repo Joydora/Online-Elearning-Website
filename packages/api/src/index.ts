@@ -28,6 +28,7 @@ import certificateRoutes from './routes/certificate.routes';
 import discussionRoutes from './routes/discussion.routes';
 import notificationRoutes from './routes/notification.routes';
 import teacherApplicationRoutes from './routes/teacherApplication.routes';
+import referralRoutes from './routes/referral.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
 import { startEnrollmentExpiryJob } from './jobs/expireEnrollments';
 import { startNotificationEngagementJobs } from './jobs/notificationEngagement';
@@ -80,6 +81,7 @@ app.use('/api', certificateRoutes);
 app.use('/api', discussionRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', teacherApplicationRoutes);
+app.use('/api', referralRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');

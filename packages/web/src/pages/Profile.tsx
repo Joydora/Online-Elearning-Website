@@ -75,6 +75,18 @@ export default function Profile() {
         },
     });
 
+    const [activeTab, setActiveTab] = useState<'profile' | 'referrals'>('profile');
+
+    // Fetch referrals info (only for student role)
+    const { data: referralData } = useQuery({
+        queryKey: ['my-referrals'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/users/referrals');
+            return data;
+        },
+        enabled: profile?.role === 'STUDENT',
+    });
+
     // Update form data when profile loads
     useEffect(() => {
         if (profile) {
@@ -303,7 +315,37 @@ export default function Profile() {
 
                     {/* Main Form */}
                     <div className="lg:col-span-2 space-y-6">
-                        <Card className="p-4 sm:p-6">
+                        {/* Tab Headers */}
+                        {profile.role === 'STUDENT' && (
+                            <div className="flex border-b border-zinc-200 dark:border-zinc-805 pb-1 gap-4 mb-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('profile')}
+                                    className={`pb-2 text-sm font-semibold border-b-2 transition-all ${
+                                        activeTab === 'profile'
+                                            ? 'border-red-600 text-red-600 dark:border-red-500 dark:text-red-500'
+                                            : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
+                                    }`}
+                                >
+                                    Personal Details
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('referrals')}
+                                    className={`pb-2 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
+                                        activeTab === 'referrals'
+                                            ? 'border-red-600 text-red-600 dark:border-red-500 dark:text-red-500'
+                                            : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
+                                    }`}
+                                >
+                                    Referral Program 🎁
+                                </button>
+                            </div>
+                        )}
+
+                        {activeTab === 'profile' && (
+                            <>
+                                <Card className="p-4 sm:p-6">
                             <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-white mb-4 sm:mb-6">
                                 Personal Information
                             </h2>
@@ -538,6 +580,211 @@ export default function Profile() {
                                 </Button>
                             </div>
                         </Card>
+                    </>
+                )}
+
+                        {activeTab === 'referrals' && referralData && (
+                            <div className="space-y-6 animate-fadeIn">
+                                {/* Invite Card */}
+                                <Card className="p-5 sm:p-6 bg-gradient-to-br from-red-50 via-amber-50 to-orange-50 dark:from-zinc-900 dark:via-zinc-850 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 dark:opacity-20 pointer-events-none">
+                                        <Trophy className="w-24 h-24 text-red-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                                        Refer Friends & Study Together!
+                                    </h3>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 max-w-xl leading-relaxed">
+                                        Share the joy of learning with your friends. Send them your unique invite link:
+                                        they will get a <strong className="text-green-600 dark:text-green-400">10% Welcome Coupon</strong> off their first purchase, and you will earn a <strong className="text-red-600 dark:text-red-400">20% Discount Coupon</strong> for every friend who purchases a course!
+                                    </p>
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                                            Your Personal Invite Link
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                readOnly
+                                                value={`${window.location.origin}/register?ref=${referralData.referralCode}`}
+                                                className="bg-white dark:bg-zinc-950 border-zinc-300 text-sm font-mono h-11"
+                                            />
+                                            <Button
+                                                className="bg-red-600 hover:bg-red-700 text-white px-4 h-11"
+                                                onClick={() => {
+                                                    const link = `${window.location.origin}/register?ref=${referralData.referralCode}`;
+                                                    navigator.clipboard.writeText(link);
+                                                    showSuccessAlert('Copied!', 'Invite link copied to clipboard.');
+                                                }}
+                                            >
+                                                Copy
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                {/* Referral Statistics */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <Card className="p-4 flex flex-col justify-between h-28 border border-zinc-200 dark:border-zinc-800">
+                                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                                            Friends Invited
+                                        </span>
+                                        <span className="text-3xl font-extrabold text-zinc-900 dark:text-white">
+                                            {referralData.referralsCount}
+                                        </span>
+                                        <span className="text-xs text-zinc-400">Total signups via link</span>
+                                    </Card>
+                                    <Card className="p-4 flex flex-col justify-between h-28 border border-zinc-200 dark:border-zinc-800">
+                                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                                            Successful Referrals
+                                        </span>
+                                        <span className="text-3xl font-extrabold text-green-600 dark:text-green-400">
+                                            {referralData.referralsCompletedCount}
+                                        </span>
+                                        <span className="text-xs text-zinc-400">Completed first purchase</span>
+                                    </Card>
+                                    <Card className="p-4 flex flex-col justify-between h-28 border border-zinc-200 dark:border-zinc-800">
+                                        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                                            Vouchers Earned
+                                        </span>
+                                        <span className="text-3xl font-extrabold text-amber-500">
+                                            {referralData.earnedCoupons.length}
+                                        </span>
+                                        <span className="text-xs text-zinc-400">Coupons issued to you</span>
+                                    </Card>
+                                </div>
+
+                                {/* My Referral Coupons */}
+                                <Card className="p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800">
+                                    <h4 className="font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+                                        🎁 My Referral Discount Vouchers
+                                    </h4>
+                                    {referralData.earnedCoupons.length === 0 ? (
+                                        <p className="text-sm text-zinc-500 dark:text-zinc-400 py-4 text-center">
+                                            No vouchers earned yet. Share your invite link to get your first reward!
+                                        </p>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {referralData.earnedCoupons.map((coupon: any) => {
+                                                const isUsed = coupon.usedCount >= (coupon.usageLimit || 1);
+                                                const isExpired = new Date(coupon.endDate) < new Date();
+                                                const isActive = coupon.isActive && !isUsed && !isExpired;
+                                                
+                                                return (
+                                                    <div
+                                                        key={coupon.id}
+                                                        className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 relative overflow-hidden transition-all ${
+                                                            isActive
+                                                                ? 'border-amber-200 dark:border-amber-900 bg-amber-50/20 dark:bg-amber-950/10 shadow-sm animate-pulseFast'
+                                                                : 'border-zinc-200 dark:border-zinc-850 bg-zinc-50/50 dark:bg-zinc-900/10 opacity-70'
+                                                        }`}
+                                                    >
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <span className="text-xs font-semibold tracking-wide text-zinc-400 uppercase">
+                                                                    {coupon.description || 'Referral Coupon'}
+                                                                </span>
+                                                                <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
+                                                                    {coupon.discountValue}% OFF
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                {isUsed ? (
+                                                                    <span className="px-2 py-0.5 text-xs font-semibold rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-500">
+                                                                        Used
+                                                                    </span>
+                                                                ) : isExpired ? (
+                                                                    <span className="px-2 py-0.5 text-xs font-semibold rounded bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400">
+                                                                        Expired
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="px-2 py-0.5 text-xs font-semibold rounded bg-green-100 dark:bg-green-950/30 text-green-600 dark:text-green-400">
+                                                                        Active
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                                            <div>
+                                                                <span className="block text-[10px] text-zinc-400 uppercase tracking-wide">
+                                                                    Promo Code
+                                                                </span>
+                                                                <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200 select-all">
+                                                                    {coupon.code}
+                                                                </span>
+                                                            </div>
+                                                            {isActive && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    type="button"
+                                                                    className="h-8 text-xs border-amber-300 hover:bg-amber-500/10"
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(coupon.code);
+                                                                        showSuccessAlert('Copied!', 'Promo code copied.');
+                                                                    }}
+                                                                >
+                                                                    Copy
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[10px] text-zinc-400">
+                                                            Valid until {formatDate(coupon.endDate)}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </Card>
+
+                                {/* Referral History */}
+                                <Card className="p-4 sm:p-6 border border-zinc-200 dark:border-zinc-800">
+                                    <h4 className="font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+                                        👥 Referred Friends History
+                                    </h4>
+                                    {referralData.referrals.length === 0 ? (
+                                        <p className="text-sm text-zinc-500 dark:text-zinc-400 py-4 text-center">
+                                            No friends referred yet. Send them your invite link above!
+                                        </p>
+                                    ) : (
+                                        <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-left">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">Friend</th>
+                                                        <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100">Joined Date</th>
+                                                        <th className="px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 text-center">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {referralData.referrals.map((ref: any) => (
+                                                        <tr key={ref.id} className="border-t border-zinc-200 dark:border-zinc-800">
+                                                            <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200 font-medium">
+                                                                {ref.friend.fullName}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400 text-xs">
+                                                                {formatDate(ref.friend.joinedAt)}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                {ref.status === 'COMPLETED' ? (
+                                                                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 font-medium">
+                                                                        Completed
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 font-medium font-semibold">
+                                                                        Pending Purchase
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

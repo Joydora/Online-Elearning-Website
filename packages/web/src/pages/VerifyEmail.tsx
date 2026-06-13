@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Mail, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,7 @@ export default function VerifyEmail() {
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState<VerificationStatus>('loading');
     const [message, setMessage] = useState('');
+    const verificationStarted = useRef(false);
 
     useEffect(() => {
         const token = searchParams.get('token');
@@ -20,6 +21,11 @@ export default function VerifyEmail() {
             setMessage('Invalid verification link.');
             return;
         }
+
+        if (verificationStarted.current) {
+            return;
+        }
+        verificationStarted.current = true;
 
         const verifyEmail = async () => {
             try {

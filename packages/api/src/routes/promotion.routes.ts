@@ -8,12 +8,12 @@ import {
     updatePromotionController,
     deletePromotionController,
 } from '../controllers/promotion.controller';
-import { isAuthenticated, isAuthorized } from '../middleware/auth.middleware';
+import { isAuthenticated, isAuthorized, optionalAuth } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // Public route - Validate promotion code (for checkout)
-router.post('/promotions/validate', validatePromotionCodeController);
+router.post('/promotions/validate', optionalAuth, validatePromotionCodeController);
 
 // Admin routes
 router.get('/promotions', isAuthenticated, isAuthorized([Role.ADMIN]), getAllPromotionsController);
