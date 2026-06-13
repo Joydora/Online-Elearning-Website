@@ -25,7 +25,7 @@ export async function createQuestionController(req: Request, res: Response): Pro
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { contentId, questionText } = authReq.body ?? {};
+        const { contentId, questionText, explanation } = authReq.body ?? {};
 
         if (!contentId || !questionText) {
             return res.status(400).json({ error: 'contentId and questionText are required' });
@@ -70,11 +70,13 @@ export async function createQuestionController(req: Request, res: Response): Pro
         const question = await prisma.question.create({
             data: {
                 questionText,
+                explanation: explanation ?? null,
                 contentId: numericContentId,
             },
             select: {
                 id: true,
                 questionText: true,
+                explanation: true,
                 contentId: true,
             },
         });
@@ -155,7 +157,7 @@ export async function createOptionController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { questionId, optionText, isCorrect } = authReq.body ?? {};
+        const { questionId, optionText, isCorrect, explanation } = authReq.body ?? {};
 
         if (!questionId || !optionText || isCorrect === undefined) {
             return res.status(400).json({ error: 'questionId, optionText, and isCorrect are required' });
@@ -209,6 +211,13 @@ export async function createOptionController(req: Request, res: Response): Promi
             },
         });
 
+        if (explanation !== undefined) {
+            await prisma.question.update({
+                where: { id: numericQuestionId },
+                data: { explanation: explanation || null },
+            });
+        }
+
         return res.status(201).json(option);
     } catch (error) {
         return res.status(500).json({
@@ -238,6 +247,8 @@ export async function deleteOptionController(req: Request, res: Response): Promi
         const option = await prisma.answerOption.findUnique({
             where: { id: optionId },
             select: {
+                isCorrect: true,
+                questionId: true,
                 question: {
                     select: {
                         content: {
@@ -263,6 +274,14 @@ export async function deleteOptionController(req: Request, res: Response): Promi
         // Admin can delete any option
         if (authReq.user?.role !== 'ADMIN' && option.question.content.module.course.teacherId !== teacherId) {
             return res.status(403).json({ error: 'You are not the owner of this course' });
+        }
+
+        // If the deleted option was correct, clear the parent question's explanation
+        if (option.isCorrect) {
+            await prisma.question.update({
+                where: { id: option.questionId },
+                data: { explanation: null },
+            });
         }
 
         // Delete option
@@ -316,6 +335,7 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
                     select: {
                         id: true,
                         questionText: true,
+                        explanation: true,
                         options: {
                             orderBy: { id: 'asc' },
                             select: {
@@ -485,6 +505,7 @@ export async function generateQuizDraftController(req: Request, res: Response): 
 
 type BatchQuestionInput = {
     questionText: string;
+    explanation?: string;
     options: Array<{
         optionText: string;
         isCorrect: boolean;
@@ -553,6 +574,7 @@ export async function createBatchQuestionsController(req: Request, res: Response
                 const question = await tx.question.create({
                     data: {
                         questionText: q.questionText,
+                        explanation: q.explanation ?? null,
                         contentId,
                     },
                 });
@@ -594,6 +616,91 @@ export async function createBatchQuestionsController(req: Request, res: Response
         console.error('Error in createBatchQuestionsController:', error);
         return res.status(500).json({
             error: 'Unable to batch create questions',
+            details: (error as Error).message,
+        });
+    }
+}
+
+// Update question, explanation, and its options
+export async function updateQuestionController(req: Request, res: Response): Promise<Response> {
+    try {
+        const authReq = req as AuthenticatedRequest;
+        const teacherId = getTeacherId(authReq);
+
+        if (!teacherId) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const questionId = Number.parseInt(req.params.id, 10);
+
+        if (Number.isNaN(questionId)) {
+            return res.status(400).json({ error: 'Question id must be a number' });
+        }
+
+        const { questionText, explanation, options } = authReq.body ?? {};
+
+        // Verify teacher owns the course of this question
+        const question = await prisma.question.findUnique({
+            where: { id: questionId },
+            select: {
+                content: {
+                    select: {
+                        module: {
+                            select: {
+                                course: {
+                                    select: { teacherId: true },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!question) {
+            return res.status(404).json({ error: 'Question not found' });
+        }
+
+        if (authReq.user?.role !== 'ADMIN' && question.content.module.course.teacherId !== teacherId) {
+            return res.status(403).json({ error: 'You are not the owner of this course' });
+        }
+
+        // Perform updates in a transaction
+        const updatedQuestion = await prisma.$transaction(async (tx) => {
+            // 1. Update question text and explanation
+            const q = await tx.question.update({
+                where: { id: questionId },
+                data: {
+                    questionText: questionText !== undefined ? questionText : undefined,
+                    explanation: explanation !== undefined ? (explanation || null) : undefined,
+                },
+            });
+
+            // 2. Update options if provided
+            if (Array.isArray(options)) {
+                for (const opt of options) {
+                    if (opt.id) {
+                        await tx.answerOption.update({
+                            where: { id: Number(opt.id) },
+                            data: {
+                                optionText: opt.optionText !== undefined ? opt.optionText : undefined,
+                                isCorrect: opt.isCorrect !== undefined ? Boolean(opt.isCorrect) : undefined,
+                            },
+                        });
+                    }
+                }
+            }
+
+            return q;
+        });
+
+        return res.status(200).json({
+            message: 'Question updated successfully',
+            question: updatedQuestion,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to update question',
             details: (error as Error).message,
         });
     }

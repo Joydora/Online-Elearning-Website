@@ -120,11 +120,28 @@ type QuizData = {
     questions: QuizQuestion[];
 };
 
+type QuizOptionReview = {
+    id: number;
+    optionText: string;
+    isCorrect?: boolean;
+};
+
+type QuizQuestionReview = {
+    id: number;
+    questionText: string;
+    submittedOptionId: number | null;
+    isSubmittedCorrect: boolean;
+    explanation: string | null;
+    options: QuizOptionReview[];
+};
+
 type QuizResult = {
     attemptId: number;
     score: number;
     correctCount: number;
     totalQuestions: number;
+    passed: boolean;
+    questions?: QuizQuestionReview[];
 };
 
 type VideoQuizMarker = {
@@ -1277,6 +1294,86 @@ export default function CoursePlayer() {
                                                     Next Lesson
                                                 </Button>
                                             </div>
+
+                                            {/* Quiz Review Section */}
+                                            {quizResult.questions && quizResult.questions.length > 0 && (
+                                                <div className="text-left mt-8 pt-8 border-t border-zinc-200 dark:border-zinc-700 space-y-6">
+                                                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                                                        Review Attempt
+                                                    </h3>
+                                                    {quizResult.passed ? (
+                                                        <p className="text-sm text-green-600 dark:text-green-400 mb-4 font-medium">
+                                                            🎉 You passed the quiz (Score &ge; 50%)! You can view correct answers and explanations below.
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-sm text-amber-600 dark:text-amber-400 mb-4 font-medium">
+                                                            ⚠️ You did not pass the quiz (Passing score is 50%). We have highlighted which questions you got wrong so you can revise them, but the correct answers and explanations are hidden until you pass.
+                                                        </p>
+                                                    )}
+                                                    <div className="space-y-4">
+                                                        {quizResult.questions.map((q, qIdx) => (
+                                                            <div key={q.id} className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+                                                                <div className="flex items-start justify-between gap-3 mb-3">
+                                                                    <h4 className="font-semibold text-zinc-900 dark:text-white text-sm sm:text-base">
+                                                                        Question {qIdx + 1}: {q.questionText}
+                                                                    </h4>
+                                                                    <span className={`text-xs px-2 py-1 rounded-full font-semibold shrink-0 ${q.isSubmittedCorrect
+                                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                                                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                                                    }`}>
+                                                                        {q.isSubmittedCorrect ? 'Correct' : 'Incorrect'}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    {q.options.map((opt) => {
+                                                                        const isSelected = opt.id === q.submittedOptionId;
+                                                                        let borderClass = 'border-zinc-200 dark:border-zinc-700';
+                                                                        let bgClass = 'bg-white dark:bg-zinc-900';
+
+                                                                        if (isSelected) {
+                                                                            if (q.isSubmittedCorrect) {
+                                                                                borderClass = 'border-green-300 dark:border-green-800';
+                                                                                bgClass = 'bg-green-50/50 dark:bg-green-950/10';
+                                                                            } else {
+                                                                                borderClass = 'border-red-300 dark:border-red-800';
+                                                                                bgClass = 'bg-red-50/50 dark:bg-red-950/10';
+                                                                            }
+                                                                        } else if (opt.isCorrect) {
+                                                                            borderClass = 'border-green-300 dark:border-green-800';
+                                                                            bgClass = 'bg-green-50/50 dark:bg-green-950/10';
+                                                                        }
+
+                                                                        return (
+                                                                            <div
+                                                                                key={opt.id}
+                                                                                className={`flex items-center gap-2 p-3 rounded-lg border text-xs sm:text-sm ${borderClass} ${bgClass}`}
+                                                                            >
+                                                                                <div className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? (q.isSubmittedCorrect ? 'bg-green-500' : 'bg-red-500') : (opt.isCorrect ? 'bg-green-500' : 'bg-transparent')}`} />
+                                                                                <span className="flex-1 text-zinc-800 dark:text-zinc-200">
+                                                                                    {opt.optionText}
+                                                                                </span>
+                                                                                {isSelected && (
+                                                                                    <span className="text-xs font-semibold text-zinc-500 shrink-0">
+                                                                                        (Your Answer)
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                {q.explanation && (
+                                                                    <div className="mt-3 p-3 rounded-md bg-zinc-100 dark:bg-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                                                                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">Explanation: </span>
+                                                                        {q.explanation}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </Card>
                                     )}
                                 </div>

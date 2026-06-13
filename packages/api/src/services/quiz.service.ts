@@ -65,6 +65,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
     questions: Array<{
         id: number;
         questionText: string;
+        explanation: string | null;
         options: Array<{
             id: number;
             optionText: string;
@@ -90,6 +91,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
                 select: {
                     id: true,
                     questionText: true,
+                    explanation: true,
                     options: {
                         orderBy: { id: 'asc' },
                         select: {
@@ -120,6 +122,7 @@ async function loadQuizContentWithQuestions(contentId: number): Promise<{
         questions: content.questions.map((question) => ({
             id: question.id,
             questionText: question.questionText,
+            explanation: question.explanation ?? null,
             options: question.options.map((option) => ({
                 id: option.id,
                 optionText: option.optionText,
@@ -561,11 +564,46 @@ export async function submitQuizAnswers(contentId: number, studentId: number, ra
         },
     });
 
+    // Check if the student has ever passed this quiz (highest score >= 50)
+    // to allow review if they previously passed even if this attempt failed.
+    const highestAttempt = await prisma.quizAttempt.findFirst({
+        where: {
+            studentId,
+            quizContentId: quiz.contentId,
+        },
+        orderBy: { score: 'desc' },
+        select: { score: true },
+    });
+    
+    const bestScore = highestAttempt ? Math.max(highestAttempt.score, score) : score;
+    const passed = bestScore >= 50;
+
+    const questionsReview = quiz.questions.map((question) => {
+        const submittedOptionId = answerMap.get(question.id) ?? null;
+        const submittedOption = question.options.find((o) => o.id === submittedOptionId);
+        const isSubmittedCorrect = submittedOption ? submittedOption.isCorrect : false;
+
+        return {
+            id: question.id,
+            questionText: question.questionText,
+            submittedOptionId,
+            isSubmittedCorrect,
+            explanation: passed ? (question.explanation ?? null) : null,
+            options: question.options.map((option) => ({
+                id: option.id,
+                optionText: option.optionText,
+                isCorrect: passed ? option.isCorrect : undefined,
+            })),
+        };
+    });
+
     return {
         attemptId: attempt.id,
         score,
         correctCount,
         totalQuestions,
+        passed,
+        questions: questionsReview,
     };
 }
 

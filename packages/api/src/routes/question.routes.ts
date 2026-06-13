@@ -9,6 +9,7 @@ import {
     getQuizQuestionsController,
     generateQuizDraftController,
     createBatchQuestionsController,
+    updateQuestionController,
 } from '../controllers/question.controller';
 
 const router = Router();
@@ -18,6 +19,7 @@ router.get('/quiz/:contentId/manage', isAuthenticated, isAuthorized([Role.TEACHE
 
 // Question management
 router.post('/questions', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), createQuestionController);
+router.put('/questions/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), updateQuestionController);
 router.delete('/questions/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), deleteQuestionController);
 
 // Option management
