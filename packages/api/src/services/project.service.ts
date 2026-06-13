@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma, NotificationType } from '@prisma/client';
 import { createNotification } from './notification.service';
+import { allocatePeerReviews } from './project-evaluation.service';
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,8 @@ export async function createProject(data: {
     requirements: string;
     deadline?: string;
     teacherId: number;
+    enablePeerReview?: boolean;
+    peerReviewCount?: number;
 }) {
     const course = await prisma.course.findUnique({ where: { id: data.courseId } });
     if (!course || course.teacherId !== data.teacherId) throw new Error('FORBIDDEN');
@@ -60,6 +63,8 @@ export async function createProject(data: {
             description: data.description,
             requirements: data.requirements,
             deadline: data.deadline ? new Date(data.deadline) : undefined,
+            enablePeerReview: data.enablePeerReview ?? false,
+            peerReviewCount: data.peerReviewCount ?? 3,
         },
     });
 }
@@ -69,6 +74,8 @@ export async function updateProject(id: number, data: Partial<{
     description: string;
     requirements: string;
     deadline: string;
+    enablePeerReview: boolean;
+    peerReviewCount: number;
 }>, teacherId: number) {
     const project = await prisma.project.findUnique({
         where: { id },
@@ -79,8 +86,12 @@ export async function updateProject(id: number, data: Partial<{
     return prisma.project.update({
         where: { id },
         data: {
-            ...data,
+            title: data.title,
+            description: data.description,
+            requirements: data.requirements,
             deadline: data.deadline ? new Date(data.deadline) : undefined,
+            enablePeerReview: data.enablePeerReview,
+            peerReviewCount: data.peerReviewCount,
         },
     });
 }
@@ -98,7 +109,7 @@ export async function deleteProject(id: number, teacherId: number) {
 export async function getProjectsByCourse(courseId: number) {
     return prisma.project.findMany({
         where: { courseId },
-        include: { _count: { select: { submissions: true } } },
+        include: { _count: { select: { submissions: true } }, rubrics: true },
         orderBy: { createdAt: 'desc' },
     });
 }
@@ -131,16 +142,24 @@ export async function submitProject(options: {
         where: { projectId_studentId: { projectId, studentId } },
     });
 
+    let submission;
     if (existing) {
-        return prisma.projectSubmission.update({
+        submission = await prisma.projectSubmission.update({
             where: { id: existing.id },
             data: { repoUrl, commitHistory },
         });
+    } else {
+        submission = await prisma.projectSubmission.create({
+            data: { projectId, studentId, repoUrl, commitHistory },
+        });
     }
 
-    return prisma.projectSubmission.create({
-        data: { projectId, studentId, repoUrl, commitHistory },
+    // Allocate peer reviews dynamically
+    await allocatePeerReviews(projectId, studentId, submission.id).catch(err => {
+        console.error('Error allocating peer reviews:', err);
     });
+
+    return submission;
 }
 
 // Refresh commits for a submission

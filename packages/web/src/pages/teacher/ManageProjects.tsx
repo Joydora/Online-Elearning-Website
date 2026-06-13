@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Github, Star, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
@@ -28,6 +28,8 @@ type Project = {
     requirements: string;
     deadline: string | null;
     createdAt: string;
+    enablePeerReview?: boolean;
+    peerReviewCount?: number;
     _count?: { submissions: number };
 };
 
@@ -36,7 +38,136 @@ type ProjectForm = {
     description: string;
     requirements: string;
     deadline: string;
+    enablePeerReview: boolean;
+    peerReviewCount: number;
 };
+
+type RubricItem = {
+    id?: number;
+    criteria: string;
+    description: string;
+    maxScore: number;
+};
+
+function RubricModal({ projectId, onClose }: { projectId: number; onClose: () => void }) {
+    const [rubrics, setRubrics] = useState<RubricItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        const fetchRubrics = async () => {
+            try {
+                const { data } = await apiClient.get(`/projects/${projectId}/rubric`);
+                setRubrics(data);
+            } catch {
+                showErrorAlert('Error', 'Failed to load rubrics');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchRubrics();
+    }, [projectId]);
+
+    const handleAdd = () => {
+        setRubrics([...rubrics, { criteria: '', description: '', maxScore: 10 }]);
+    };
+
+    const handleRemove = (index: number) => {
+        setRubrics(rubrics.filter((_, i) => i !== index));
+    };
+
+    const handleSave = async () => {
+        if (rubrics.some(r => !r.criteria.trim() || r.maxScore <= 0)) {
+            showErrorAlert('Error', 'All criteria must have names and a maximum score greater than 0.');
+            return;
+        }
+        setSaving(true);
+        try {
+            await apiClient.post(`/projects/${projectId}/rubric`, { rubrics });
+            await showSuccessAlert('Saved', 'Rubric criteria saved successfully.');
+            onClose();
+        } catch (error: any) {
+            showErrorAlert('Error', error.response?.data?.error || 'Failed to save rubric.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <Card className="w-full max-w-2xl p-4 sm:p-6 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+                <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4">
+                    Manage Project Rubrics
+                </h3>
+                {loading ? (
+                    <div className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-red-600" /></div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                            {rubrics.map((rubric, index) => (
+                                <div key={index} className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 space-y-2 relative">
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Input
+                                                placeholder="Criteria Name (e.g. Clean Code)"
+                                                value={rubric.criteria}
+                                                onChange={e => {
+                                                    const updated = [...rubrics];
+                                                    updated[index].criteria = e.target.value;
+                                                    setRubrics(updated);
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="w-24">
+                                            <Input
+                                                type="number"
+                                                placeholder="Max Score"
+                                                value={rubric.maxScore}
+                                                onChange={e => {
+                                                    const updated = [...rubrics];
+                                                    updated[index].maxScore = Number(e.target.value);
+                                                    setRubrics(updated);
+                                                }}
+                                            />
+                                        </div>
+                                        <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0" onClick={() => handleRemove(index)}>
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                    <textarea
+                                        className="w-full h-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                                        placeholder="Description of this criteria..."
+                                        value={rubric.description}
+                                        onChange={e => {
+                                            const updated = [...rubrics];
+                                            updated[index].description = e.target.value;
+                                            setRubrics(updated);
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                            {rubrics.length === 0 && (
+                                <p className="text-sm text-zinc-500 text-center py-4">No rubric criteria added. Students will be graded out of 10 general points by default.</p>
+                            )}
+                        </div>
+
+                        <Button variant="outline" size="sm" onClick={handleAdd} className="w-full gap-1">
+                            <Plus className="w-4 h-4" /> Add Criteria
+                        </Button>
+
+                        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end border-t border-zinc-100 dark:border-zinc-800 pt-4 mt-2">
+                            <Button variant="outline" onClick={onClose} disabled={saving} className="w-full sm:w-auto">Cancel</Button>
+                            <Button onClick={handleSave} disabled={saving} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
+                                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Save Rubrics
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </Card>
+        </div>
+    );
+}
 
 function GradeModal({ submission, onClose, onSaved }: { submission: Submission; onClose: () => void; onSaved: () => void }) {
     const [grade, setGrade] = useState<string>(submission.grade !== null ? String(submission.grade) : '');
@@ -142,7 +273,8 @@ export default function ManageProjects() {
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [expandedProject, setExpandedProject] = useState<number | null>(null);
     const [gradingSubmission, setGradingSubmission] = useState<Submission | null>(null);
-    const [form, setForm] = useState<ProjectForm>({ title: '', description: '', requirements: '', deadline: '' });
+    const [editingRubricProjectId, setEditingRubricProjectId] = useState<number | null>(null);
+    const [form, setForm] = useState<ProjectForm>({ title: '', description: '', requirements: '', deadline: '', enablePeerReview: false, peerReviewCount: 3 });
 
     const { data: projects, isLoading } = useQuery<Project[]>({
         queryKey: ['teacher-projects', courseId],
@@ -208,6 +340,8 @@ export default function ManageProjects() {
             description: project.description,
             requirements: project.requirements,
             deadline: project.deadline ? project.deadline.substring(0, 16) : '',
+            enablePeerReview: project.enablePeerReview ?? false,
+            peerReviewCount: project.peerReviewCount ?? 3,
         });
         setShowForm(true);
     };
@@ -215,7 +349,7 @@ export default function ManageProjects() {
     const resetForm = () => {
         setShowForm(false);
         setEditingProject(null);
-        setForm({ title: '', description: '', requirements: '', deadline: '' });
+        setForm({ title: '', description: '', requirements: '', deadline: '', enablePeerReview: false, peerReviewCount: 3 });
     };
 
     return (
@@ -260,10 +394,35 @@ export default function ManageProjects() {
                                 placeholder="List project requirements..."
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Deadline (optional)</label>
-                            <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Deadline (optional)</label>
+                                <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
+                            </div>
+                            <div className="flex-1 flex flex-col justify-end">
+                                <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 py-2.5 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.enablePeerReview}
+                                        onChange={e => setForm(f => ({ ...f, enablePeerReview: e.target.checked }))}
+                                        className="rounded border-zinc-300 text-red-600 focus:ring-red-500 w-4 h-4"
+                                    />
+                                    Enable Peer Review
+                                </label>
+                            </div>
                         </div>
+                        {form.enablePeerReview && (
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Required Peer Review Count</label>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={10}
+                                    value={form.peerReviewCount}
+                                    onChange={e => setForm(f => ({ ...f, peerReviewCount: Number(e.target.value) }))}
+                                />
+                            </div>
+                        )}
                         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
                             <Button variant="outline" onClick={resetForm} disabled={saveMutation.isPending} className="w-full sm:w-auto">Cancel</Button>
                             <Button
@@ -298,9 +457,25 @@ export default function ManageProjects() {
                                             {project.deadline && (
                                                 <span>Deadline: {new Date(project.deadline).toLocaleDateString('en-US')}</span>
                                             )}
+                                            {project.enablePeerReview && (
+                                                <span className="text-yellow-600 dark:text-yellow-400 font-semibold bg-yellow-50 dark:bg-yellow-900/20 px-1.5 py-0.5 rounded border border-yellow-200 dark:border-yellow-800">
+                                                    Peer Review: {project.peerReviewCount} reviews
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                                        {project.enablePeerReview && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setEditingRubricProjectId(project.id)}
+                                                className="gap-1 text-yellow-600 hover:text-yellow-700 border-yellow-200 hover:bg-yellow-50 dark:border-yellow-800 dark:hover:bg-yellow-900/20"
+                                            >
+                                                <Star className="w-3.5 h-3.5 fill-current" />
+                                                Rubric
+                                            </Button>
+                                        )}
                                         <Button size="sm" variant="ghost" onClick={() => openEdit(project)} className="gap-1">
                                             <Pencil className="w-3.5 h-3.5" />
                                         </Button>
@@ -376,6 +551,13 @@ export default function ManageProjects() {
                     submission={gradingSubmission}
                     onClose={() => setGradingSubmission(null)}
                     onSaved={() => queryClient.invalidateQueries({ queryKey: ['project-submissions', expandedProject] })}
+                />
+            )}
+
+            {editingRubricProjectId && (
+                <RubricModal
+                    projectId={editingRubricProjectId}
+                    onClose={() => setEditingRubricProjectId(null)}
                 />
             )}
         </div>
