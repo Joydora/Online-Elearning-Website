@@ -21,11 +21,10 @@ import {
     rejectCourseController,
 } from '../controllers/admin.controller';
 import {
-    getRevenueLedgerController,
-    markPayoutController,
-    exportRevenueCSVController,
+    listRevenueController,
+    markRevenuePaidController,
+    getTeacherEarningsController,
 } from '../controllers/revenue.controller';
-import { getAdminAuditLogsController } from '../controllers/audit.controller';
 
 const router = Router();
 
@@ -60,11 +59,17 @@ router.get('/admin/courses/:id', ...adminOnly, getCourseAdminController);
 router.put('/admin/courses/:id', ...adminOnly, updateCourseAdminController);
 router.delete('/admin/courses/:id', ...adminOnly, deleteCourseAdminController);
 
-// Revenue Ledger (EPIC 4)
-router.get('/admin/revenue', ...adminOnly, getRevenueLedgerController);
-router.post('/admin/revenue/payout', ...adminOnly, markPayoutController);
-router.get('/admin/revenue/export', ...adminOnly, exportRevenueCSVController);
-router.get('/admin/audit-logs', ...adminOnly, getAdminAuditLogsController);
+// Revenue
+router.get('/admin/revenue', ...adminOnly, listRevenueController);
+router.post('/admin/revenue/:id/mark-paid', ...adminOnly, markRevenuePaidController);
+
+// Teacher read-only earnings (on their own ledger)
+router.get(
+    '/teacher/earnings',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    getTeacherEarningsController,
+);
 
 export default router;
 

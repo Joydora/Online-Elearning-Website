@@ -34,7 +34,7 @@ type Content = {
     id: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string;
     durationInSeconds?: number;
     documentUrl?: string;
@@ -157,54 +157,19 @@ export default function ManageCourse() {
         },
     });
 
+    // Toggle free-preview mutation
     const togglePreviewMutation = useMutation({
         mutationFn: async ({ contentId, isFreePreview }: { contentId: number; isFreePreview: boolean }) => {
-            await apiClient.patch(`/content/${contentId}/preview`, { isFreePreview });
+            const { data } = await apiClient.put(`/content/${contentId}`, { isFreePreview });
+            return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
-            showSuccessAlert('Đã cập nhật!', 'Thiết lập bài học xem thử đã được lưu.');
         },
         onError: (error: any) => {
-            showErrorAlert('Lỗi cập nhật preview', error.response?.data?.error || 'Đã có lỗi xảy ra');
+            showErrorAlert('Không thể cập nhật', error.response?.data?.error || 'Đã có lỗi xảy ra');
         },
     });
-
-    // Submit for review mutation
-    const submitForReviewMutation = useMutation({
-        mutationFn: async () => {
-            await apiClient.post(`/courses/${id}/submit`);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
-            showSuccessAlert(
-                'Đã gửi duyệt!',
-                'Khoá học đã được gửi tới quản trị viên để duyệt.',
-            );
-        },
-        onError: (error: any) => {
-            showErrorAlert(
-                'Lỗi gửi duyệt',
-                error.response?.data?.error || 'Đã có lỗi xảy ra',
-            );
-        },
-    });
-
-    const handleSubmitForReview = async () => {
-        const result = await Swal.fire({
-            title: 'Gửi khoá học để duyệt?',
-            text: 'Sau khi gửi, bạn sẽ không thể chỉnh sửa cho đến khi có kết quả duyệt.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Gửi duyệt',
-            cancelButtonText: 'Huỷ',
-        });
-        if (result.isConfirmed) {
-            submitForReviewMutation.mutate();
-        }
-    };
 
     const toggleModule = (moduleId: number) => {
         setExpandedModules(prev => {
@@ -589,7 +554,26 @@ export default function ManageCourse() {
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                                                        <Button
+                                                            variant={content.isFreePreview ? 'default' : 'outline'}
+                                                            size="sm"
+                                                            data-testid={`preview-toggle-${content.id}`}
+                                                            className={
+                                                                content.isFreePreview
+                                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                                    : 'text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950/30'
+                                                            }
+                                                            disabled={togglePreviewMutation.isPending}
+                                                            onClick={() =>
+                                                                togglePreviewMutation.mutate({
+                                                                    contentId: content.id,
+                                                                    isFreePreview: !content.isFreePreview,
+                                                                })
+                                                            }
+                                                        >
+                                                            {content.isFreePreview ? 'Miễn phí ✓' : 'Đặt miễn phí'}
+                                                        </Button>
+                                                        {content.contentType === 'QUIZ' && (
                                                             <Button
                                                                 variant={content.isFreePreview ? 'default' : 'outline'}
                                                                 size="sm"

@@ -1,16 +1,9 @@
 import { Request, Response } from 'express';
-import { CourseStatus, PrismaClient, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
 import bcrypt from 'bcrypt';
-import {
-    approveCourse,
-    getAllCoursesForAdmin,
-    getPendingCourses,
-    rejectCourse,
-} from '../services/courseReview.service';
-import { writeAdminAuditLog } from '../services/adminAudit.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
+import { parsePagination } from '../lib/validate';
 
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 
@@ -41,7 +34,6 @@ export async function createCategoryController(req: Request, res: Response): Pro
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to create category',
-            details: (error as Error).message,
         });
     }
 }
@@ -89,7 +81,6 @@ export async function updateCategoryController(req: Request, res: Response): Pro
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to update category',
-            details: (error as Error).message,
         });
     }
 }
@@ -121,7 +112,6 @@ export async function deleteCategoryController(req: Request, res: Response): Pro
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to delete category',
-            details: (error as Error).message,
         });
     }
 }
@@ -147,6 +137,15 @@ export async function getAllUsersController(req: Request, res: Response): Promis
             ];
         }
 
+        // Cap the result size even when the UI doesn't pass limit/offset
+        // yet — the admin table currently renders all users, but a
+        // malicious/confused caller shouldn't be able to pull the whole
+        // user table in one request.
+        const { take, skip } = parsePagination(req.query as Record<string, unknown>, {
+            defaultLimit: 200,
+            maxLimit: 500,
+        });
+
         const users = await prisma.user.findMany({
             where,
             select: {
@@ -165,13 +164,14 @@ export async function getAllUsersController(req: Request, res: Response): Promis
                 },
             },
             orderBy: { createdAt: 'desc' },
+            take,
+            skip,
         });
 
         return res.status(200).json(users);
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch users',
-            details: (error as Error).message,
         });
     }
 }
@@ -225,7 +225,6 @@ export async function updateUserRoleController(req: Request, res: Response): Pro
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to update user role',
-            details: (error as Error).message,
         });
     }
 }
@@ -273,7 +272,6 @@ export async function deleteUserController(req: Request, res: Response): Promise
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to delete user',
-            details: (error as Error).message,
         });
     }
 }
@@ -347,7 +345,6 @@ export async function createUserController(req: Request, res: Response): Promise
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to create user',
-            details: (error as Error).message,
         });
     }
 }
@@ -407,25 +404,10 @@ export async function createCourseAdminController(req: Request, res: Response): 
             },
         });
 
-        await writeAdminAuditLog({
-            adminId: authReq.user?.userId,
-            action: 'CREATE',
-            resource: 'COURSE',
-            resourceId: course.id,
-            description: `Created course ${course.title}`,
-            after: {
-                title: course.title,
-                price: course.price,
-                teacherId: course.teacher.id,
-                categoryId: course.category.id,
-            },
-        });
-
-        return res.status(201).json(course);
+        return res.status(201).json({ ...course, price: course.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to create course',
-            details: (error as Error).message,
         });
     }
 }
@@ -494,33 +476,10 @@ export async function updateCourseAdminController(req: Request, res: Response): 
             },
         });
 
-        await writeAdminAuditLog({
-            adminId: authReq.user?.userId,
-            action: 'UPDATE',
-            resource: 'COURSE',
-            resourceId: updated.id,
-            description: `Updated course ${updated.title}`,
-            before: {
-                title: course.title,
-                description: course.description,
-                price: course.price,
-                teacherId: course.teacherId,
-                categoryId: course.categoryId,
-            },
-            after: {
-                title: updated.title,
-                description: updated.description,
-                price: updated.price,
-                teacherId: updated.teacher.id,
-                categoryId: updated.category.id,
-            },
-        });
-
-        return res.status(200).json(updated);
+        return res.status(200).json({ ...updated, price: updated.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to update course',
-            details: (error as Error).message,
         });
     }
 }
@@ -563,11 +522,10 @@ export async function getCourseAdminController(req: Request, res: Response): Pro
             return res.status(404).json({ error: 'Course not found' });
         }
 
-        return res.status(200).json(course);
+        return res.status(200).json({ ...course, price: course.price.toNumber() });
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch course',
-            details: (error as Error).message,
         });
     }
 }
@@ -589,6 +547,11 @@ export async function getAllCoursesAdminController(req: Request, res: Response):
             where.categoryId = Number.parseInt(categoryId, 10);
         }
 
+        const { take, skip } = parsePagination(req.query as Record<string, unknown>, {
+            defaultLimit: 200,
+            maxLimit: 500,
+        });
+
         const courses = await prisma.course.findMany({
             where,
             include: {
@@ -609,13 +572,16 @@ export async function getAllCoursesAdminController(req: Request, res: Response):
                 },
             },
             orderBy: { createdAt: 'desc' },
+            take,
+            skip,
         });
 
-        return res.status(200).json(courses);
+        return res.status(200).json(
+            courses.map((c) => ({ ...c, price: c.price.toNumber() })),
+        );
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch courses',
-            details: (error as Error).message,
         });
     }
 }
@@ -671,7 +637,6 @@ export async function deleteCourseAdminController(req: Request, res: Response): 
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to delete course',
-            details: (error as Error).message,
         });
     }
 }
@@ -809,7 +774,6 @@ export async function getAdminStatsController(req: Request, res: Response): Prom
     } catch (error) {
         return res.status(500).json({
             error: 'Unable to fetch admin stats',
-            details: (error as Error).message,
         });
     }
 }

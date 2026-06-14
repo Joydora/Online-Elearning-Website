@@ -1,7 +1,6 @@
-import { PrismaClient, ContentType, EnrollmentType, Role, VideoQuizBlockingMode } from '@prisma/client';
-import { markContentCompleted } from './progress.service';
-
-const prisma = new PrismaClient();
+import { ContentType } from '@prisma/client';
+import { refreshEnrollmentProgress } from './progress.service';
+import { prisma } from '../lib/prisma';
 
 type MarkerBlockingMode = 'pause' | 'non-blocking';
 
@@ -38,19 +37,15 @@ async function assertStudentEnrollment(courseId: number, studentId: number, isFr
                 courseId,
             },
         },
+        select: { isActive: true, expiresAt: true },
     });
 
     if (!enrollment) {
         throw new Error('NOT_ENROLLED');
     }
 
-    const isExpired = enrollment.expiresAt !== null && enrollment.expiresAt.getTime() <= Date.now();
-    if (!enrollment.isActive || isExpired) {
+    if (!enrollment.isActive || (enrollment.expiresAt && enrollment.expiresAt.getTime() <= Date.now())) {
         throw new Error('ENROLLMENT_EXPIRED');
-    }
-
-    if (enrollment.type === EnrollmentType.TRIAL && !isFreePreview) {
-        throw new Error('CONTENT_LOCKED');
     }
 }
 
@@ -560,6 +555,20 @@ export async function submitQuizAnswers(contentId: number, studentId: number, ra
             quizContentId: quiz.contentId,
         },
     });
+
+    // Best-effort progress recompute. Look up the student's enrollment for
+    // the parent course and refresh — never throw out of submit because of it.
+    try {
+        const enrollment = await prisma.enrollment.findUnique({
+            where: { studentId_courseId: { studentId, courseId: quiz.courseId } },
+            select: { id: true },
+        });
+        if (enrollment) {
+            await refreshEnrollmentProgress(enrollment.id);
+        }
+    } catch (err) {
+        console.error('quiz progress refresh failed:', (err as Error).message);
+    }
 
     return {
         attemptId: attempt.id,

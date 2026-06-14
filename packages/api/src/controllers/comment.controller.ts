@@ -14,8 +14,7 @@ export async function getCommentsController(req: Request, res: Response): Promis
         return res.status(200).json(comments);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch comments',
-            details: (error as Error).message,
+            error: 'Unable to fetch comments',
         });
     }
 }
@@ -56,12 +55,15 @@ export async function postCommentController(req: Request, res: Response): Promis
                 return res.status(403).json({ error: 'Bạn phải đăng ký khóa học để bình luận' });
             }
 
+            if (message === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Quyền truy cập của bạn đã hết hạn' });
+            }
+
             throw error;
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to post comment',
-            details: (error as Error).message,
+            error: 'Unable to post comment',
         });
     }
 }

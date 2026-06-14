@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -66,7 +66,7 @@ export default function ManageQuiz() {
     const { contentId } = useParams<{ contentId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const markerVideoRef = useRef<HTMLVideoElement | null>(null);
+
     const [isAddingQuestion, setIsAddingQuestion] = useState(false);
     const [newQuestionText, setNewQuestionText] = useState('');
     const [addingOptionsFor, setAddingOptionsFor] = useState<number | null>(null);

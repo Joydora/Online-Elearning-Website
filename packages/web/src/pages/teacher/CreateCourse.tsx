@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -15,16 +14,21 @@ type Category = {
     name: string;
 };
 
+type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+
 type CourseFormValues = {
     title: string;
     description: string;
     syllabus: string;
     price: number;
     categoryId: number;
-    thumbnailUrl: string;
     trialDurationDays: number | null;
     accessDurationDays: number | null;
+    level: CourseLevel | '';
+    prerequisiteIds: number[];
 };
+
+type AvailableCourse = { id: number; title: string };
 
 export default function CreateCourse() {
     const navigate = useNavigate();
@@ -37,9 +41,19 @@ export default function CreateCourse() {
             syllabus: '',
             price: 0,
             categoryId: 0,
-            thumbnailUrl: '',
             trialDurationDays: null,
             accessDurationDays: null,
+            level: '',
+            prerequisiteIds: [],
+        },
+    });
+
+    // Available prerequisite candidates — every existing course
+    const { data: availableCourses = [] } = useQuery<AvailableCourse[]>({
+        queryKey: ['available-courses'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/courses');
+            return data.map((c: any) => ({ id: c.id, title: c.title }));
         },
     });
 
@@ -90,12 +104,11 @@ export default function CreateCourse() {
     // Create course mutation
     const createMutation = useMutation({
         mutationFn: async (values: CourseFormValues) => {
-            const { data } = await apiClient.post('/courses', {
+            const payload = {
                 ...values,
-                syllabus: {
-                    outline: values.syllabus,
-                },
-            });
+                level: values.level === '' ? null : values.level,
+            };
+            const { data } = await apiClient.post('/courses', payload);
             return data;
         },
         onSuccess: async () => {
@@ -288,104 +301,150 @@ export default function CreateCourse() {
                                 )}
                             />
 
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <FormField
-                                    control={form.control}
-                                    name="trialDurationDays"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                                Số ngày học thử
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    placeholder="VD: 7"
-                                                    min="1"
-                                                    className="h-12"
-                                                    value={field.value ?? ''}
-                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                                                />
-                                            </FormControl>
-                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                Để trống nếu không cho học thử.
-                                            </p>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="accessDurationDays"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-zinc-700 dark:text-zinc-300">
-                                                Thời hạn truy cập sau khi mua
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    placeholder="Để trống = không giới hạn"
-                                                    min="1"
-                                                    className="h-12"
-                                                    value={field.value ?? ''}
-                                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                                                />
-                                            </FormControl>
-                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                                Ví dụ 30 nghĩa là học viên có 30 ngày truy cập sau khi mua.
-                                            </p>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* Thumbnail Upload */}
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Ảnh thumbnail
-                                </label>
-                                {form.watch('thumbnailUrl') ? (
-                                    <div className="relative w-full max-w-md">
-                                        <img
-                                            src={form.watch('thumbnailUrl')}
-                                            alt="Thumbnail"
-                                            className="w-full aspect-video object-cover rounded-lg border"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={removeThumbnail}
-                                            className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <label className="flex flex-col items-center justify-center w-full max-w-md h-48 border-2 border-dashed rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            {uploading ? (
-                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                                            ) : (
-                                                <>
-                                                    <Image className="w-10 h-10 text-zinc-400 mb-3" />
-                                                    <p className="text-sm text-zinc-500">
-                                                        <span className="font-semibold text-red-600">Nhấn để upload</span> hoặc kéo thả
-                                                    </p>
-                                                    <p className="text-xs text-zinc-400 mt-1">PNG, JPG (tối đa 5MB)</p>
-                                                </>
-                                            )}
-                                        </div>
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleThumbnailUpload}
-                                            disabled={uploading}
-                                        />
-                                    </label>
+                            {/* Trial duration */}
+                            <FormField
+                                control={form.control}
+                                name="trialDurationDays"
+                                rules={{
+                                    validate: (value) =>
+                                        value === null ||
+                                        value === undefined ||
+                                        (Number.isInteger(value) && value > 0) ||
+                                        'Thời hạn học thử phải là số nguyên dương',
+                                }}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">
+                                            Thời hạn học thử (ngày)
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                data-testid="trial-duration-input"
+                                                type="number"
+                                                placeholder="Bỏ trống nếu không cho học thử"
+                                                className="h-12"
+                                                min="1"
+                                                step="1"
+                                                value={field.value ?? ''}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    field.onChange(raw === '' ? null : parseInt(raw, 10));
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Để trống: không cho học thử. VD: 7, 14, 30.
+                                        </p>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
-                            </div>
+                            />
+
+                            {/* Access duration */}
+                            <FormField
+                                control={form.control}
+                                name="accessDurationDays"
+                                rules={{
+                                    validate: (value) =>
+                                        value === null ||
+                                        value === undefined ||
+                                        (Number.isInteger(value) && value > 0) ||
+                                        'Thời hạn truy cập phải là số nguyên dương',
+                                }}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">
+                                            Thời hạn truy cập sau khi mua (ngày)
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                data-testid="access-duration-input"
+                                                type="number"
+                                                placeholder="Bỏ trống = truy cập trọn đời"
+                                                className="h-12"
+                                                min="1"
+                                                step="1"
+                                                value={field.value ?? ''}
+                                                onChange={(e) => {
+                                                    const raw = e.target.value;
+                                                    field.onChange(raw === '' ? null : parseInt(raw, 10));
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Bỏ trống: truy cập trọn đời. VD: 30, 90, 365.
+                                        </p>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* Level + Prerequisites (for learning-path recommendation) */}
+                            <FormField
+                                control={form.control}
+                                name="level"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">Trình độ</FormLabel>
+                                        <FormControl>
+                                            <select
+                                                data-testid="level-select"
+                                                {...field}
+                                                className="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
+                                            >
+                                                <option value="">Không chỉ định</option>
+                                                <option value="BEGINNER">Beginner</option>
+                                                <option value="INTERMEDIATE">Intermediate</option>
+                                                <option value="ADVANCED">Advanced</option>
+                                            </select>
+                                        </FormControl>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Dùng cho gợi ý lộ trình học cho học viên.
+                                        </p>
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="prerequisiteIds"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-gray-700 dark:text-gray-300">Khoá học tiên quyết</FormLabel>
+                                        <FormControl>
+                                            <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-700 rounded-lg p-3">
+                                                {availableCourses.length === 0 && (
+                                                    <p className="text-sm text-gray-500">Chưa có khoá học nào khác.</p>
+                                                )}
+                                                {availableCourses.map((c) => {
+                                                    const checked = field.value.includes(c.id);
+                                                    return (
+                                                        <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                data-testid={`prereq-${c.id}`}
+                                                                checked={checked}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        field.onChange([...field.value, c.id]);
+                                                                    } else {
+                                                                        field.onChange(field.value.filter((id) => id !== c.id));
+                                                                    }
+                                                                }}
+                                                                className="h-4 w-4"
+                                                            />
+                                                            <span>{c.title}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </FormControl>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Học viên nên hoàn thành các khoá này trước.
+                                        </p>
+                                    </FormItem>
+                                )}
+                            />
 
                             {/* Info Box */}
                             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">

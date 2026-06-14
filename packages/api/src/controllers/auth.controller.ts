@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
-import { login, register, RegisterInput, verifyEmail, resendVerificationEmail } from '../services/auth.service';
+import { login, register, RegisterInput } from '../services/auth.service';
+import {
+    validateEmail,
+    validatePassword,
+    validateUsername,
+} from '../lib/validate';
 
 const COOKIE_NAME = process.env.AUTH_COOKIE_NAME ?? 'token';
 const SEVEN_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -8,18 +13,19 @@ export async function registerController(req: Request, res: Response): Promise<R
     try {
         const { email, username, password, firstName, lastName, role } = req.body ?? {};
 
-        if (!email || !username || !password) {
-            return res.status(400).json({
-                error: 'Email, username, and password are required',
-            });
-        }
+        const emailErr = validateEmail(email);
+        if (emailErr) return res.status(400).json({ error: emailErr });
+        const usernameErr = validateUsername(username);
+        if (usernameErr) return res.status(400).json({ error: usernameErr });
+        const passwordErr = validatePassword(password);
+        if (passwordErr) return res.status(400).json({ error: passwordErr });
 
         const payload: RegisterInput = {
-            email,
-            username,
+            email: (email as string).trim().toLowerCase(),
+            username: (username as string).trim(),
             password,
-            firstName,
-            lastName,
+            firstName: typeof firstName === 'string' ? firstName.trim().slice(0, 100) : null,
+            lastName: typeof lastName === 'string' ? lastName.trim().slice(0, 100) : null,
             role,
         };
 
@@ -37,7 +43,8 @@ export async function registerController(req: Request, res: Response): Promise<R
             return res.status(409).json({ error: message });
         }
 
-        return res.status(500).json({ error: 'Unable to register user', details: message });
+        console.error('[register] failed:', error);
+        return res.status(500).json({ error: 'Unable to register user' });
     }
 }
 
@@ -45,14 +52,14 @@ export async function loginController(req: Request, res: Response): Promise<Resp
     try {
         const { email, username, password } = (req.body ?? {}) as { email?: string; username?: string; password?: string };
 
-        // Support both email and username
-        const emailOrUsername = email || username;
-
-        if (!emailOrUsername || !password) {
-            return res.status(400).json({ error: 'Email/username and password are required' });
+        // For login we just need non-empty strings — don't run the full
+        // signup regex, the caller may have an older account that
+        // predates a tightened rule.
+        if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        const { token, user } = await login(emailOrUsername, password);
+        const { token, user } = await login(email.trim().toLowerCase(), password);
 
         res.cookie(COOKIE_NAME, token, {
             httpOnly: true,
@@ -73,15 +80,8 @@ export async function loginController(req: Request, res: Response): Promise<Resp
             return res.status(401).json({ error: message });
         }
 
-        if (message === 'EMAIL_NOT_VERIFIED') {
-            return res.status(403).json({ 
-                error: 'Email not verified',
-                code: 'EMAIL_NOT_VERIFIED',
-                message: 'Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn.',
-            });
-        }
-
-        return res.status(500).json({ error: 'Unable to login user', details: message });
+        console.error('[login] failed:', error);
+        return res.status(500).json({ error: 'Unable to login user' });
     }
 }
 

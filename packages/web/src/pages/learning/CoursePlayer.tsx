@@ -1,14 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import type { SyntheticEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
-import { Bot, ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, CheckCircle, Circle, Loader2, Send, Sparkles, BarChart2, Github, PenLine, Lock, MessageCircle, X } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock, Code2 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { getYouTubeEmbedUrl } from '../../lib/video';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
-import { showErrorAlert, showSuccessAlert } from '../../lib/sweetalert';
+import { showErrorAlert } from '../../lib/sweetalert';
+import Swal from 'sweetalert2';
+import { PracticePanel } from '../../components/PracticePanel';
+import { safeHttpUrl } from '../../lib/safeUrl';
 
 type ContentRaw = {
     id: number;
@@ -46,10 +47,11 @@ type CourseDataRaw = {
 
 // Normalized types for internal use
 type Content = {
-    contentId: number;
+    contentId?: number;
+    id?: number;
     title: string;
     order: number;
-    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
+    contentType: 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
     videoUrl?: string | null;
     documentUrl?: string | null;
     durationInSeconds?: number | null;
@@ -58,7 +60,8 @@ type Content = {
 };
 
 type Module = {
-    moduleId: number;
+    moduleId?: number;
+    id?: number;
     title: string;
     order: number;
     contents: Content[];
@@ -72,97 +75,19 @@ type CourseData = {
 };
 
 type Enrollment = {
-    enrollmentId: number;
+    id?: number;
+    enrollmentId?: number;
     progress: number;
     completionDate: string | null;
-    expiresAt: string | null;
-    isActive: boolean;
-    type: 'TRIAL' | 'PAID' | 'FREE';
-};
-
-type PracticeData = {
-    id: number;
-    title: string;
-    description: string;
-    starterCode?: string | null;
-    language: string;
-};
-
-type PracticeResult = {
-    score: number;
-    passed: boolean;
-    aiFeedback: string;
-};
-
-// Helper to get download URL with Cloudinary attachment flag
-const getDownloadUrl = (url: string): string => {
-    // Add fl_attachment to Cloudinary URLs to force download
-    if (url.includes('cloudinary.com') && url.includes('/upload/')) {
-        return url.replace('/upload/', '/upload/fl_attachment/');
-    }
-    return url;
-};
-
-type QuizOption = {
-    id: number;
-    optionText: string;
-};
-
-type QuizQuestion = {
-    id: number;
-    questionText: string;
-    options: QuizOption[];
-};
-
-type QuizData = {
-    contentId: number;
-    title: string;
-    timeLimitInMinutes: number | null;
-    questions: QuizQuestion[];
-};
-
-type QuizResult = {
-    attemptId: number;
-    score: number;
-    correctCount: number;
-    totalQuestions: number;
-};
-
-type VideoQuizMarker = {
-    id: number;
-    timestampSec: number;
-    blockingMode: 'pause' | 'non-blocking';
-    questionId: number;
-    quizContentId: number;
-    quizTitle: string;
-    question: QuizQuestion;
-};
-
-type MarkerQuizResult = QuizResult & {
-    markerId: number;
-    progress?: {
-        progress: number;
-        isCompleted: boolean;
-    };
-};
-
-type TeachingAssistantMessage = {
-    role: 'user' | 'assistant';
-    content: string;
-};
-
-type QuizAttemptHistory = {
-    attemptId: number;
-    score: number;
-    startTime: string;
-    endTime: string;
+    type?: 'TRIAL' | 'PAID';
+    expiresAt?: string | null;
+    isActive?: boolean;
 };
 
 export default function CoursePlayer() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
-    const videoRef = useRef<HTMLVideoElement | null>(null);
+    useQueryClient();
 
     const [currentModuleId, setCurrentModuleId] = useState<number | null>(null);
     const [currentContentId, setCurrentContentId] = useState<number | null>(null);
@@ -307,292 +232,81 @@ export default function CoursePlayer() {
         },
     });
 
-    // Function to mark current content as complete
-    const markCurrentContentComplete = () => {
-        if (currentContentId && canAccessContent(currentContent) && !completedContentIds.includes(currentContentId)) {
-            markCompleteMutation.mutate(currentContentId);
-        }
-    };
+    // Enrollment lifecycle derivation
+    const expiresAtMs = enrollment?.expiresAt ? new Date(enrollment.expiresAt).getTime() : null;
+    const nowMs = Date.now();
+    const isTrial = enrollment?.type === 'TRIAL';
+    const isPaid = enrollment?.type === 'PAID';
+    const hasExpiry = expiresAtMs !== null;
+    const isInactive = enrollment?.isActive === false;
+    const isExpired = (hasExpiry && expiresAtMs <= nowMs) || isInactive;
+    const daysLeft = hasExpiry
+        ? Math.max(0, Math.ceil((expiresAtMs - nowMs) / (24 * 60 * 60 * 1000)))
+        : 0;
 
-    // Set initial content when course data is loaded
+    const showTrialBanner = isTrial && !isExpired;
+    const showPaidExpiryBanner = isPaid && hasExpiry && !isExpired;
+
+    // Redirect when access has expired — trial or paid
     useEffect(() => {
-        if (course && course.modules.length > 0 && !currentModuleId && !currentContentId) {
-            for (const module of course.modules) {
-                const firstAccessibleContent = module.contents.find((content) => canAccessContent(content));
-                if (firstAccessibleContent) {
-                    setCurrentModuleId(module.moduleId);
-                    setCurrentContentId(firstAccessibleContent.contentId);
-                    break;
-                }
-            }
+        if (enrollment && isExpired) {
+            showErrorAlert(
+                isPaid ? 'Quyền truy cập đã hết hạn' : 'Học thử đã hết hạn',
+                isPaid
+                    ? 'Quyền truy cập khoá học của bạn đã hết hạn. Vui lòng gia hạn để tiếp tục học.'
+                    : 'Bạn cần nâng cấp lên bản đầy đủ để tiếp tục học khoá này.',
+            );
+            navigate(`/courses/${courseId}`);
         }
-    }, [course, currentModuleId, currentContentId, enrollment?.type]);
+    }, [enrollment, isExpired, isPaid, courseId, navigate]);
 
-    // Reset quiz + practice state when content changes
-    useEffect(() => {
-        setIsQuizStarted(false);
-        setQuizData(null);
-        setSelectedAnswers({});
-        setQuizResult(null);
-        setDocumentReadTime(0);
-        setQuizAttempts([]);
-        setActiveMarker(null);
-        setAnsweredMarkerIds([]);
-        setMarkerSelectedAnswer(null);
-        setMarkerResult(null);
-        setPracticeData(null);
-        setPracticeCode('');
-        setPracticeResult(null);
-    }, [currentContentId]);
-
-    // Load practice data when PRACTICE content is selected
-    useEffect(() => {
-        if (!currentContent || !canAccessContent(currentContent) || currentContent.contentType !== 'PRACTICE' || !currentContentId) return;
-        let cancelled = false;
-        setPracticeLoading(true);
-        apiClient.get<PracticeData>(`/practice/content/${currentContentId}`)
-            .then(({ data }) => {
-                if (cancelled) return;
-                setPracticeData(data);
-                setPracticeCode(data.starterCode || '');
-            })
-            .catch(() => { if (!cancelled) showErrorAlert('Không thể tải bài thực hành.'); })
-            .finally(() => { if (!cancelled) setPracticeLoading(false); });
-        return () => { cancelled = true; };
-    }, [currentContent, currentContentId, enrollment?.type]);
-
-    const submitPractice = async () => {
-        if (!practiceData || !practiceCode.trim()) return;
-        setPracticeSubmitting(true);
-        try {
-            const { data } = await apiClient.post<PracticeResult>(`/practice/${practiceData.id}/submit`, { submittedCode: practiceCode });
-            setPracticeResult(data);
-            if (data.passed && currentContentId && !completedContentIds.includes(currentContentId)) {
-                markCompleteMutation.mutate(currentContentId);
-            }
-        } catch {
-            showErrorAlert('Không thể nộp bài thực hành. Vui lòng thử lại.');
-        } finally {
-            setPracticeSubmitting(false);
-        }
-    };
-
-    const { data: videoMarkers = [] } = useQuery<VideoQuizMarker[]>({
-        queryKey: ['content-markers', currentContentId],
-        queryFn: async () => {
-            const { data } = await apiClient.get<VideoQuizMarker[]>(`/contents/${currentContentId}/markers`);
-            return data;
+    const upgradeMutation = useMutation({
+        mutationFn: async () => {
+            const { data } = await apiClient.post(`/enroll/checkout/${courseId}`);
+            return data as { url: string };
         },
-        enabled: !!currentContentId && currentContent?.contentType === 'VIDEO' && canAccessContent(currentContent),
+        onSuccess: (data) => {
+            Swal.close();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                window.location.reload();
+            }
+        },
+        onError: (error: any) => {
+            Swal.close();
+            const msg =
+                error.response?.data?.error ||
+                error.response?.data?.details ||
+                'Không thể nâng cấp. Vui lòng thử lại.';
+            showErrorAlert('Lỗi nâng cấp', msg);
+        },
     });
 
-    // Fetch quiz attempts when viewing a quiz
+    // Set initial content once the course finishes loading. Previously this used
+    // useState(() => ...) which (a) doesn't run on later renders and (b) doesn't
+    // observe `course` becoming truthy, so the player was stuck without a default
+    // selection. useEffect with course as dep gives us the right "init when ready"
+    // behaviour without re-firing every render.
     useEffect(() => {
-        if (!currentContent || !canAccessContent(currentContent) || currentContent.contentType !== 'QUIZ' || !currentContentId) return;
-
-        const fetchAttempts = async () => {
-            try {
-                const { data } = await apiClient.get<QuizAttemptHistory[]>(`/quiz/${currentContentId}/attempts`);
-                setQuizAttempts(data);
-            } catch (error) {
-                console.error('Failed to fetch quiz attempts:', error);
-            }
-        };
-
-        fetchAttempts();
-    }, [currentContent, currentContentId, enrollment?.type]);
-
-    // Auto mark document as complete after 20 seconds of viewing
-    useEffect(() => {
-        if (!currentContent || !canAccessContent(currentContent) || currentContent.contentType !== 'DOCUMENT') return;
-        if (!currentContentId || completedContentIds.includes(currentContentId)) return;
-
-        const timer = setInterval(() => {
-            setDocumentReadTime(prev => {
-                const newTime = prev + 1;
-                // Auto complete after 20 seconds
-                if (newTime >= 20 && currentContentId && !completedContentIds.includes(currentContentId)) {
-                    markCompleteMutation.mutate(currentContentId);
-                }
-                return newTime;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [currentContent, currentContentId, completedContentIds, enrollment?.type]);
-
-    // Quiz functions
-    const startQuiz = async () => {
-        if (!currentContentId) return;
-
-        setQuizLoading(true);
-        try {
-            const { data } = await apiClient.get<QuizData>(`/quiz/${currentContentId}`);
-            setQuizData(data);
-            setIsQuizStarted(true);
-            setSelectedAnswers({});
-            setQuizResult(null);
-        } catch (error) {
-            showErrorAlert('Không thể tải bài kiểm tra. Vui lòng thử lại.');
-        } finally {
-            setQuizLoading(false);
+        if (!course) return;
+        if (currentModuleId !== null && currentContentId !== null) return;
+        const firstModule = course.modules[0];
+        if (!firstModule) return;
+        const firstModuleId = (firstModule.moduleId ?? firstModule.id) ?? null;
+        if (firstModuleId !== null) setCurrentModuleId(firstModuleId);
+        const firstContent = firstModule.contents[0];
+        if (firstContent) {
+            const firstContentId = (firstContent.contentId ?? firstContent.id) ?? null;
+            if (firstContentId !== null) setCurrentContentId(firstContentId);
         }
-    };
+    }, [course, currentModuleId, currentContentId]);
 
-    const handleSelectAnswer = (questionId: number, optionId: number) => {
-        setSelectedAnswers(prev => ({
-            ...prev,
-            [questionId]: optionId,
-        }));
-    };
+    const getModuleId = (m: Module) => (m.moduleId ?? m.id) as number;
+    const getContentId = (c: Content) => (c.contentId ?? c.id) as number;
 
-    const submitQuiz = async () => {
-        if (!currentContentId || !quizData) return;
-
-        const answers = Object.entries(selectedAnswers).map(([questionId, answerOptionId]) => ({
-            questionId: parseInt(questionId),
-            answerOptionId,
-        }));
-
-        if (answers.length === 0) {
-            showErrorAlert('Vui lòng chọn ít nhất một câu trả lời');
-            return;
-        }
-
-        setQuizLoading(true);
-        try {
-            const { data } = await apiClient.post<QuizResult>(`/quiz/submit/${currentContentId}`, { answers });
-            setQuizResult(data);
-            // Auto mark quiz as completed
-            if (!completedContentIds.includes(currentContentId)) {
-                markCompleteMutation.mutate(currentContentId);
-            }
-        } catch (error) {
-            showErrorAlert('Không thể nộp bài. Vui lòng thử lại.');
-        } finally {
-            setQuizLoading(false);
-        }
-    };
-
-    const handleVideoTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
-        if (activeMarker || videoMarkers.length === 0) return;
-
-        const currentTime = Math.floor(event.currentTarget.currentTime);
-        const marker = videoMarkers.find((item) =>
-            item.timestampSec <= currentTime && !answeredMarkerIds.includes(item.id)
-        );
-
-        if (!marker) return;
-
-        setActiveMarker(marker);
-        setMarkerSelectedAnswer(null);
-        setMarkerResult(null);
-
-        if (marker.blockingMode === 'pause') {
-            event.currentTarget.pause();
-        }
-    };
-
-    const submitMarkerAnswer = async () => {
-        if (!activeMarker || markerSelectedAnswer === null) {
-            showErrorAlert('Vui lòng chọn một câu trả lời');
-            return;
-        }
-
-        setMarkerSubmitting(true);
-        try {
-            const { data } = await apiClient.post<MarkerQuizResult>(`/markers/${activeMarker.id}/submit`, {
-                answerOptionId: markerSelectedAnswer,
-            });
-            setMarkerResult(data);
-            setAnsweredMarkerIds(prev => prev.includes(activeMarker.id) ? prev : [...prev, activeMarker.id]);
-
-            if (data.progress) {
-                setCurrentProgress(data.progress.progress);
-                setCompletedContentIds(prev =>
-                    prev.includes(activeMarker.quizContentId) ? prev : [...prev, activeMarker.quizContentId]
-                );
-                queryClient.invalidateQueries({ queryKey: ['completed-contents', courseId] });
-                queryClient.invalidateQueries({ queryKey: ['enrolled-course-content', courseId] });
-            }
-        } catch (error) {
-            showErrorAlert('Không thể nộp câu trả lời trong video. Vui lòng thử lại.');
-        } finally {
-            setMarkerSubmitting(false);
-        }
-    };
-
-    const closeMarkerQuiz = () => {
-        if (activeMarker && activeMarker.blockingMode === 'non-blocking' && !markerResult) {
-            setAnsweredMarkerIds(prev => prev.includes(activeMarker.id) ? prev : [...prev, activeMarker.id]);
-        }
-
-        setActiveMarker(null);
-        setMarkerSelectedAnswer(null);
-        setMarkerResult(null);
-    };
-
-    const askTeachingAssistant = async () => {
-        const question = taQuestion.trim();
-
-        if (!courseId || !question) return;
-
-        const userMessage: TeachingAssistantMessage = { role: 'user', content: question };
-        setTaMessages(prev => [...prev, userMessage]);
-        setTaQuestion('');
-        setTaLoading(true);
-
-        try {
-            const { data } = await apiClient.post<{ answer: string }>(`/ta/${courseId}/ask`, {
-                question,
-                currentContentId,
-            });
-            setTaMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
-        } catch (error) {
-            setTaMessages(prev => [
-                ...prev,
-                {
-                    role: 'assistant',
-                    content: 'Không thể kết nối AI Teaching Assistant. Vui lòng thử lại sau.',
-                },
-            ]);
-        } finally {
-            setTaLoading(false);
-        }
-    };
-
-    const generateQuizSuggestions = async () => {
-        if (!courseId) return;
-
-        setTaQuizLoading(true);
-        try {
-            const { data } = await apiClient.post<{ suggestions: string }>(`/ta/${courseId}/quiz-suggestions`, {
-                currentContentId,
-            });
-            setTaMessages(prev => [
-                ...prev,
-                {
-                    role: 'assistant',
-                    content: data.suggestions,
-                },
-            ]);
-        } catch (error) {
-            setTaMessages(prev => [
-                ...prev,
-                {
-                    role: 'assistant',
-                    content: 'Không thể tạo câu hỏi gợi ý lúc này. Vui lòng thử lại sau.',
-                },
-            ]);
-        } finally {
-            setTaQuizLoading(false);
-        }
-    };
-
-    const retryQuiz = () => {
-        setQuizResult(null);
-        setSelectedAnswers({});
-    };
+    const currentModule = course?.modules.find(m => getModuleId(m) === currentModuleId);
+    const currentContent = currentModule?.contents.find(c => getContentId(c) === currentContentId);
 
     const handleContentSelect = (moduleId: number, contentId: number) => {
         setCurrentModuleId(moduleId);
@@ -602,25 +316,24 @@ export default function CoursePlayer() {
     const getNextContent = () => {
         if (!course || !currentModule || !currentContent) return null;
 
-        const currentIndex = currentModule.contents.findIndex(c => c.contentId === currentContentId);
+        const currentIndex = currentModule.contents.findIndex(c => getContentId(c) === currentContentId);
 
-        // Next accessible content in same module
-        const nextInModule = currentModule.contents.slice(currentIndex + 1).find((content) => canAccessContent(content));
-        if (nextInModule) {
+        // Next content in same module
+        if (currentIndex < currentModule.contents.length - 1) {
             return {
-                moduleId: currentModule.moduleId,
-                content: nextInModule
+                moduleId: getModuleId(currentModule),
+                content: currentModule.contents[currentIndex + 1]
             };
         }
 
-        // First accessible content of next module
-        const moduleIndex = course.modules.findIndex(m => m.moduleId === currentModuleId);
-        for (const nextModule of course.modules.slice(moduleIndex + 1)) {
-            const nextContent = nextModule.contents.find((content) => canAccessContent(content));
-            if (nextContent) {
+        // First content of next module
+        const moduleIndex = course.modules.findIndex(m => getModuleId(m) === currentModuleId);
+        if (moduleIndex < course.modules.length - 1) {
+            const nextModule = course.modules[moduleIndex + 1];
+            if (nextModule.contents.length > 0) {
                 return {
-                    moduleId: nextModule.moduleId,
-                    content: nextContent
+                    moduleId: getModuleId(nextModule),
+                    content: nextModule.contents[0]
                 };
             }
         }
@@ -631,25 +344,24 @@ export default function CoursePlayer() {
     const getPreviousContent = () => {
         if (!course || !currentModule || !currentContent) return null;
 
-        const currentIndex = currentModule.contents.findIndex(c => c.contentId === currentContentId);
+        const currentIndex = currentModule.contents.findIndex(c => getContentId(c) === currentContentId);
 
-        // Previous accessible content in same module
-        const previousInModule = currentModule.contents.slice(0, currentIndex).reverse().find((content) => canAccessContent(content));
-        if (previousInModule) {
+        // Previous content in same module
+        if (currentIndex > 0) {
             return {
-                moduleId: currentModule.moduleId,
-                content: previousInModule
+                moduleId: getModuleId(currentModule),
+                content: currentModule.contents[currentIndex - 1]
             };
         }
 
-        // Last accessible content of previous module
-        const moduleIndex = course.modules.findIndex(m => m.moduleId === currentModuleId);
-        for (const prevModule of course.modules.slice(0, moduleIndex).reverse()) {
-            const previousContent = [...prevModule.contents].reverse().find((content) => canAccessContent(content));
-            if (previousContent) {
+        // Last content of previous module
+        const moduleIndex = course.modules.findIndex(m => getModuleId(m) === currentModuleId);
+        if (moduleIndex > 0) {
+            const prevModule = course.modules[moduleIndex - 1];
+            if (prevModule.contents.length > 0) {
                 return {
-                    moduleId: prevModule.moduleId,
-                    content: previousContent
+                    moduleId: getModuleId(prevModule),
+                    content: prevModule.contents[prevModule.contents.length - 1]
                 };
             }
         }
@@ -660,14 +372,14 @@ export default function CoursePlayer() {
     const handleNext = () => {
         const next = getNextContent();
         if (next) {
-            handleContentSelect(next.moduleId, next.content.contentId);
+            handleContentSelect(next.moduleId, getContentId(next.content));
         }
     };
 
     const handlePrevious = () => {
         const prev = getPreviousContent();
         if (prev) {
-            handleContentSelect(prev.moduleId, prev.content.contentId);
+            handleContentSelect(prev.moduleId, getContentId(prev.content));
         }
     };
 
@@ -680,8 +392,7 @@ export default function CoursePlayer() {
             case 'QUIZ':
                 return <HelpCircle className="h-4 w-4" />;
             case 'PRACTICE':
-            case 'ASSIGNMENT':
-                return <PenLine className="h-4 w-4" />;
+                return <Code2 className="h-4 w-4" />;
         }
     };
 
@@ -795,6 +506,57 @@ export default function CoursePlayer() {
                     </div>
                 </div>
 
+                {/* Trial Banner */}
+                {showTrialBanner && (
+                    <div
+                        data-testid="trial-banner"
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Sparkles className="h-5 w-5 flex-shrink-0" />
+                            <div>
+                                <p className="font-semibold">Chế độ học thử</p>
+                                <p className="text-sm opacity-90">
+                                    {daysLeft > 0
+                                        ? `Còn ${daysLeft} ngày học thử — nâng cấp để giữ toàn quyền truy cập.`
+                                        : 'Hôm nay là ngày cuối của bản học thử.'}
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            onClick={() => upgradeMutation.mutate()}
+                            disabled={upgradeMutation.isPending}
+                            className="bg-white text-orange-600 hover:bg-orange-50"
+                            data-testid="upgrade-button"
+                        >
+                            {upgradeMutation.isPending ? (
+                                <>Đang xử lý...</>
+                            ) : (
+                                <>
+                                    <ArrowUpCircle className="mr-2 h-4 w-4" />
+                                    Nâng cấp ngay
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                )}
+
+                {/* Paid-expiry Banner (no action, informational only) */}
+                {showPaidExpiryBanner && (
+                    <div
+                        data-testid="paid-expiry-banner"
+                        className="bg-gradient-to-r from-sky-500 to-cyan-600 text-white px-6 py-3 flex items-center gap-3"
+                    >
+                        <Clock className="h-5 w-5 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold">Quyền truy cập sắp hết</p>
+                            <p className="text-sm opacity-90">
+                                Còn {daysLeft} ngày truy cập khoá học này.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Video/Content Player */}
                 <div className="flex-1 flex items-center justify-center bg-black min-h-[40vh] lg:min-h-0">
                     {!currentContent && (
@@ -813,15 +575,36 @@ export default function CoursePlayer() {
                     )}
                     {currentContent && (
                         <div className="w-full h-full">
-                            {!canAccessContent(currentContent) && (
-                                <div className="w-full h-full flex items-center justify-center p-4 sm:p-8">
-                                    <Card className="max-w-md p-6 sm:p-8 bg-white dark:bg-zinc-800 text-center">
-                                        <Lock className="w-12 h-12 mx-auto mb-4 text-zinc-400" />
-                                        <h2 className="text-xl font-bold mb-2 text-zinc-900 dark:text-white">
-                                            Bài học đang khóa
-                                        </h2>
-                                        <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                            Tài khoản học thử chỉ xem được các bài được giảng viên hoặc quản trị viên mở preview.
+                            {currentContent.contentType === 'VIDEO' && safeHttpUrl(currentContent.videoUrl) && (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <video
+                                        key={safeHttpUrl(currentContent.videoUrl) ?? ''}
+                                        controls
+                                        className="w-full h-full"
+                                        src={safeHttpUrl(currentContent.videoUrl) ?? undefined}
+                                    >
+                                        Trình duyệt của bạn không hỗ trợ video.
+                                    </video>
+                                </div>
+                            )}
+
+                            {currentContent.contentType === 'DOCUMENT' && safeHttpUrl(currentContent.documentUrl) && (
+                                <div className="w-full h-full flex items-center justify-center p-8">
+                                    <Card className="w-full max-w-4xl p-8 bg-white dark:bg-slate-800">
+                                        <h2 className="text-2xl font-bold mb-4">{currentContent.title}</h2>
+                                        <div className="prose dark:prose-invert max-w-none">
+                                            <p>Tài liệu: <a href={safeHttpUrl(currentContent.documentUrl) ?? '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600">Tải xuống</a></p>
+                                        </div>
+                                    </Card>
+                                </div>
+                            )}
+
+                            {currentContent.contentType === 'QUIZ' && (
+                                <div className="w-full h-full flex items-center justify-center p-8">
+                                    <Card className="w-full max-w-2xl p-8 bg-white dark:bg-slate-800">
+                                        <h2 className="text-2xl font-bold mb-4">Bài kiểm tra: {currentContent.title}</h2>
+                                        <p className="text-slate-600 dark:text-slate-400 mb-6">
+                                            Bài kiểm tra sẽ được hiển thị ở đây
                                         </p>
                                         <Button onClick={() => navigate(`/courses/${courseId}`)} className="bg-red-600 hover:bg-red-700">
                                             Mua khóa học để xem tiếp
@@ -830,523 +613,8 @@ export default function CoursePlayer() {
                                 </div>
                             )}
 
-                            {canAccessContent(currentContent) && currentContent.contentType === 'VIDEO' && currentContent.videoUrl && (
-                                <div className="w-full h-full flex flex-col">
-                                    <div className="flex-1 flex items-center justify-center relative aspect-video lg:aspect-auto bg-black">
-                                        {getYouTubeEmbedUrl(currentContent.videoUrl) ? (
-                                            <iframe
-                                                key={currentContent.videoUrl}
-                                                className="w-full h-full"
-                                                src={getYouTubeEmbedUrl(currentContent.videoUrl) || undefined}
-                                                title={currentContent.title}
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                            />
-                                        ) : (
-                                            <video
-                                                key={currentContent.videoUrl}
-                                                ref={videoRef}
-                                                controls
-                                                className="w-full h-full"
-                                                src={currentContent.videoUrl}
-                                                onTimeUpdate={handleVideoTimeUpdate}
-                                                onEnded={markCurrentContentComplete}
-                                            >
-                                                Trình duyệt của bạn không hỗ trợ video.
-                                            </video>
-                                        )}
-                                        {activeMarker && (
-                                            <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-3 sm:p-6 z-10 overflow-y-auto">
-                                                <Card className="w-full max-w-2xl p-4 sm:p-6 bg-white dark:bg-zinc-800 my-auto">
-                                                    <div className="mb-4">
-                                                        <p className="text-sm text-red-500 font-medium mb-1">
-                                                            Quiz trong video - {activeMarker.quizTitle}
-                                                        </p>
-                                                        <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-                                                            {activeMarker.question.questionText}
-                                                        </h2>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        {activeMarker.question.options.map((option) => (
-                                                            <label
-                                                                key={option.id}
-                                                                className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${markerSelectedAnswer === option.id
-                                                                    ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                                                    : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
-                                                                    }`}
-                                                            >
-                                                                <input
-                                                                    type="radio"
-                                                                    name={`marker-question-${activeMarker.question.id}`}
-                                                                    checked={markerSelectedAnswer === option.id}
-                                                                    onChange={() => setMarkerSelectedAnswer(option.id)}
-                                                                    disabled={!!markerResult}
-                                                                    className="mr-3"
-                                                                />
-                                                                <span className="text-zinc-700 dark:text-zinc-300">
-                                                                    {option.optionText}
-                                                                </span>
-                                                            </label>
-                                                        ))}
-                                                    </div>
-
-                                                    {markerResult && (
-                                                        <div className={`mt-4 p-3 rounded-lg ${markerResult.score === 100
-                                                            ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                                            }`}>
-                                                            {markerResult.score === 100
-                                                                ? 'Chính xác! Kết quả đã được lưu.'
-                                                                : 'Chưa chính xác. Kết quả đã được lưu.'}
-                                                        </div>
-                                                    )}
-
-                                                    <div className="flex justify-end gap-3 mt-6">
-                                                        {activeMarker.blockingMode === 'non-blocking' && !markerResult && (
-                                                            <Button variant="outline" onClick={closeMarkerQuiz}>
-                                                                Để sau
-                                                            </Button>
-                                                        )}
-                                                        {!markerResult ? (
-                                                            <Button
-                                                                onClick={submitMarkerAnswer}
-                                                                disabled={markerSubmitting || markerSelectedAnswer === null}
-                                                                className="bg-red-600 hover:bg-red-700"
-                                                            >
-                                                                {markerSubmitting ? 'Đang nộp...' : 'Nộp câu trả lời'}
-                                                            </Button>
-                                                        ) : (
-                                                            <Button
-                                                                onClick={() => {
-                                                                    closeMarkerQuiz();
-                                                                    videoRef.current?.play();
-                                                                }}
-                                                                className="bg-red-600 hover:bg-red-700"
-                                                            >
-                                                                Tiếp tục video
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </Card>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* Video action bar */}
-                                    <div className="bg-zinc-800 px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                        <span className="text-zinc-300 text-sm break-words">{currentContent.title}</span>
-                                        <Button
-                                            size="sm"
-                                            onClick={markCurrentContentComplete}
-                                            disabled={completedContentIds.includes(currentContent.contentId) || markCompleteMutation.isPending}
-                                            className={`sm:shrink-0 ${completedContentIds.includes(currentContent.contentId)
-                                                ? 'bg-green-600 hover:bg-green-600 cursor-default'
-                                                : 'bg-blue-600 hover:bg-blue-700'}`}
-                                        >
-                                            {completedContentIds.includes(currentContent.contentId) ? (
-                                                <>
-                                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Đã hoàn thành
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Circle className="w-4 h-4 mr-2" />
-                                                    Đánh dấu hoàn thành
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {canAccessContent(currentContent) && currentContent.contentType === 'DOCUMENT' && currentContent.documentUrl && (() => {
-                                const docUrl = currentContent.documentUrl;
-                                const isPdf = docUrl.toLowerCase().endsWith('.pdf');
-
-                                return (
-                                    <div className="w-full h-full flex flex-col bg-zinc-100 dark:bg-zinc-900">
-                                        {/* Document Header */}
-                                        <div className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 px-3 sm:px-6 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                            <h2 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-white break-words">
-                                                {currentContent.title}
-                                            </h2>
-                                            <div className="flex flex-wrap gap-2 items-center">
-                                                {/* Auto-complete countdown */}
-                                                {!completedContentIds.includes(currentContent.contentId) && documentReadTime < 20 && (
-                                                    <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                                                        Tự động hoàn thành sau {20 - documentReadTime}s
-                                                    </span>
-                                                )}
-                                                <Button
-                                                    size="sm"
-                                                    onClick={markCurrentContentComplete}
-                                                    disabled={completedContentIds.includes(currentContent.contentId) || markCompleteMutation.isPending}
-                                                    className={completedContentIds.includes(currentContent.contentId)
-                                                        ? 'bg-green-600 hover:bg-green-600 cursor-default'
-                                                        : 'bg-red-600 hover:bg-red-700'}
-                                                >
-                                                    {completedContentIds.includes(currentContent.contentId) ? (
-                                                        <>
-                                                            <CheckCircle className="w-4 h-4 mr-2" />
-                                                            Đã hoàn thành
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Circle className="w-4 h-4 mr-2" />
-                                                            Đánh dấu hoàn thành
-                                                        </>
-                                                    )}
-                                                </Button>
-                                                <a
-                                                    href={docUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm"
-                                                >
-                                                    Mở trong tab mới
-                                                </a>
-                                                <a
-                                                    href={getDownloadUrl(docUrl)}
-                                                    download
-                                                    className="px-3 sm:px-4 py-2 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 transition-colors text-xs sm:text-sm"
-                                                >
-                                                    Tải xuống
-                                                </a>
-                                            </div>
-                                        </div>
-                                        {/* Document Viewer - embed PDF directly */}
-                                        <div className="flex-1 p-3 sm:p-4 min-h-[60vh] lg:min-h-0">
-                                            {isPdf ? (
-                                                <object
-                                                    data={docUrl}
-                                                    type="application/pdf"
-                                                    className="w-full h-full rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white"
-                                                >
-                                                    {/* Fallback if browser can't display PDF inline */}
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Card className="p-8 bg-white dark:bg-zinc-800 text-center">
-                                                            <FileText className="w-16 h-16 mx-auto mb-4 text-zinc-400" />
-                                                            <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">
-                                                                {currentContent.title}
-                                                            </h3>
-                                                            <p className="text-zinc-500 mb-4">
-                                                                Không thể hiển thị PDF trực tiếp. Vui lòng mở trong tab mới hoặc tải xuống.
-                                                            </p>
-                                                            <div className="flex gap-2 justify-center">
-                                                                <a
-                                                                    href={docUrl}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                                                                >
-                                                                    <FileText className="w-4 h-4" />
-                                                                    Mở trong tab mới
-                                                                </a>
-                                                                <a
-                                                                    href={getDownloadUrl(docUrl)}
-                                                                    download
-                                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-600 text-white rounded-lg hover:bg-zinc-700 transition-colors"
-                                                                >
-                                                                    <FileText className="w-4 h-4" />
-                                                                    Tải xuống
-                                                                </a>
-                                                            </div>
-                                                        </Card>
-                                                    </div>
-                                                </object>
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Card className="p-8 bg-white dark:bg-zinc-800 text-center">
-                                                        <FileText className="w-16 h-16 mx-auto mb-4 text-zinc-400" />
-                                                        <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">
-                                                            {currentContent.title}
-                                                        </h3>
-                                                        <p className="text-zinc-500 mb-4">
-                                                            Loại tài liệu này cần tải xuống để xem
-                                                        </p>
-                                                        <a
-                                                            href={getDownloadUrl(docUrl)}
-                                                            download
-                                                            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                                                        >
-                                                            <FileText className="w-4 h-4" />
-                                                            Tải xuống tài liệu
-                                                        </a>
-                                                    </Card>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
-                            {canAccessContent(currentContent) && currentContent.contentType === 'QUIZ' && (
-                                <div className="w-full h-full flex items-start justify-center p-3 sm:p-8 overflow-y-auto">
-                                    {/* Quiz Start Screen */}
-                                    {!isQuizStarted && !quizResult && (
-                                        <Card className="w-full max-w-2xl p-5 sm:p-8 bg-white dark:bg-zinc-800">
-                                            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-zinc-900 dark:text-white break-words">
-                                                Bài kiểm tra: {currentContent.title}
-                                            </h2>
-                                            <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                                Nhấn nút bên dưới để bắt đầu làm bài kiểm tra
-                                            </p>
-
-                                            {/* Previous Attempts */}
-                                            {quizAttempts.length > 0 && (
-                                                <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
-                                                    <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3 flex items-center gap-2">
-                                                        <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                        </svg>
-                                                        Lịch sử làm bài ({quizAttempts.length} lần)
-                                                    </h3>
-                                                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                                                        {quizAttempts.slice(0, 5).map((attempt, index) => (
-                                                            <div
-                                                                key={attempt.attemptId}
-                                                                className="flex items-center justify-between p-2 bg-white dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700"
-                                                            >
-                                                                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                                                    Lần {quizAttempts.length - index} - {new Date(attempt.endTime).toLocaleDateString('vi-VN', {
-                                                                        day: '2-digit',
-                                                                        month: '2-digit',
-                                                                        hour: '2-digit',
-                                                                        minute: '2-digit'
-                                                                    })}
-                                                                </span>
-                                                                <span className={`text-sm font-bold ${attempt.score >= 80 ? 'text-green-500' :
-                                                                    attempt.score >= 60 ? 'text-yellow-500' : 'text-red-500'
-                                                                    }`}>
-                                                                    {attempt.score}%
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-zinc-600 dark:text-zinc-400">Điểm cao nhất:</span>
-                                                            <span className="font-bold text-green-500">
-                                                                {quizAttempts.length > 0 ? Math.max(...quizAttempts.map(a => a.score)) : 0}%
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex justify-between text-sm mt-1">
-                                                            <span className="text-zinc-600 dark:text-zinc-400">Điểm trung bình:</span>
-                                                            <span className="font-semibold text-red-500">
-                                                                {(quizAttempts.reduce((sum, a) => sum + a.score, 0) / quizAttempts.length).toFixed(1)}%
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <Button
-                                                onClick={startQuiz}
-                                                disabled={quizLoading}
-                                                className="bg-red-600 hover:bg-red-700"
-                                            >
-                                                {quizLoading ? 'Đang tải...' : quizAttempts.length > 0 ? 'Làm lại bài kiểm tra' : 'Bắt đầu làm bài'}
-                                            </Button>
-                                        </Card>
-                                    )}
-
-                                    {/* Quiz Questions */}
-                                    {isQuizStarted && quizData && !quizResult && (
-                                        <Card className="w-full max-w-3xl p-5 sm:p-8 bg-white dark:bg-zinc-800 max-h-full overflow-y-auto">
-                                            <h2 className="text-xl sm:text-2xl font-bold mb-2 text-zinc-900 dark:text-white break-words">
-                                                {quizData.title}
-                                            </h2>
-                                            {quizData.timeLimitInMinutes && (
-                                                <p className="text-sm text-orange-500 mb-4">
-                                                    Thời gian: {quizData.timeLimitInMinutes} phút
-                                                </p>
-                                            )}
-                                            <p className="text-zinc-500 mb-6">
-                                                {quizData.questions.length} câu hỏi
-                                            </p>
-
-                                            <div className="space-y-6">
-                                                {quizData.questions.map((question, qIndex) => (
-                                                    <div key={question.id} className="border-b border-zinc-200 dark:border-zinc-700 pb-6 last:border-0">
-                                                        <h3 className="font-medium text-zinc-900 dark:text-white mb-4">
-                                                            Câu {qIndex + 1}: {question.questionText}
-                                                        </h3>
-                                                        <div className="space-y-2">
-                                                            {question.options.map((option) => (
-                                                                <label
-                                                                    key={option.id}
-                                                                    className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${selectedAnswers[question.id] === option.id
-                                                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/30'
-                                                                        : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
-                                                                        }`}
-                                                                >
-                                                                    <input
-                                                                        type="radio"
-                                                                        name={`question-${question.id}`}
-                                                                        value={option.id}
-                                                                        checked={selectedAnswers[question.id] === option.id}
-                                                                        onChange={() => handleSelectAnswer(question.id, option.id)}
-                                                                        className="mr-3"
-                                                                    />
-                                                                    <span className="text-zinc-700 dark:text-zinc-300">
-                                                                        {option.optionText}
-                                                                    </span>
-                                                                </label>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => setIsQuizStarted(false)}
-                                                    className="flex-1 sm:flex-initial"
-                                                >
-                                                    Hủy
-                                                </Button>
-                                                <Button
-                                                    onClick={submitQuiz}
-                                                    disabled={quizLoading || Object.keys(selectedAnswers).length === 0}
-                                                    className="flex-1 sm:flex-initial bg-green-600 hover:bg-green-700"
-                                                >
-                                                    {quizLoading ? 'Đang nộp...' : 'Nộp bài'}
-                                                </Button>
-                                            </div>
-                                        </Card>
-                                    )}
-
-                                    {/* Quiz Result */}
-                                    {quizResult && (
-                                        <Card className="w-full max-w-2xl p-5 sm:p-8 bg-white dark:bg-zinc-800 text-center">
-                                            <div className={`w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center ${quizResult.score >= 80
-                                                ? 'bg-green-100 dark:bg-green-900/30'
-                                                : quizResult.score >= 50
-                                                    ? 'bg-yellow-100 dark:bg-yellow-900/30'
-                                                    : 'bg-red-100 dark:bg-red-900/30'
-                                                }`}>
-                                                <span className={`text-3xl font-bold ${quizResult.score >= 80
-                                                    ? 'text-green-600'
-                                                    : quizResult.score >= 50
-                                                        ? 'text-yellow-600'
-                                                        : 'text-red-600'
-                                                    }`}>
-                                                    {quizResult.score}%
-                                                </span>
-                                            </div>
-                                            <h2 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">
-                                                {quizResult.score >= 80
-                                                    ? 'Xuất sắc!'
-                                                    : quizResult.score >= 50
-                                                        ? 'Tốt lắm!'
-                                                        : 'Cần cố gắng thêm'}
-                                            </h2>
-                                            <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                                Bạn đã trả lời đúng {quizResult.correctCount}/{quizResult.totalQuestions} câu hỏi
-                                            </p>
-                                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={retryQuiz}
-                                                >
-                                                    Làm lại
-                                                </Button>
-                                                <Button
-                                                    onClick={handleNext}
-                                                    disabled={!getNextContent()}
-                                                    className="bg-red-600 hover:bg-red-700"
-                                                >
-                                                    Bài tiếp theo
-                                                </Button>
-                                            </div>
-                                        </Card>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* EPIC 7: Practice / Assignment split view */}
-                            {canAccessContent(currentContent) && (currentContent.contentType === 'PRACTICE' || currentContent.contentType === 'ASSIGNMENT') && (
-                                <div className="w-full h-full bg-zinc-900 p-3 sm:p-4 overflow-y-auto">
-                                    {practiceLoading ? (
-                                        <div className="flex items-center justify-center h-full">
-                                            <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-                                        </div>
-                                    ) : practiceData ? (
-                                        <div className="grid h-full min-h-[640px] gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                                            <div className="flex flex-col rounded-lg border border-zinc-700 bg-zinc-950 p-4 sm:p-5">
-                                                <p className="mb-2 text-xs font-semibold uppercase text-red-400">
-                                                    {currentContent.contentType === 'ASSIGNMENT' ? 'Bài tập' : 'Bài thực hành'}
-                                                </p>
-                                                <h2 className="text-lg sm:text-xl font-bold text-white break-words">{practiceData.title}</h2>
-                                                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
-                                                    {practiceData.description}
-                                                </p>
-                                                {practiceResult && (
-                                                    <div className={`mt-5 rounded-lg border p-4 ${practiceResult.passed ? 'border-green-600 bg-green-900/20' : 'border-yellow-600 bg-yellow-900/20'}`}>
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            {practiceResult.passed ? (
-                                                                <CheckCircle className="w-5 h-5 text-green-400" />
-                                                            ) : (
-                                                                <Circle className="w-5 h-5 text-yellow-400" />
-                                                            )}
-                                                            <span className={`font-bold ${practiceResult.passed ? 'text-green-400' : 'text-yellow-400'}`}>
-                                                                {practiceResult.passed ? 'Đạt' : 'Chưa đạt'} — {practiceResult.score}/100 điểm
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-zinc-300 text-sm whitespace-pre-wrap">{practiceResult.aiFeedback}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950">
-                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 border-b border-zinc-800 px-3 sm:px-4 py-3">
-                                                    <span className="text-xs sm:text-sm font-medium text-zinc-200 break-words">
-                                                        Monaco Editor ({practiceData.language})
-                                                    </span>
-                                                    <span className="text-xs text-zinc-500">Feedback xuất hiện ngay sau khi nộp</span>
-                                                </div>
-                                                <div className="min-h-[320px] sm:min-h-[420px] flex-1">
-                                                    <Editor
-                                                        height="100%"
-                                                        theme="vs-dark"
-                                                        language={practiceData.language}
-                                                        value={practiceCode}
-                                                        onChange={(value) => setPracticeCode(value ?? '')}
-                                                        options={{
-                                                            minimap: { enabled: false },
-                                                            fontSize: 14,
-                                                            wordWrap: 'on',
-                                                            automaticLayout: true,
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col sm:flex-row gap-3 border-t border-zinc-800 p-3 sm:p-4">
-                                                    <Button
-                                                        onClick={submitPractice}
-                                                        disabled={practiceSubmitting || !practiceCode.trim()}
-                                                        className="bg-red-600 hover:bg-red-700"
-                                                    >
-                                                        {practiceSubmitting ? (
-                                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Đang chấm bài...</>
-                                                        ) : (
-                                                            <><Send className="w-4 h-4 mr-2" />Nộp bài</>
-                                                        )}
-                                                    </Button>
-                                                    {practiceResult && (
-                                                        <Button variant="outline" onClick={() => setPracticeResult(null)}>
-                                                            Làm lại
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-center h-full text-zinc-500">
-                                            Không tìm thấy bài thực hành
-                                        </div>
-                                    )}
-                                </div>
+                            {currentContent.contentType === 'PRACTICE' && (
+                                <PracticePanel contentId={getContentId(currentContent)} />
                             )}
                         </div>
                     )}
@@ -1401,57 +669,40 @@ export default function CoursePlayer() {
                         </h2>
 
                         <div className="space-y-2">
-                            {course.modules.map((module) => (
-                                <div key={module.moduleId}>
-                                    <div className="px-4 py-2 bg-zinc-700 rounded-lg text-white font-medium mb-2">
+                            {course.modules.map((module) => {
+                                const mid = getModuleId(module);
+                                return (
+                                <div key={mid}>
+                                    <div className="px-4 py-2 bg-slate-700 rounded-lg text-white font-medium mb-2">
                                         {module.title}
                                     </div>
                                     <div className="space-y-1">
                                         {module.contents.map((content) => {
-                                            const isCompleted = completedContentIds.includes(content.contentId);
-                                            const isLocked = !canAccessContent(content);
+                                            const cid = getContentId(content);
                                             return (
-                                                <button
-                                                    key={content.contentId}
-                                                    onClick={() => {
-                                                        if (!isLocked) {
-                                                            handleContentSelect(module.moduleId, content.contentId);
-                                                        }
-                                                    }}
-                                                    disabled={isLocked}
-                                                    className={`w-full text-left px-4 py-2 rounded-lg flex items-center gap-3 transition-colors ${currentContentId === content.contentId
-                                                        ? 'bg-red-600 text-white'
-                                                        : isLocked
-                                                            ? 'text-zinc-500 cursor-not-allowed opacity-70'
-                                                        : isCompleted
-                                                            ? 'text-green-400 hover:bg-zinc-700'
-                                                            : 'text-zinc-300 hover:bg-zinc-700'
-                                                        }`}
-                                                >
-                                                    <div className={isCompleted ? 'text-green-400' : 'text-zinc-400'}>
-                                                        {isLocked ? (
-                                                            <Lock className="h-4 w-4" />
-                                                        ) : isCompleted ? (
-                                                            <CheckCircle className="h-4 w-4" />
-                                                        ) : (
-                                                            getContentIcon(content.contentType)
-                                                        )}
-                                                    </div>
-                                                    <span className="flex-1 text-sm">{content.title}</span>
-                                                    {content.isFreePreview && (
-                                                        <span className="rounded-full bg-green-600/20 px-2 py-0.5 text-[10px] text-green-300">
-                                                            Preview
-                                                        </span>
-                                                    )}
-                                                    {currentContentId === content.contentId && (
-                                                        <PlayCircle className="h-4 w-4" />
-                                                    )}
-                                                </button>
+                                            <button
+                                                key={cid}
+                                                onClick={() => handleContentSelect(mid, cid)}
+                                                className={`w-full text-left px-4 py-2 rounded-lg flex items-center gap-3 transition-colors ${
+                                                    currentContentId === cid
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-slate-300 hover:bg-slate-700'
+                                                }`}
+                                            >
+                                                <div className="text-slate-400">
+                                                    {getContentIcon(content.contentType)}
+                                                </div>
+                                                <span className="flex-1 text-sm">{content.title}</span>
+                                                {currentContentId === cid && (
+                                                    <PlayCircle className="h-4 w-4" />
+                                                )}
+                                            </button>
                                             );
                                         })}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div className="mt-6 border-t border-zinc-700 pt-6">

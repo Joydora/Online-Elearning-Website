@@ -18,23 +18,23 @@ enum ContentType {
   DOCUMENT
   QUIZ
   PRACTICE
-  ASSIGNMENT
-}
-
-enum VideoQuizBlockingMode {
-  PAUSE        @map("pause")
-  NON_BLOCKING @map("non-blocking")
 }
 
 enum EnrollmentType {
   TRIAL
   PAID
-  FREE
 }
 
 enum PayoutStatus {
   HELD
   PAID
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  CANCELED
 }
 
 enum CourseLevel {
@@ -43,52 +43,27 @@ enum CourseLevel {
   ADVANCED
 }
 
-enum CourseStatus {
-  DRAFT
-  PENDING_REVIEW
-  APPROVED
-  REJECTED
-  PUBLISHED
-}
-
-enum NotificationType {
-  DEADLINE_REMINDER
-  REENGAGEMENT_REMINDER
-  PROJECT_GRADED
-  DISCUSSION_REPLY
-}
-
 model User {
   id             Int     @id @default(autoincrement())
-  email          String  @unique
-  username       String  @unique
-  hashedPassword String
-  firstName      String?
-  lastName       String?
+  email          String  @unique @db.VarChar(320)
+  username       String  @unique @db.VarChar(64)
+  hashedPassword String  @db.VarChar(100)
+  firstName      String? @db.VarChar(100)
+  lastName       String? @db.VarChar(100)
   role           Role    @default(STUDENT)
 
-  isVerified              Boolean   @default(false)
-  verificationToken       String?   @unique
-  verificationTokenExpiry DateTime?
+  stripeCustomerId      String? @unique @db.VarChar(100)
+  stripePaymentMethodId String?         @db.VarChar(100)
 
-  resetToken       String?   @unique
-  resetTokenExpiry DateTime?
-
-  coursesAsTeacher   Course[]           @relation("TeacherCourses")
-  enrollments        Enrollment[]
-  quizAttempts       QuizAttempt[]
-  payments           Payment[]
-  reviews            Review[]
-  comments           Comment[]
+  coursesAsTeacher Course[]      @relation("TeacherCourses")
+  enrollments      Enrollment[]
+  quizAttempts     QuizAttempt[]
+  payments         Payment[]
+  reviews          Review[]
+  comments         Comment[]
   practiceSubmissions PracticeSubmission[]
+  contentCompletions  ContentCompletion[]
   projectSubmissions  ProjectSubmission[]
-  revenueLedgers     RevenueLedger[]    @relation("TeacherLedger")
-  reviewedCourses    Course[]           @relation("CourseReviewer")
-  certificates        Certificate[]
-  discussionPosts     DiscussionPost[]
-  notifications       Notification[]
-  notificationPreferences UserNotificationPreference[]
-  adminAuditLogs      AdminAuditLog[] @relation("AdminAuditActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -114,23 +89,18 @@ model AdminAuditLog {
 
 model Category {
   id      Int      @id @default(autoincrement())
-  name    String   @unique
+  name    String   @unique @db.VarChar(100)
   courses Course[]
 }
 
 model Course {
-  id                Int          @id @default(autoincrement())
-  title             String
-  description       String
-  syllabus          Json         @default("{}")
-  price             Float
-  thumbnailUrl      String?
-  // EPIC 1: trial support
-  trialDurationDays Int?
-  // EPIC 2: time-limit access
+  id                 Int     @id @default(autoincrement())
+  title              String  @db.VarChar(200)
+  description        String  @db.VarChar(5000)
+  price              Decimal @db.Decimal(10, 2)
+  trialDurationDays  Int?
   accessDurationDays Int?
-  // EPIC 5: learning path
-  level             CourseLevel?
+  level              CourseLevel?
 
   teacherId Int
   teacher   User @relation("TeacherCourses", fields: [teacherId], references: [id])
@@ -138,16 +108,13 @@ model Course {
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
 
-  // EPIC 5: self-relation prerequisites
-  prerequisites   Course[] @relation("CoursePrerequisites")
-  prerequisiteOf  Course[] @relation("CoursePrerequisites")
+  modules     Module[]
+  enrollments Enrollment[]
+  projects    Project[]
 
-  modules        Module[]
-  enrollments    Enrollment[]
-  revenueLedgers RevenueLedger[]
-  projects       Project[]
-  certificates   Certificate[]
-  discussionPosts DiscussionPost[]
+  // Self-many-to-many: courses this course requires the student to have done first.
+  prerequisites Course[] @relation("CoursePrerequisites")
+  prerequisiteOf Course[] @relation("CoursePrerequisites")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -181,18 +148,100 @@ model Content {
   documentUrl        String?
   fileType           String?
   timeLimitInMinutes Int?
-  // EPIC 1: free preview for guests
   isFreePreview      Boolean     @default(false)
 
   moduleId Int
   module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
-  questions         Question[]
-  quizAttempts      QuizAttempt[]
-  comments          Comment[]
-  contentProgresses ContentProgress[]
-  videoQuizMarkers  VideoQuizMarker[]
-  practice          Practice?
+  questions    Question[]
+  quizAttempts QuizAttempt[]
+  comments     Comment[]
+  practice     Practice?
+  completions  ContentCompletion[]
+}
+
+model Project {
+  id           Int      @id @default(autoincrement())
+  courseId     Int
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  requirements String?
+  deadline     DateTime?
+
+  submissions  ProjectSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model ProjectSubmission {
+  id              Int       @id @default(autoincrement())
+  projectId       Int
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  studentId       Int
+  student         User      @relation(fields: [studentId], references: [id])
+
+  repoUrl         String
+  commitsJson     Json?
+  lastFetchedAt   DateTime?
+
+  teacherFeedback String?
+  teacherGrade    Int?
+
+  submittedAt     DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([studentId, projectId])
+  @@index([projectId])
+}
+
+model ContentCompletion {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  student     User     @relation(fields: [studentId], references: [id])
+  contentId   Int
+  content     Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([studentId, contentId])
+  @@index([studentId])
+}
+
+model Practice {
+  id             Int      @id @default(autoincrement())
+  contentId      Int      @unique
+  content        Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  prompt         String
+  starterCode    String?
+  expectedOutput String?
+  language       String   @default("plaintext")
+
+  submissions    PracticeSubmission[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PracticeSubmission {
+  id             Int      @id @default(autoincrement())
+
+  practiceId     Int
+  practice       Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  studentId      Int
+  student        User     @relation(fields: [studentId], references: [id])
+
+  submittedCode  String
+  aiScore        Float?
+  aiFeedback     String?
+
+  createdAt      DateTime @default(now())
+
+  @@index([studentId, practiceId, createdAt])
 }
 
 model Question {
@@ -226,6 +275,11 @@ model Enrollment {
   expiresAt      DateTime?
   isActive       Boolean        @default(true)
 
+  type                 EnrollmentType @default(PAID)
+  expiresAt            DateTime?
+  trialCardFingerprint String?
+  isActive             Boolean        @default(true)
+
   studentId Int
   student   User @relation(fields: [studentId], references: [id])
 
@@ -239,41 +293,9 @@ model Enrollment {
   certificate       Certificate?
 
   @@unique([studentId, courseId])
-  @@index([isActive, expiresAt])
+  @@index([trialCardFingerprint, courseId])
   @@index([studentId, isActive])
-}
-
-model Certificate {
-  id              Int      @id @default(autoincrement())
-  certificateCode String   @unique
-  issuedAt        DateTime @default(now())
-
-  enrollmentId Int        @unique
-  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-
-  studentId Int
-  student   User @relation(fields: [studentId], references: [id])
-
-  courseId Int
-  course   Course @relation(fields: [courseId], references: [id])
-
-  @@index([studentId])
-  @@index([courseId])
-}
-
-model ContentProgress {
-  id          Int      @id @default(autoincrement())
-  completedAt DateTime @default(now())
-  // EPIC 7: for video, track watch percentage
-  watchedSeconds Int?
-
-  enrollmentId Int
-  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-
-  contentId Int
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-
-  @@unique([enrollmentId, contentId])
+  @@index([expiresAt])
 }
 
 model Review {
@@ -354,10 +376,10 @@ model PracticeSubmission {
 }
 
 model Payment {
-  id              Int    @id @default(autoincrement())
-  amount          Float
-  status          String
-  stripeSessionId String @unique
+  id              Int           @id @default(autoincrement())
+  amount          Decimal       @db.Decimal(10, 2)
+  status          PaymentStatus @default(PENDING)
+  stripeSessionId String        @unique
 
   enrollmentId Int        @unique
   enrollment   Enrollment @relation("EnrollmentPayment", fields: [enrollmentId], references: [id])
@@ -368,6 +390,48 @@ model Payment {
   revenueLedger RevenueLedger?
 
   createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
+  @@index([status, createdAt])
+}
+
+model RevenueLedger {
+  id           Int          @id @default(autoincrement())
+  paymentId    Int          @unique
+  payment      Payment      @relation(fields: [paymentId], references: [id])
+
+  courseId     Int
+  teacherId    Int
+
+  // Snapshots at time-of-sale. Courses get renamed / teachers get
+  // offboarded, but the ledger needs to stay explainable for audit
+  // years later — don't JOIN against live rows for historical reports.
+  courseTitleSnapshot  String @db.VarChar(200)
+  teacherNameSnapshot  String @db.VarChar(200)
+  teacherEmailSnapshot String @db.VarChar(320)
+  feePctSnapshot       Decimal @db.Decimal(5, 2)
+
+  grossAmount  Decimal @db.Decimal(10, 2)
+  platformFee  Decimal @db.Decimal(10, 2)
+  teacherShare Decimal @db.Decimal(10, 2)
+
+  payoutStatus PayoutStatus @default(HELD)
+  paidAt       DateTime?
+
+  createdAt    DateTime     @default(now())
+
+  @@index([teacherId, createdAt])
+  @@index([payoutStatus])
+}
+
+// Stripe guarantees at-least-once delivery — a retry on a dropped ACK
+// would double-enroll a student or double-book revenue. Insert a row
+// keyed on event.id inside the same transaction; the unique constraint
+// makes a duplicate land as P2002 and we short-circuit.
+model StripeWebhookEvent {
+  id          String   @id @db.VarChar(100)
+  type        String   @db.VarChar(100)
+  processedAt DateTime @default(now())
 }
 
 // EPIC 4: Revenue Ledger

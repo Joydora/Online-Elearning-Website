@@ -30,28 +30,18 @@ import CreateCourse from './pages/teacher/CreateCourse';
 import EditCourse from './pages/teacher/EditCourse';
 import ManageCourse from './pages/teacher/ManageCourse';
 import ManageQuiz from './pages/teacher/ManageQuiz';
-import EnrolledStudents from './pages/teacher/EnrolledStudents';
-import StudentPerformance from './pages/teacher/StudentPerformance';
+import ManageProjects from './pages/teacher/ManageProjects';
 import CoursePlayer from './pages/learning/CoursePlayer';
+import ProgressPage from './pages/learning/Progress';
+import StudentProjects from './pages/learning/Projects';
 import AdminDashboard from './pages/admin/Dashboard';
 import ManageCategories from './pages/admin/ManageCategories';
 import ManageUsers from './pages/admin/ManageUsers';
 import ManageCourses from './pages/admin/ManageCourses';
 import AdminCreateCourse from './pages/admin/CreateCourse';
 import AdminEditCourse from './pages/admin/EditCourse';
-import ManagePromotions from './pages/admin/ManagePromotions';
 import AdminRevenue from './pages/admin/Revenue';
-import AdminAuditLogs from './pages/admin/AuditLogs';
 import LearningPath from './pages/LearningPath';
-import Progress from './pages/learning/Progress';
-import Certificate from './pages/learning/Certificate';
-import Projects from './pages/learning/Projects';
-import Discussion from './pages/learning/Discussion';
-import ManageProjects from './pages/teacher/ManageProjects';
-import SyllabusImport from './pages/teacher/SyllabusImport';
-import TeacherEarnings from './pages/teacher/Earnings';
-import ReviewCourses from './pages/admin/ReviewCourses';
-import Notifications from './pages/Notifications';
 
 function MainLayout() {
     return (
@@ -175,50 +165,23 @@ export const router = createBrowserRouter([
                 element: <CourseDetail />,
             },
             {
-                path: '/teachers/:id',
-                element: <TeacherProfile />,
-            },
-            {
-                path: '/payment-success',
-                element: <PaymentSuccess />,
-            },
-            {
-                path: '/payment-cancel',
-                element: <PaymentCancel />,
-            },
-            {
                 path: '/learning-path',
                 element: <LearningPath />,
             },
             {
-                path: '/auth/google/callback',
-                element: <GoogleCallback />,
-            },
-            {
-                element: <ProtectedRoute />,
-                children: [
-                    {
-                        path: '/profile',
-                        element: <Profile />,
-                    },
-                    {
-                        path: '/courses/:courseId/discussions',
-                        element: <Discussion />,
-                    },
-                    {
-                        path: '/notifications',
-                        element: <Notifications />,
-                    },
-                ],
-            },
-            {
-                // The course player is accessible to enrolled students AND to the
-                // owning teacher / admins (so staff can view their own course content).
-                element: <MultiRoleRoute roles={['STUDENT', 'TEACHER', 'ADMIN']} />,
+                element: <RoleRoute requiredRole="STUDENT" />,
                 children: [
                     {
                         path: '/learning/:courseId',
                         element: <CoursePlayer />,
+                    },
+                    {
+                        path: '/learning/:courseId/progress',
+                        element: <ProgressPage />,
+                    },
+                    {
+                        path: '/learning/:courseId/projects',
+                        element: <StudentProjects />,
                     },
                 ],
             },
@@ -275,28 +238,8 @@ export const router = createBrowserRouter([
                         element: <ManageQuiz />,
                     },
                     {
-                        path: '/courses/:id/students',
-                        element: <EnrolledStudents />,
-                    },
-                    {
-                        path: '/courses/:id/students/:studentId/performance',
-                        element: <StudentPerformance />,
-                    },
-                    {
-                        path: '/courses/:id/projects',
+                        path: '/courses/:id/projects/manage',
                         element: <ManageProjects />,
-                    },
-                    {
-                        path: '/teacher/courses/:courseId/syllabus',
-                        element: <SyllabusImport />,
-                    },
-                    {
-                        path: '/courses/:courseId/syllabus',
-                        element: <SyllabusImport />,
-                    },
-                    {
-                        path: '/teacher/earnings',
-                        element: <TeacherEarnings />,
                     },
                 ],
             },
@@ -335,26 +278,10 @@ export const router = createBrowserRouter([
                         path: '/admin/courses/:courseId/syllabus',
                         element: <SyllabusImport />,
                     },
-                        {
-                            path: '/admin/quiz/:contentId/manage',
-                            element: <ManageQuiz />,
-                        },
-                        {
-                            path: '/admin/promotions',
-                            element: <ManagePromotions />,
-                        },
-                        {
-                            path: '/admin/revenue',
-                            element: <AdminRevenue />,
-                        },
-                        {
-                            path: '/admin/audit-logs',
-                            element: <AdminAuditLogs />,
-                        },
-                        {
-                            path: '/admin/courses/review',
-                            element: <ReviewCourses />,
-                        },
+                    {
+                        path: '/admin/revenue',
+                        element: <AdminRevenue />,
+                    },
                 ],
             },
         ],

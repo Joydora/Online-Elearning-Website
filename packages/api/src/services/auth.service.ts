@@ -1,10 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import { PrismaClient, Role, User } from '@prisma/client';
-import { sendVerificationEmail } from './email.service';
-
-const prisma = new PrismaClient();
+import { Role, User } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 // Generate verification token
 function generateVerificationToken(): string {
@@ -42,10 +39,10 @@ export type LoginResult = {
     user: SafeUser;
 };
 
-export type SafeUser = Omit<User, 'hashedPassword'>;
+export type SafeUser = Omit<User, 'hashedPassword' | 'stripeCustomerId' | 'stripePaymentMethodId'>;
 
 function excludePassword(user: User): SafeUser {
-    const { hashedPassword, ...safeUser } = user;
+    const { hashedPassword, stripeCustomerId, stripePaymentMethodId, ...safeUser } = user;
     return safeUser;
 }
 

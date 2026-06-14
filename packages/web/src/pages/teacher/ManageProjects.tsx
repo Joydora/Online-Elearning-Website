@@ -1,136 +1,261 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Github, Star, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import {
+    ArrowLeft,
+    Plus,
+    Save,
+    Trash2,
+    RefreshCw,
+    Github,
+    Loader2,
+    ChevronDown,
+    ChevronRight,
+} from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
-import { showErrorAlert, showSuccessAlert } from '../../lib/sweetalert';
-import Swal from 'sweetalert2';
-
-type Commit = { sha: string; message: string; author: string; date: string; url: string };
-
-type Submission = {
-    id: number;
-    repoUrl: string;
-    commitHistory: Commit[];
-    grade: number | null;
-    feedback: string | null;
-    submittedAt: string;
-    student: { id: number; username: string; firstName: string | null; lastName: string | null; email: string };
-};
+import { Card } from '../../components/ui/card';
+import { showSuccessAlert, showErrorAlert } from '../../lib/sweetalert';
 
 type Project = {
     id: number;
+    courseId: number;
     title: string;
     description: string;
-    requirements: string;
+    requirements: string | null;
     deadline: string | null;
     createdAt: string;
-    _count?: { submissions: number };
 };
 
-type ProjectForm = {
-    title: string;
-    description: string;
-    requirements: string;
-    deadline: string;
+type Commit = {
+    sha: string;
+    message: string;
+    authorName: string;
+    authorDate: string;
+    htmlUrl: string;
 };
 
-function GradeModal({ submission, onClose, onSaved }: { submission: Submission; onClose: () => void; onSaved: () => void }) {
-    const [grade, setGrade] = useState<string>(submission.grade !== null ? String(submission.grade) : '');
-    const [feedback, setFeedback] = useState(submission.feedback || '');
-    const [saving, setSaving] = useState(false);
-
-    const save = async () => {
-        const g = Number(grade);
-        if (grade !== '' && (!Number.isFinite(g) || g < 0 || g > 10)) {
-            showErrorAlert('Lỗi', 'Điểm phải là số từ 0 đến 10');
-            return;
-        }
-        setSaving(true);
-        try {
-            await apiClient.put(`/projects/submissions/${submission.id}/grade`, {
-                feedback: feedback || undefined,
-                grade: grade !== '' ? g : undefined,
-            });
-            await showSuccessAlert('Đã lưu', 'Đã lưu đánh giá thành công.');
-            onSaved();
-            onClose();
-        } catch {
-            showErrorAlert('Lỗi', 'Không thể lưu đánh giá.');
-        } finally {
-            setSaving(false);
-        }
+type Submission = {
+    id: number;
+    projectId: number;
+    studentId: number;
+    repoUrl: string;
+    commitsJson: Commit[] | null;
+    lastFetchedAt: string | null;
+    teacherFeedback: string | null;
+    teacherGrade: number | null;
+    submittedAt: string;
+    student: {
+        id: number;
+        username: string;
+        firstName: string | null;
+        lastName: string | null;
+        email: string;
     };
+};
+
+function studentName(s: Submission['student']) {
+    return [s.firstName, s.lastName].filter(Boolean).join(' ') || s.username;
+}
+
+function ProjectForm({
+    courseId,
+    project,
+    onDone,
+}: {
+    courseId: string;
+    project?: Project;
+    onDone: () => void;
+}) {
+    const queryClient = useQueryClient();
+    const [title, setTitle] = useState(project?.title ?? '');
+    const [description, setDescription] = useState(project?.description ?? '');
+    const [requirements, setRequirements] = useState(project?.requirements ?? '');
+    const [deadline, setDeadline] = useState(project?.deadline ? project.deadline.slice(0, 10) : '');
+
+    const save = useMutation({
+        mutationFn: async () => {
+            const payload = {
+                title: title.trim(),
+                description: description.trim(),
+                requirements: requirements.trim() || null,
+                deadline: deadline ? new Date(deadline).toISOString() : null,
+            };
+            if (project) {
+                const { data } = await apiClient.put(`/projects/${project.id}`, payload);
+                return data;
+            } else {
+                const { data } = await apiClient.post(`/courses/${courseId}/projects`, payload);
+                return data;
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['projects', courseId] });
+            showSuccessAlert(project ? 'Đã cập nhật' : 'Đã tạo project');
+            onDone();
+        },
+        onError: (err: any) => showErrorAlert('Lỗi', err.response?.data?.error ?? 'Không lưu được'),
+    });
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <Card className="w-full max-w-lg p-4 sm:p-6 my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
-                <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white mb-3 sm:mb-4 break-words">
-                    Đánh giá: {submission.student.firstName || submission.student.username}
-                </h3>
-                <div className="space-y-3 sm:space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Repo URL
-                        </label>
-                        <a href={submission.repoUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-xs sm:text-sm text-red-600 hover:underline flex items-center gap-1 break-all">
-                            {submission.repoUrl} <ExternalLink className="w-3 h-3 shrink-0" />
-                        </a>
-                    </div>
-                    {submission.commitHistory.length > 0 && (
+        <div className="space-y-3">
+            <Input
+                data-testid="project-title"
+                placeholder="Tiêu đề"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+            />
+            <textarea
+                data-testid="project-description"
+                placeholder="Mô tả"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full min-h-[80px] px-3 py-2 rounded-md border border-input bg-background"
+            />
+            <textarea
+                data-testid="project-requirements"
+                placeholder="Yêu cầu (optional)"
+                value={requirements}
+                onChange={(e) => setRequirements(e.target.value)}
+                className="w-full min-h-[60px] px-3 py-2 rounded-md border border-input bg-background"
+            />
+            <Input
+                data-testid="project-deadline"
+                type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+            />
+            <div className="flex gap-2">
+                <Button
+                    data-testid="project-save"
+                    onClick={() => save.mutate()}
+                    disabled={save.isPending || !title.trim() || !description.trim()}
+                    className="gap-2"
+                >
+                    {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Lưu
+                </Button>
+                <Button variant="outline" onClick={onDone}>
+                    Huỷ
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function SubmissionsPanel({ projectId }: { projectId: number }) {
+    const queryClient = useQueryClient();
+    const { data: submissions = [], isLoading } = useQuery<Submission[]>({
+        queryKey: ['submissions', projectId],
+        queryFn: async () => {
+            const { data } = await apiClient.get(`/projects/${projectId}/submissions`);
+            return data;
+        },
+    });
+
+    const refresh = useMutation({
+        mutationFn: async (id: number) => {
+            const { data } = await apiClient.post(`/submissions/${id}/refresh`);
+            return data;
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['submissions', projectId] }),
+        onError: (err: any) => showErrorAlert('Lỗi', err.response?.data?.error ?? 'Refresh thất bại'),
+    });
+
+    const grade = useMutation({
+        mutationFn: async (vars: { id: number; feedback: string; grade: number | null }) => {
+            const { data } = await apiClient.put(`/submissions/${vars.id}/grade`, {
+                teacherFeedback: vars.feedback,
+                teacherGrade: vars.grade,
+            });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['submissions', projectId] });
+            showSuccessAlert('Đã chấm điểm');
+        },
+        onError: (err: any) => showErrorAlert('Lỗi', err.response?.data?.error ?? 'Chấm thất bại'),
+    });
+
+    if (isLoading) return <Loader2 className="h-5 w-5 animate-spin" />;
+
+    if (submissions.length === 0) {
+        return <p className="text-sm text-slate-500">Chưa có học viên nộp.</p>;
+    }
+
+    return (
+        <div className="space-y-3" data-testid={`submissions-${projectId}`}>
+            {submissions.map((s) => (
+                <Card key={s.id} className="p-4 bg-slate-50 dark:bg-slate-900" data-testid={`submission-${s.id}`}>
+                    <div className="flex items-center justify-between mb-2">
                         <div>
-                            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Commits ({submission.commitHistory.length})
-                            </p>
-                            <div className="space-y-1 max-h-32 overflow-y-auto">
-                                {submission.commitHistory.map(c => (
-                                    <div key={c.sha} className="flex items-center gap-2 text-xs bg-zinc-50 dark:bg-zinc-800 rounded px-2 py-1.5">
-                                        <code className="text-red-600 font-mono">{c.sha}</code>
-                                        <span className="flex-1 truncate text-zinc-600 dark:text-zinc-400">{c.message}</span>
-                                        <span className="text-zinc-400">{new Date(c.date).toLocaleDateString('vi-VN')}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            <p className="font-semibold">{studentName(s.student)}</p>
+                            <a href={s.repoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                                <Github className="h-3 w-3" />
+                                {s.repoUrl}
+                            </a>
                         </div>
-                    )}
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Điểm (0–10)
-                        </label>
-                        <Input
-                            type="number"
-                            min={0}
-                            max={10}
-                            step={0.5}
-                            value={grade}
-                            onChange={e => setGrade(e.target.value)}
-                            placeholder="Nhập điểm..."
-                        />
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">
+                                {s.commitsJson?.length ?? 0} commit
+                            </span>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                data-testid={`refresh-${s.id}`}
+                                onClick={() => refresh.mutate(s.id)}
+                                disabled={refresh.isPending}
+                                className="gap-1"
+                            >
+                                <RefreshCw className="h-3 w-3" />
+                                Refresh
+                            </Button>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            Nhận xét
-                        </label>
-                        <textarea
-                            className="w-full h-28 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
-                            value={feedback}
-                            onChange={e => setFeedback(e.target.value)}
-                            placeholder="Nhận xét cho sinh viên..."
-                        />
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                        <Button variant="outline" onClick={onClose} disabled={saving} className="w-full sm:w-auto">Hủy</Button>
-                        <Button onClick={save} disabled={saving} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
-                            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Lưu đánh giá
-                        </Button>
-                    </div>
-                </div>
-            </Card>
+                    <GradingForm
+                        submission={s}
+                        onSubmit={(feedback, gradeNum) => grade.mutate({ id: s.id, feedback, grade: gradeNum })}
+                        pending={grade.isPending}
+                    />
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+function GradingForm({ submission, onSubmit, pending }: { submission: Submission; onSubmit: (f: string, g: number | null) => void; pending: boolean }) {
+    const [feedback, setFeedback] = useState(submission.teacherFeedback ?? '');
+    const [grade, setGrade] = useState(submission.teacherGrade?.toString() ?? '');
+    return (
+        <div className="space-y-2 mt-2 border-t border-slate-200 dark:border-slate-700 pt-2">
+            <textarea
+                data-testid={`feedback-${submission.id}`}
+                placeholder="Nhận xét cho học viên"
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                className="w-full min-h-[60px] px-3 py-2 rounded-md border border-input bg-background text-sm"
+            />
+            <div className="flex items-center gap-2">
+                <Input
+                    data-testid={`grade-${submission.id}`}
+                    type="number"
+                    min={0}
+                    max={100}
+                    placeholder="Điểm 0-100"
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-32"
+                />
+                <Button
+                    size="sm"
+                    data-testid={`save-grade-${submission.id}`}
+                    onClick={() => onSubmit(feedback, grade === '' ? null : Number(grade))}
+                    disabled={pending}
+                >
+                    Lưu
+                </Button>
+            </div>
         </div>
     );
 }
@@ -138,14 +263,12 @@ function GradeModal({ submission, onClose, onSaved }: { submission: Submission; 
 export default function ManageProjects() {
     const { id: courseId } = useParams<{ id: string }>();
     const queryClient = useQueryClient();
-    const [showForm, setShowForm] = useState(false);
-    const [editingProject, setEditingProject] = useState<Project | null>(null);
-    const [expandedProject, setExpandedProject] = useState<number | null>(null);
-    const [gradingSubmission, setGradingSubmission] = useState<Submission | null>(null);
-    const [form, setForm] = useState<ProjectForm>({ title: '', description: '', requirements: '', deadline: '' });
+    const [adding, setAdding] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
-    const { data: projects, isLoading } = useQuery<Project[]>({
-        queryKey: ['teacher-projects', courseId],
+    const { data: projects = [], isLoading } = useQuery<Project[]>({
+        queryKey: ['projects', courseId],
         queryFn: async () => {
             const { data } = await apiClient.get(`/courses/${courseId}/projects`);
             return data;
@@ -153,231 +276,97 @@ export default function ManageProjects() {
         enabled: !!courseId,
     });
 
-    const { data: submissions } = useQuery<Submission[]>({
-        queryKey: ['project-submissions', expandedProject],
-        queryFn: async () => {
-            const { data } = await apiClient.get(`/projects/${expandedProject}/submissions`);
-            return data;
-        },
-        enabled: !!expandedProject,
-    });
-
-    const saveMutation = useMutation({
-        mutationFn: async () => {
-            if (editingProject) {
-                await apiClient.put(`/projects/${editingProject.id}`, form);
-            } else {
-                await apiClient.post('/projects', { ...form, courseId: Number(courseId) });
-            }
-        },
-        onSuccess: async () => {
-            await showSuccessAlert('Đã lưu', 'Dự án đã được lưu thành công.');
-            resetForm();
-            queryClient.invalidateQueries({ queryKey: ['teacher-projects', courseId] });
-        },
-        onError: () => showErrorAlert('Lỗi', 'Không thể lưu dự án.'),
-    });
-
-    const deleteMutation = useMutation({
+    const remove = useMutation({
         mutationFn: async (id: number) => {
             await apiClient.delete(`/projects/${id}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['teacher-projects', courseId] });
+            queryClient.invalidateQueries({ queryKey: ['projects', courseId] });
+            showSuccessAlert('Đã xoá project');
         },
-        onError: () => showErrorAlert('Lỗi', 'Không thể xóa dự án.'),
+        onError: (err: any) => showErrorAlert('Lỗi', err.response?.data?.error ?? 'Xoá thất bại'),
     });
 
-    const handleDelete = async (project: Project) => {
-        const result = await Swal.fire({
-            title: 'Xác nhận xóa',
-            text: `Bạn có chắc chắn muốn xóa dự án "${project.title}"?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonText: 'Hủy',
-            confirmButtonText: 'Xóa',
+    const toggle = (id: number) =>
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
         });
-        if (result.isConfirmed) deleteMutation.mutate(project.id);
-    };
-
-    const openEdit = (project: Project) => {
-        setEditingProject(project);
-        setForm({
-            title: project.title,
-            description: project.description,
-            requirements: project.requirements,
-            deadline: project.deadline ? project.deadline.substring(0, 16) : '',
-        });
-        setShowForm(true);
-    };
-
-    const resetForm = () => {
-        setShowForm(false);
-        setEditingProject(null);
-        setForm({ title: '', description: '', requirements: '', deadline: '' });
-    };
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <Github className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" />
-                    Quản lý dự án
-                </h1>
-                <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto">
-                    <Plus className="w-4 h-4" />
-                    Thêm dự án
-                </Button>
-            </div>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+            <div className="container mx-auto px-4 py-8 max-w-4xl">
+                <div className="mb-6 flex items-center justify-between">
+                    <Link to={`/courses/${courseId}/manage`}>
+                        <Button variant="ghost" size="sm" className="gap-1">
+                            <ArrowLeft className="h-4 w-4" /> Về Manage
+                        </Button>
+                    </Link>
+                </div>
 
-            {/* Form */}
-            {showForm && (
-                <Card className="p-4 sm:p-6 mb-5 sm:mb-6">
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-                        {editingProject ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
-                    </h2>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Tên dự án *</label>
-                            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Tên dự án..." />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Mô tả *</label>
-                            <textarea
-                                className="w-full h-24 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
-                                value={form.description}
-                                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                placeholder="Mô tả dự án..."
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Yêu cầu *</label>
-                            <textarea
-                                className="w-full h-32 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 resize-none font-mono"
-                                value={form.requirements}
-                                onChange={e => setForm(f => ({ ...f, requirements: e.target.value }))}
-                                placeholder="Liệt kê yêu cầu dự án..."
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Hạn nộp (tùy chọn)</label>
-                            <Input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} />
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                            <Button variant="outline" onClick={resetForm} disabled={saveMutation.isPending} className="w-full sm:w-auto">Hủy</Button>
-                            <Button
-                                onClick={() => saveMutation.mutate()}
-                                disabled={saveMutation.isPending || !form.title || !form.description || !form.requirements}
-                                className="bg-red-600 hover:bg-red-700 gap-2 w-full sm:w-auto"
-                            >
-                                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {editingProject ? 'Cập nhật' : 'Tạo dự án'}
-                            </Button>
-                        </div>
-                    </div>
-                </Card>
-            )}
+                <h1 className="text-3xl font-bold mb-6">Project-based assignments</h1>
 
-            {/* Project list */}
-            {isLoading ? (
-                <div className="text-center py-12 text-zinc-500">Đang tải...</div>
-            ) : (projects ?? []).length === 0 ? (
-                <Card className="p-12 text-center text-zinc-500">Chưa có dự án nào. Hãy tạo dự án đầu tiên!</Card>
-            ) : (
-                <div className="space-y-3 sm:space-y-4">
-                    {(projects ?? []).map(project => (
-                        <Card key={project.id} className="overflow-hidden">
-                            <div className="p-4 sm:p-5">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white break-words">{project.title}</h3>
-                                        <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 break-words">{project.description}</p>
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-400">
-                                            <span>{project._count?.submissions ?? 0} bài nộp</span>
-                                            {project.deadline && (
-                                                <span>Hạn: {new Date(project.deadline).toLocaleDateString('vi-VN')}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                                        <Button size="sm" variant="ghost" onClick={() => openEdit(project)} className="gap-1">
-                                            <Pencil className="w-3.5 h-3.5" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" onClick={() => handleDelete(project)} className="gap-1 text-red-500 hover:text-red-700">
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => setExpandedProject(expandedProject === project.id ? null : project.id)}
-                                            className="gap-1"
-                                        >
-                                            {expandedProject === project.id ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                            Bài nộp
-                                        </Button>
-                                    </div>
+                {!adding && (
+                    <Button data-testid="add-project" onClick={() => setAdding(true)} className="gap-2 mb-4">
+                        <Plus className="h-4 w-4" /> Thêm project
+                    </Button>
+                )}
+
+                {adding && (
+                    <Card className="p-4 mb-6">
+                        <h2 className="font-bold mb-3">Project mới</h2>
+                        <ProjectForm courseId={courseId!} onDone={() => setAdding(false)} />
+                    </Card>
+                )}
+
+                {isLoading && <Loader2 className="h-6 w-6 animate-spin" />}
+
+                <div className="space-y-3">
+                    {projects.map((p) => (
+                        <Card key={p.id} className="p-4" data-testid={`project-${p.id}`}>
+                            <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-lg">{p.title}</h3>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">{p.description}</p>
+                                    {p.deadline && (
+                                        <p className="text-xs text-amber-600 mt-1">
+                                            Deadline: {new Date(p.deadline).toLocaleDateString('vi-VN')}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex gap-1">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => toggle(p.id)}
+                                        data-testid={`toggle-${p.id}`}
+                                    >
+                                        {expanded.has(p.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => setEditingId(p.id)}>
+                                        Sửa
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="text-red-600" onClick={() => remove.mutate(p.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
                                 </div>
                             </div>
-
-                            {expandedProject === project.id && (
-                                <div className="border-t border-zinc-100 dark:border-zinc-800 p-4 sm:p-5">
-                                    {!submissions ? (
-                                        <div className="text-center py-4 text-zinc-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
-                                    ) : submissions.length === 0 ? (
-                                        <p className="text-sm text-zinc-500 text-center py-4">Chưa có bài nộp nào</p>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {submissions.map(sub => {
-                                                const name = [sub.student.firstName, sub.student.lastName].filter(Boolean).join(' ') || sub.student.username;
-                                                return (
-                                                    <div key={sub.id} className="flex flex-col gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg sm:flex-row sm:items-center">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-zinc-900 dark:text-white break-words">{name}</p>
-                                                            <p className="text-xs text-zinc-500 break-all">{sub.student.email}</p>
-                                                            <a href={sub.repoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-red-600 hover:underline flex items-center gap-1 mt-1 break-all">
-                                                                <Github className="w-3 h-3 shrink-0" />
-                                                                {sub.repoUrl}
-                                                            </a>
-                                                        </div>
-                                                        <div className="flex items-center justify-between gap-3 sm:flex-shrink-0">
-                                                            <div className="sm:text-right">
-                                                                {sub.grade !== null ? (
-                                                                    <p className={`font-bold text-base sm:text-lg ${sub.grade >= 8 ? 'text-green-600' : sub.grade >= 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                                        {sub.grade}/10
-                                                                    </p>
-                                                                ) : (
-                                                                    <p className="text-xs text-zinc-400">Chưa chấm</p>
-                                                                )}
-                                                            </div>
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => setGradingSubmission(sub)}
-                                                                className="bg-red-600 hover:bg-red-700 gap-1 flex-shrink-0"
-                                                            >
-                                                                <Star className="w-3.5 h-3.5" />
-                                                                Chấm điểm
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                            {editingId === p.id && (
+                                <div className="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+                                    <ProjectForm courseId={courseId!} project={p} onDone={() => setEditingId(null)} />
+                                </div>
+                            )}
+                            {expanded.has(p.id) && (
+                                <div className="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">
+                                    <h4 className="font-semibold mb-2">Bài nộp của học viên</h4>
+                                    <SubmissionsPanel projectId={p.id} />
                                 </div>
                             )}
                         </Card>
                     ))}
                 </div>
-            )}
-
-            {gradingSubmission && (
-                <GradeModal
-                    submission={gradingSubmission}
-                    onClose={() => setGradingSubmission(null)}
-                    onSaved={() => queryClient.invalidateQueries({ queryKey: ['project-submissions', expandedProject] })}
-                />
-            )}
+            </div>
         </div>
     );
 }

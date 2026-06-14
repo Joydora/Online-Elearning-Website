@@ -1,316 +1,318 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DollarSign, Download, CheckSquare } from 'lucide-react';
+import { DollarSign, Download, CheckCircle2, Loader2 } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { showErrorAlert, showSuccessAlert } from '../../lib/sweetalert';
 
-type LedgerEntry = {
+type LedgerRow = {
     id: number;
+    paymentId: number;
+    courseId: number;
+    teacherId: number;
     grossAmount: number;
     platformFee: number;
-    payoutStatus: 'HELD' | 'PAID';
     teacherShare: number;
+    payoutStatus: 'HELD' | 'PAID';
+    paidAt: string | null;
     createdAt: string;
-    paidAt?: string | null;
-    course: {
-        id: number;
-        title: string;
-    };
+    course: { id: number; title: string; price: number } | null;
     teacher: {
         id: number;
         username: string;
-        email: string;
         firstName: string | null;
         lastName: string | null;
-    };
-};
-
-type RevenueSummary = {
-    grossAmount: number;
-    platformFee: number;
-    teacherShare: number;
+        email: string;
+    } | null;
 };
 
 type RevenueResponse = {
-    rows: LedgerEntry[];
-    summary: RevenueSummary;
-    total: number;
-    page: number;
-    totalPages: number;
+    rows: LedgerRow[];
+    pagination: { total: number; limit: number; offset: number };
+    aggregates: {
+        totalGross: number;
+        totalPlatformFee: number;
+        totalTeacherShare: number;
+        rowCount: number;
+        heldCount: number;
+        paidCount: number;
+    };
 };
 
-type TeacherOption = {
-    id: number;
-    username: string;
-    firstName: string | null;
-    lastName: string | null;
-};
+function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+}
 
-type CourseOption = {
-    id: number;
-    title: string;
-};
+function toCsv(rows: LedgerRow[]): string {
+    const header = [
+        'ledger_id',
+        'payment_id',
+        'created_at',
+        'course_id',
+        'course_title',
+        'teacher_id',
+        'teacher_name',
+        'gross',
+        'platform_fee',
+        'teacher_share',
+        'payout_status',
+        'paid_at',
+    ];
+    const escape = (s: string | number | null) => {
+        const str = s === null || s === undefined ? '' : String(s);
+        return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const lines = rows.map((r) =>
+        [
+            r.id,
+            r.paymentId,
+            r.createdAt,
+            r.courseId,
+            r.course?.title ?? '',
+            r.teacherId,
+            [r.teacher?.firstName, r.teacher?.lastName].filter(Boolean).join(' ') || r.teacher?.username || '',
+            r.grossAmount,
+            r.platformFee,
+            r.teacherShare,
+            r.payoutStatus,
+            r.paidAt ?? '',
+        ]
+            .map(escape)
+            .join(','),
+    );
+    return [header.join(','), ...lines].join('\n');
+}
 
 export default function AdminRevenue() {
     const queryClient = useQueryClient();
-    const [statusFilter, setStatusFilter] = useState<'ALL' | 'HELD' | 'PAID'>('ALL');
     const [teacherId, setTeacherId] = useState('');
     const [courseId, setCourseId] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'' | 'HELD' | 'PAID'>('');
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+    const filterKey = useMemo(
+        () => ({ teacherId, courseId, statusFilter, from, to }),
+        [teacherId, courseId, statusFilter, from, to],
+    );
 
     const { data, isLoading } = useQuery<RevenueResponse>({
-        queryKey: ['admin-revenue', statusFilter, teacherId, courseId, from, to],
+        queryKey: ['admin-revenue', filterKey],
         queryFn: async () => {
             const params = new URLSearchParams();
-            if (statusFilter !== 'ALL') params.set('payoutStatus', statusFilter);
             if (teacherId) params.set('teacherId', teacherId);
             if (courseId) params.set('courseId', courseId);
+            if (statusFilter) params.set('status', statusFilter);
             if (from) params.set('from', from);
             if (to) params.set('to', to);
-
             const { data } = await apiClient.get(`/admin/revenue?${params.toString()}`);
             return data;
         },
     });
 
-    const { data: teachers = [] } = useQuery<TeacherOption[]>({
-        queryKey: ['admin-revenue-teachers'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/admin/users?role=TEACHER');
+    const markPaid = useMutation({
+        mutationFn: async (ledgerId: number) => {
+            const { data } = await apiClient.post(`/admin/revenue/${ledgerId}/mark-paid`);
             return data;
         },
-    });
-
-    const { data: courses = [] } = useQuery<CourseOption[]>({
-        queryKey: ['admin-revenue-courses'],
-        queryFn: async () => {
-            const { data } = await apiClient.get('/admin/courses');
-            return data;
-        },
-    });
-
-    const payoutMutation = useMutation({
-        mutationFn: async (ids: number[]) => {
-            await apiClient.post('/admin/revenue/payout', { ids });
-        },
-        onSuccess: async () => {
-            await showSuccessAlert('Thành công', 'Đã đánh dấu thanh toán thành công.');
-            setSelectedIds([]);
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-revenue'] });
+            showSuccessAlert('Đã đánh dấu đã thanh toán');
         },
-        onError: () => showErrorAlert('Lỗi', 'Không thể cập nhật trạng thái thanh toán.'),
+        onError: (error: any) => {
+            showErrorAlert('Không thể đánh dấu', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
     });
 
-    const handleExport = async () => {
-        try {
-            const params = new URLSearchParams();
-            if (statusFilter !== 'ALL') params.set('payoutStatus', statusFilter);
-            if (teacherId) params.set('teacherId', teacherId);
-            if (courseId) params.set('courseId', courseId);
-            if (from) params.set('from', from);
-            if (to) params.set('to', to);
-
-            const response = await apiClient.get(`/admin/revenue/export?${params.toString()}`, { responseType: 'blob' });
-            const url = URL.createObjectURL(response.data as Blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'revenue.csv';
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch {
-            showErrorAlert('Lỗi', 'Không thể xuất CSV.');
+    const downloadCsv = () => {
+        if (!data?.rows.length) {
+            showErrorAlert('Không có dữ liệu', 'Không có bản ghi nào để xuất.');
+            return;
         }
+        const csv = toCsv(data.rows);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `revenue_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
-    const toggleSelect = (id: number) => {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    };
-
-    const selectAllHeld = () => {
-        const heldIds = (data?.rows ?? []).filter(e => e.payoutStatus === 'HELD').map(e => e.id);
-        setSelectedIds(prev => prev.length === heldIds.length ? [] : heldIds);
-    };
-
-    const fmt = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+    const agg = data?.aggregates;
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" />
-                    Quản lý doanh thu
-                </h1>
-                <Button onClick={handleExport} variant="outline" className="gap-2 w-full sm:w-auto">
-                    <Download className="w-4 h-4" />
-                    Xuất CSV
-                </Button>
-            </div>
-
-            <Card className="p-3 sm:p-4 mb-5 sm:mb-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                    <select
-                        value={teacherId}
-                        onChange={(e) => { setTeacherId(e.target.value); setSelectedIds([]); }}
-                        className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                    >
-                        <option value="">Tất cả giảng viên</option>
-                        {teachers.map((teacher) => {
-                            const name = [teacher.firstName, teacher.lastName].filter(Boolean).join(' ') || teacher.username;
-                            return (
-                                <option key={teacher.id} value={teacher.id}>
-                                    {name}
-                                </option>
-                            );
-                        })}
-                    </select>
-                    <select
-                        value={courseId}
-                        onChange={(e) => { setCourseId(e.target.value); setSelectedIds([]); }}
-                        className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                    >
-                        <option value="">Tất cả khóa học</option>
-                        {courses.map((course) => (
-                            <option key={course.id} value={course.id}>
-                                {course.title}
-                            </option>
-                        ))}
-                    </select>
-                    <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-                    <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                            setStatusFilter('ALL');
-                            setTeacherId('');
-                            setCourseId('');
-                            setFrom('');
-                            setTo('');
-                            setSelectedIds([]);
-                        }}
-                    >
-                        Xóa lọc
-                    </Button>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+            <div className="container mx-auto px-4 py-8 max-w-7xl">
+                <div className="mb-8">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                        Quản lý doanh thu
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Theo dõi các khoản thu, chia doanh thu và trạng thái chi trả cho giảng viên.
+                    </p>
                 </div>
-            </Card>
 
-            {/* Summary cards */}
-            {data?.summary && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-                    {[
-                        { label: 'Doanh thu nền tảng', value: data.summary.platformFee, color: 'text-blue-600' },
-                        { label: 'Phần GV', value: data.summary.teacherShare, color: 'text-green-600' },
-                        { label: 'Tổng doanh thu', value: data.summary.grossAmount, color: 'text-yellow-600' },
-                    ].map(({ label, value, color }) => (
-                        <Card key={label} className="p-4 sm:p-5">
-                            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
-                            <p className={`text-lg sm:text-2xl font-bold ${color} mt-1 break-all`}>{fmt(value)}</p>
-                        </Card>
-                    ))}
+                {/* Aggregate cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" data-testid="revenue-aggregates">
+                    <Card className="p-5">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Tổng doanh thu</div>
+                        <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                            {formatCurrency(agg?.totalGross ?? 0)}
+                        </div>
+                    </Card>
+                    <Card className="p-5">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Platform fee</div>
+                        <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                            {formatCurrency(agg?.totalPlatformFee ?? 0)}
+                        </div>
+                    </Card>
+                    <Card className="p-5">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Teacher share</div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                            {formatCurrency(agg?.totalTeacherShare ?? 0)}
+                        </div>
+                    </Card>
+                    <Card className="p-5">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Đang giữ (HELD)</div>
+                        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+                            {agg?.heldCount ?? 0}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                            đã chi trả: {agg?.paidCount ?? 0}
+                        </div>
+                    </Card>
                 </div>
-            )}
 
-            {/* Filters + bulk action */}
-            <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:flex-wrap">
-                <div className="flex flex-wrap items-center gap-2">
-                    {(['ALL', 'HELD', 'PAID'] as const).map(s => (
-                        <button
-                            key={s}
-                            onClick={() => { setStatusFilter(s); setSelectedIds([]); }}
-                            className={`px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border transition-colors ${statusFilter === s ? 'bg-red-600 text-white border-red-600' : 'border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                {/* Filters */}
+                <Card className="p-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                        <Input
+                            data-testid="filter-teacher-id"
+                            placeholder="Teacher ID"
+                            value={teacherId}
+                            onChange={(e) => setTeacherId(e.target.value)}
+                        />
+                        <Input
+                            data-testid="filter-course-id"
+                            placeholder="Course ID"
+                            value={courseId}
+                            onChange={(e) => setCourseId(e.target.value)}
+                        />
+                        <select
+                            data-testid="filter-status"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as '' | 'HELD' | 'PAID')}
+                            className="h-10 px-3 rounded-md border border-input bg-background"
                         >
-                            {s === 'ALL' ? 'Tất cả' : s === 'HELD' ? 'Đang giữ' : 'Đã TT'}
-                        </button>
-                    ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
-                    {selectedIds.length > 0 && (
-                        <Button
-                            size="sm"
-                            onClick={() => payoutMutation.mutate(selectedIds)}
-                            disabled={payoutMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 gap-2"
-                        >
-                            <CheckSquare className="w-4 h-4" />
-                            Đánh dấu TT ({selectedIds.length})
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="HELD">Đang giữ</option>
+                            <option value="PAID">Đã chi trả</option>
+                        </select>
+                        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                        <Button onClick={downloadCsv} variant="outline" className="gap-2">
+                            <Download className="h-4 w-4" />
+                            Xuất CSV
                         </Button>
-                    )}
-                    {(data?.rows ?? []).some(e => e.payoutStatus === 'HELD') && (
-                        <button onClick={selectAllHeld} className="text-xs sm:text-sm text-red-600 hover:underline">
-                            {selectedIds.length > 0 ? 'Bỏ chọn tất cả' : 'Chọn tất cả HELD'}
-                        </button>
-                    )}
-                </div>
+                    </div>
+                </Card>
+
+                {/* Table */}
+                <Card className="overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-100 dark:bg-gray-900">
+                                <tr className="text-left">
+                                    <th className="px-4 py-3 font-semibold">ID</th>
+                                    <th className="px-4 py-3 font-semibold">Ngày</th>
+                                    <th className="px-4 py-3 font-semibold">Khóa học</th>
+                                    <th className="px-4 py-3 font-semibold">Giảng viên</th>
+                                    <th className="px-4 py-3 font-semibold text-right">Gross</th>
+                                    <th className="px-4 py-3 font-semibold text-right">Fee</th>
+                                    <th className="px-4 py-3 font-semibold text-right">Share</th>
+                                    <th className="px-4 py-3 font-semibold">Trạng thái</th>
+                                    <th className="px-4 py-3 font-semibold"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {isLoading && (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                                            <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                                            Đang tải...
+                                        </td>
+                                    </tr>
+                                )}
+                                {!isLoading && data?.rows.length === 0 && (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                                            Không có bản ghi phù hợp bộ lọc.
+                                        </td>
+                                    </tr>
+                                )}
+                                {data?.rows.map((row) => (
+                                    <tr
+                                        key={row.id}
+                                        data-testid={`ledger-row-${row.id}`}
+                                        className="border-t border-gray-200 dark:border-gray-800"
+                                    >
+                                        <td className="px-4 py-3">{row.id}</td>
+                                        <td className="px-4 py-3">
+                                            {new Date(row.createdAt).toLocaleDateString('vi-VN')}
+                                        </td>
+                                        <td className="px-4 py-3 max-w-xs truncate" title={row.course?.title ?? ''}>
+                                            {row.course?.title ?? `#${row.courseId}`}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {[row.teacher?.firstName, row.teacher?.lastName]
+                                                .filter(Boolean)
+                                                .join(' ') ||
+                                                row.teacher?.username ||
+                                                `#${row.teacherId}`}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">{formatCurrency(row.grossAmount)}</td>
+                                        <td className="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">
+                                            {formatCurrency(row.platformFee)}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-blue-600 dark:text-blue-400">
+                                            {formatCurrency(row.teacherShare)}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {row.payoutStatus === 'PAID' ? (
+                                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">
+                                                    <CheckCircle2 className="h-3 w-3" />
+                                                    Đã chi
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+                                                    <DollarSign className="h-3 w-3" />
+                                                    Đang giữ
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            {row.payoutStatus === 'HELD' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    data-testid={`mark-paid-${row.id}`}
+                                                    onClick={() => markPaid.mutate(row.id)}
+                                                    disabled={markPaid.isPending}
+                                                >
+                                                    Đánh dấu đã chi
+                                                </Button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
             </div>
-
-            {/* Table */}
-            {isLoading ? (
-                <div className="text-center py-12 text-zinc-500">Đang tải...</div>
-            ) : (
-                <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
-                    <table className="w-full text-sm">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                            <tr>
-                                <th className="py-3 px-4 text-left w-8"></th>
-                                <th className="py-3 px-4 text-left">Khóa học</th>
-                                <th className="py-3 px-4 text-left">Giảng viên</th>
-                                <th className="py-3 px-4 text-right">Nền tảng</th>
-                                <th className="py-3 px-4 text-right">Giảng viên</th>
-                                <th className="py-3 px-4 text-center">Trạng thái</th>
-                                <th className="py-3 px-4 text-left">Ngày</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            {(data?.rows ?? []).map(entry => {
-                                const teacherName = [entry.teacher.firstName, entry.teacher.lastName]
-                                    .filter(Boolean)
-                                    .join(' ') || entry.teacher.username;
-
-                                return (
-                                <tr key={entry.id} className="bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                                    <td className="py-3 px-4">
-                                        {entry.payoutStatus === 'HELD' && (
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIds.includes(entry.id)}
-                                                onChange={() => toggleSelect(entry.id)}
-                                                className="rounded"
-                                            />
-                                        )}
-                                    </td>
-                                    <td className="py-3 px-4 font-medium text-zinc-900 dark:text-white max-w-xs truncate">
-                                        {entry.course.title}
-                                    </td>
-                                    <td className="py-3 px-4 text-zinc-600 dark:text-zinc-400">
-                                        <div>{teacherName}</div>
-                                        <div className="text-xs text-zinc-400">{entry.teacher.email}</div>
-                                    </td>
-                                    <td className="py-3 px-4 text-right text-blue-600 font-medium">{fmt(entry.platformFee)}</td>
-                                    <td className="py-3 px-4 text-right text-green-600 font-medium">{fmt(entry.teacherShare)}</td>
-                                    <td className="py-3 px-4 text-center">
-                                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${entry.payoutStatus === 'PAID' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                                            {entry.payoutStatus === 'PAID' ? 'Đã TT' : 'Đang giữ'}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4 text-zinc-500 dark:text-zinc-400 text-xs">
-                                        {new Date(entry.createdAt).toLocaleDateString('vi-VN')}
-                                    </td>
-                                </tr>
-                            )})}
-                            {(data?.rows ?? []).length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="py-12 text-center text-zinc-500">Chưa có dữ liệu doanh thu</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
         </div>
     );
 }

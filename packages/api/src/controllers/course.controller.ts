@@ -1,5 +1,36 @@
 import { Request, Response } from 'express';
 import { ContentType, CourseLevel, Role } from '@prisma/client';
+
+const VALID_LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+
+function normaliseLevel(raw: unknown): { ok: true; value: CourseLevel | null } | { ok: false; error: string } {
+    if (raw === undefined) return { ok: true, value: null };
+    if (raw === null || raw === '') return { ok: true, value: null };
+    if (typeof raw === 'string' && (VALID_LEVELS as string[]).includes(raw)) {
+        return { ok: true, value: raw as CourseLevel };
+    }
+    return { ok: false, error: 'level must be BEGINNER, INTERMEDIATE, or ADVANCED' };
+}
+
+function normalisePrereqIds(
+    raw: unknown,
+    selfId?: number,
+): { ok: true; value: number[] | undefined } | { ok: false; error: string } {
+    if (raw === undefined) return { ok: true, value: undefined };
+    if (!Array.isArray(raw)) return { ok: false, error: 'prerequisiteIds must be an array of integers' };
+    const ids: number[] = [];
+    for (const v of raw) {
+        const n = Number(v);
+        if (!Number.isInteger(n) || n <= 0) {
+            return { ok: false, error: 'prerequisiteIds must be positive integers' };
+        }
+        if (selfId !== undefined && n === selfId) {
+            return { ok: false, error: 'a course cannot be its own prerequisite' };
+        }
+        ids.push(n);
+    }
+    return { ok: true, value: ids };
+}
 import {
     createContentForModule,
     createCourseForTeacher,
@@ -10,13 +41,11 @@ import {
     getAllCategories,
     getAllCourses,
     getCourseById,
-    getCoursesForTeacher,
-    getFreePreviewContent,
-    updateContentPreviewForTeacher,
+    updateContentForTeacher,
     updateCourseForTeacher,
 } from '../services/course.service';
-import { submitForReview } from '../services/courseReview.service';
 import { AuthenticatedUser } from '../types/auth';
+import { getContentWithAccess } from '../services/contentAccess.service';
 
 export async function getCategoriesController(_req: Request, res: Response): Promise<Response> {
     try {
@@ -24,8 +53,7 @@ export async function getCategoriesController(_req: Request, res: Response): Pro
         return res.status(200).json(categories);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch categories',
-            details: (error as Error).message,
+            error: 'Unable to fetch categories',
         });
     }
 }
@@ -36,15 +64,13 @@ export async function getCoursesController(_req: Request, res: Response): Promis
         return res.status(200).json(courses);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch courses',
-            details: (error as Error).message,
+            error: 'Unable to fetch courses',
         });
     }
 }
 
 export async function getCourseDetailController(req: Request, res: Response): Promise<Response> {
     try {
-        const authReq = req as AuthenticatedRequest;
         const idParam = req.params.id;
         const courseId = Number.parseInt(idParam, 10);
 
@@ -52,7 +78,7 @@ export async function getCourseDetailController(req: Request, res: Response): Pr
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const course = await getCourseById(courseId, authReq.user);
+        const course = await getCourseById(courseId);
 
         if (!course) {
             return res.status(404).json({ error: 'Course not found' });
@@ -61,55 +87,47 @@ export async function getCourseDetailController(req: Request, res: Response): Pr
         return res.status(200).json(course);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch course detail',
-            details: (error as Error).message,
+            error: 'Unable to fetch course detail',
         });
     }
 }
 
-export async function getFreePreviewContentController(req: Request, res: Response): Promise<Response> {
+export async function getContentController(req: Request, res: Response): Promise<Response> {
     try {
-        const courseId = Number.parseInt(req.params.courseId, 10);
-        const contentId = Number.parseInt(req.params.contentId, 10);
+        const contentId = Number.parseInt(req.params.id, 10);
 
-        if (Number.isNaN(courseId) || Number.isNaN(contentId)) {
-            return res.status(400).json({ error: 'courseId and contentId must be numbers' });
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'Content id must be a number' });
         }
 
-        const content = await getFreePreviewContent(courseId, contentId);
+        const authReq = req as Request & { user?: AuthenticatedUser };
+        const userId = authReq.user?.userId ?? null;
 
-        if (!content) {
-            return res.status(404).json({ error: 'Free preview content not found' });
+        const { decision, content } = await getContentWithAccess(userId, contentId);
+
+        if (decision.reason === 'CONTENT_NOT_FOUND') {
+            return res.status(404).json({ error: 'Content not found' });
         }
 
-        return res.status(200).json(content);
+        if (!decision.allowed) {
+            return res.status(403).json({
+                error: 'Access denied',
+                reason: decision.reason,
+            });
+        }
+
+        return res.status(200).json({
+            ...content,
+            accessReason: decision.reason,
+        });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch free preview content',
-            details: (error as Error).message,
+            error: 'Unable to fetch content',
         });
     }
 }
 
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
-
-export async function getMyCoursesController(req: Request, res: Response): Promise<Response> {
-    try {
-        const authReq = req as AuthenticatedRequest;
-
-        if (!authReq.user || authReq.user.role !== Role.TEACHER) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
-        const courses = await getCoursesForTeacher(authReq.user.userId);
-        return res.status(200).json(courses);
-    } catch (error) {
-        return res.status(500).json({
-            error: 'Unable to fetch teacher courses',
-            details: (error as Error).message,
-        });
-    }
-}
 
 function getTeacherId(req: AuthenticatedRequest): number | null {
     // Allow both TEACHER and ADMIN to manage courses
@@ -117,67 +135,6 @@ function getTeacherId(req: AuthenticatedRequest): number | null {
         return null;
     }
     return req.user.userId;
-}
-
-function normalizeSyllabus(value: unknown) {
-    if (value === undefined) {
-        return undefined;
-    }
-
-    if (typeof value === 'string') {
-        const trimmed = value.trim();
-
-        if (!trimmed) {
-            return {};
-        }
-
-        try {
-            return JSON.parse(trimmed);
-        } catch (error) {
-            return { outline: trimmed };
-        }
-    }
-
-    return value ?? {};
-}
-
-function parseOptionalPositiveInt(value: unknown, fieldName: string): number | null | undefined {
-    if (value === undefined) return undefined;
-    if (value === null || value === '') return null;
-
-    const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-        throw new Error(`${fieldName} must be a positive integer when provided`);
-    }
-
-    return parsed;
-}
-
-function parseOptionalCourseLevel(value: unknown): CourseLevel | null | undefined {
-    if (value === undefined) return undefined;
-    if (value === null || value === '') return null;
-    if (typeof value !== 'string') {
-        throw new Error('level must be BEGINNER, INTERMEDIATE, or ADVANCED');
-    }
-    const allowed: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
-    if (!allowed.includes(value as CourseLevel)) {
-        throw new Error('level must be BEGINNER, INTERMEDIATE, or ADVANCED');
-    }
-    return value as CourseLevel;
-}
-
-function parseOptionalPrerequisiteIds(value: unknown): number[] | undefined {
-    if (value === undefined) return undefined;
-    if (!Array.isArray(value)) {
-        throw new Error('prerequisiteIds must be an array of course ids');
-    }
-
-    const parsedIds = value.map((item) => Number(item));
-    if (parsedIds.some((id) => !Number.isInteger(id) || id <= 0)) {
-        throw new Error('prerequisiteIds must contain positive integer ids');
-    }
-
-    return Array.from(new Set(parsedIds));
 }
 
 export async function createCourseController(req: Request, res: Response): Promise<Response> {
@@ -189,7 +146,7 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const { title, description, price, categoryId, thumbnailUrl, syllabus, trialDurationDays, accessDurationDays, level, prerequisiteIds } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays, accessDurationDays, level, prerequisiteIds } = authReq.body ?? {};
 
         if (!title || !description || price === undefined || categoryId === undefined) {
             return res.status(400).json({
@@ -208,41 +165,49 @@ export async function createCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'categoryId must be an integer' });
         }
 
-        let parsedTrialDurationDays: number | null | undefined;
-        let parsedAccessDurationDays: number | null | undefined;
-        let parsedLevel: CourseLevel | null | undefined;
-        let parsedPrerequisiteIds: number[] | undefined;
-
-        try {
-            parsedTrialDurationDays = parseOptionalPositiveInt(trialDurationDays, 'trialDurationDays');
-            parsedAccessDurationDays = parseOptionalPositiveInt(accessDurationDays, 'accessDurationDays');
-            parsedLevel = parseOptionalCourseLevel(level);
-            parsedPrerequisiteIds = parseOptionalPrerequisiteIds(prerequisiteIds);
-        } catch (error) {
-            return res.status(400).json({ error: (error as Error).message });
-        }
-
-        let course;
-        try {
-            course = await createCourseForTeacher({
-                title,
-                description,
-                syllabus: normalizeSyllabus(syllabus),
-                price: numericPrice,
-                categoryId: numericCategoryId,
-                teacherId,
-                thumbnailUrl,
-                trialDurationDays: parsedTrialDurationDays,
-                accessDurationDays: parsedAccessDurationDays,
-                level: parsedLevel,
-                prerequisiteIds: parsedPrerequisiteIds,
-            });
-        } catch (error) {
-            if ((error as Error).message === 'INVALID_PREREQUISITES') {
-                return res.status(400).json({ error: 'Some prerequisite course ids are invalid' });
+        let normalizedTrialDays: number | null | undefined;
+        if (trialDurationDays === undefined || trialDurationDays === null || trialDurationDays === '') {
+            normalizedTrialDays = null;
+        } else {
+            const n = Number(trialDurationDays);
+            if (!Number.isInteger(n) || n <= 0) {
+                return res.status(400).json({
+                    error: 'trialDurationDays must be a positive integer when provided',
+                });
             }
-            throw error;
+            normalizedTrialDays = n;
         }
+
+        let normalizedAccessDays: number | null | undefined;
+        if (accessDurationDays === undefined || accessDurationDays === null || accessDurationDays === '') {
+            normalizedAccessDays = null;
+        } else {
+            const n = Number(accessDurationDays);
+            if (!Number.isInteger(n) || n <= 0) {
+                return res.status(400).json({
+                    error: 'accessDurationDays must be a positive integer when provided',
+                });
+            }
+            normalizedAccessDays = n;
+        }
+
+        const levelRes = normaliseLevel(level);
+        if (!levelRes.ok) return res.status(400).json({ error: levelRes.error });
+
+        const prereqRes = normalisePrereqIds(prerequisiteIds);
+        if (!prereqRes.ok) return res.status(400).json({ error: prereqRes.error });
+
+        const course = await createCourseForTeacher({
+            title,
+            description,
+            price: numericPrice,
+            categoryId: numericCategoryId,
+            teacherId,
+            trialDurationDays: normalizedTrialDays,
+            accessDurationDays: normalizedAccessDays,
+            level: levelRes.value,
+            prerequisiteIds: prereqRes.value,
+        });
 
         if (!course) {
             return res.status(500).json({ error: 'Course creation failed' });
@@ -251,8 +216,7 @@ export async function createCourseController(req: Request, res: Response): Promi
         return res.status(201).json(course);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create course',
-            details: (error as Error).message,
+            error: 'Unable to create course',
         });
     }
 }
@@ -272,15 +236,13 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'Course id must be a number' });
         }
 
-        const { title, description, price, categoryId, thumbnailUrl, syllabus, trialDurationDays, accessDurationDays, level, prerequisiteIds } = authReq.body ?? {};
+        const { title, description, price, categoryId, trialDurationDays, accessDurationDays, level, prerequisiteIds } = authReq.body ?? {};
 
         if (
             title === undefined &&
             description === undefined &&
             price === undefined &&
             categoryId === undefined &&
-            thumbnailUrl === undefined &&
-            syllabus === undefined &&
             trialDurationDays === undefined &&
             accessDurationDays === undefined &&
             level === undefined &&
@@ -302,19 +264,41 @@ export async function updateCourseController(req: Request, res: Response): Promi
             return res.status(400).json({ error: 'categoryId must be an integer' });
         }
 
-        let parsedTrialDurationDays: number | null | undefined;
-        let parsedAccessDurationDays: number | null | undefined;
-        let parsedLevel: CourseLevel | null | undefined;
-        let parsedPrerequisiteIds: number[] | undefined;
-
-        try {
-            parsedTrialDurationDays = parseOptionalPositiveInt(trialDurationDays, 'trialDurationDays');
-            parsedAccessDurationDays = parseOptionalPositiveInt(accessDurationDays, 'accessDurationDays');
-            parsedLevel = parseOptionalCourseLevel(level);
-            parsedPrerequisiteIds = parseOptionalPrerequisiteIds(prerequisiteIds);
-        } catch (error) {
-            return res.status(400).json({ error: (error as Error).message });
+        let normalizedTrialDays: number | null | undefined = undefined;
+        if (trialDurationDays !== undefined) {
+            if (trialDurationDays === null || trialDurationDays === '') {
+                normalizedTrialDays = null;
+            } else {
+                const n = Number(trialDurationDays);
+                if (!Number.isInteger(n) || n <= 0) {
+                    return res.status(400).json({
+                        error: 'trialDurationDays must be a positive integer or null',
+                    });
+                }
+                normalizedTrialDays = n;
+            }
         }
+
+        let normalizedAccessDays: number | null | undefined = undefined;
+        if (accessDurationDays !== undefined) {
+            if (accessDurationDays === null || accessDurationDays === '') {
+                normalizedAccessDays = null;
+            } else {
+                const n = Number(accessDurationDays);
+                if (!Number.isInteger(n) || n <= 0) {
+                    return res.status(400).json({
+                        error: 'accessDurationDays must be a positive integer or null',
+                    });
+                }
+                normalizedAccessDays = n;
+            }
+        }
+
+        const levelRes = normaliseLevel(level);
+        if (!levelRes.ok) return res.status(400).json({ error: levelRes.error });
+
+        const prereqRes = normalisePrereqIds(prerequisiteIds, courseId);
+        if (!prereqRes.ok) return res.status(400).json({ error: prereqRes.error });
 
         try {
             const updatedCourse = await updateCourseForTeacher({
@@ -322,14 +306,12 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 teacherId,
                 title,
                 description,
-                syllabus: normalizeSyllabus(syllabus),
                 price: numericPrice,
                 categoryId: numericCategoryId,
-                thumbnailUrl,
-                trialDurationDays: parsedTrialDurationDays,
-                accessDurationDays: parsedAccessDurationDays,
-                level: parsedLevel,
-                prerequisiteIds: parsedPrerequisiteIds,
+                trialDurationDays: normalizedTrialDays,
+                accessDurationDays: normalizedAccessDays,
+                level: level === undefined ? undefined : levelRes.value,
+                prerequisiteIds: prereqRes.value,
                 userRole: authReq.user?.role,
             });
 
@@ -349,20 +331,11 @@ export async function updateCourseController(req: Request, res: Response): Promi
                 return res.status(403).json({ error: 'You are not the owner of this course' });
             }
 
-            if (message === 'INVALID_PREREQUISITES') {
-                return res.status(400).json({ error: 'Some prerequisite course ids are invalid' });
-            }
-
-            if (message === 'INVALID_SELF_PREREQUISITE') {
-                return res.status(400).json({ error: 'A course cannot be a prerequisite of itself' });
-            }
-
             throw error;
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update course',
-            details: (error as Error).message,
+            error: 'Unable to update course',
         });
     }
 }
@@ -400,8 +373,7 @@ export async function deleteCourseController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete course',
-            details: (error as Error).message,
+            error: 'Unable to delete course',
         });
     }
 }
@@ -458,8 +430,7 @@ export async function createModuleController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create module',
-            details: (error as Error).message,
+            error: 'Unable to create module',
         });
     }
 }
@@ -485,10 +456,9 @@ export async function createContentController(req: Request, res: Response): Prom
             timeLimitInMinutes,
             isFreePreview,
             practicePrompt,
-            starterCode,
-            expectedOutput,
-            rubric,
-            language,
+            practiceStarterCode,
+            practiceExpectedOutput,
+            practiceLanguage,
         } = authReq.body ?? {};
 
         if (!moduleId || !title || !contentType) {
@@ -525,13 +495,6 @@ export async function createContentController(req: Request, res: Response): Prom
             return res.status(400).json({ error: 'timeLimitInMinutes must be a number when provided' });
         }
 
-        if (
-            (contentType === ContentType.PRACTICE || contentType === ContentType.ASSIGNMENT) &&
-            (!practicePrompt || typeof practicePrompt !== 'string')
-        ) {
-            return res.status(400).json({ error: 'practicePrompt is required for practice or assignment content' });
-        }
-
         try {
             const content = await createContentForModule({
                 moduleId: numericModuleId,
@@ -544,12 +507,19 @@ export async function createContentController(req: Request, res: Response): Prom
                 documentUrl,
                 fileType,
                 timeLimitInMinutes: numericTimeLimit,
-                isFreePreview: Boolean(isFreePreview),
-                practicePrompt,
-                starterCode,
-                expectedOutput,
-                rubric,
-                language,
+                isFreePreview: typeof isFreePreview === 'boolean' ? isFreePreview : undefined,
+                practicePrompt:
+                    typeof practicePrompt === 'string' ? practicePrompt : undefined,
+                practiceStarterCode:
+                    typeof practiceStarterCode === 'string' || practiceStarterCode === null
+                        ? practiceStarterCode
+                        : undefined,
+                practiceExpectedOutput:
+                    typeof practiceExpectedOutput === 'string' || practiceExpectedOutput === null
+                        ? practiceExpectedOutput
+                        : undefined,
+                practiceLanguage:
+                    typeof practiceLanguage === 'string' ? practiceLanguage : undefined,
                 userRole: authReq.user?.role,
             });
 
@@ -565,17 +535,22 @@ export async function createContentController(req: Request, res: Response): Prom
                 return res.status(403).json({ error: 'You are not the owner of this course' });
             }
 
+            if (message === 'PRACTICE_PROMPT_REQUIRED') {
+                return res.status(400).json({
+                    error: 'practicePrompt is required when contentType=PRACTICE',
+                });
+            }
+
             throw error;
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create content',
-            details: (error as Error).message,
+            error: 'Unable to create content',
         });
     }
 }
 
-export async function updateContentPreviewController(req: Request, res: Response): Promise<Response> {
+export async function updateContentController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as AuthenticatedRequest;
         const teacherId = getTeacherId(authReq);
@@ -590,17 +565,85 @@ export async function updateContentPreviewController(req: Request, res: Response
             return res.status(400).json({ error: 'Content id must be a number' });
         }
 
-        if (typeof authReq.body?.isFreePreview !== 'boolean') {
+        const {
+            title,
+            order,
+            videoUrl,
+            durationInSeconds,
+            documentUrl,
+            fileType,
+            timeLimitInMinutes,
+            isFreePreview,
+            practicePrompt,
+            practiceStarterCode,
+            practiceExpectedOutput,
+            practiceLanguage,
+        } = authReq.body ?? {};
+
+        if (
+            title === undefined &&
+            order === undefined &&
+            videoUrl === undefined &&
+            durationInSeconds === undefined &&
+            documentUrl === undefined &&
+            fileType === undefined &&
+            timeLimitInMinutes === undefined &&
+            isFreePreview === undefined &&
+            practicePrompt === undefined &&
+            practiceStarterCode === undefined &&
+            practiceExpectedOutput === undefined &&
+            practiceLanguage === undefined
+        ) {
+            return res.status(400).json({ error: 'No fields provided for update' });
+        }
+
+        const numericOrder = order !== undefined ? Number(order) : undefined;
+        if (numericOrder !== undefined && !Number.isInteger(numericOrder)) {
+            return res.status(400).json({ error: 'order must be an integer when provided' });
+        }
+
+        const numericDuration =
+            durationInSeconds !== undefined ? Number(durationInSeconds) : undefined;
+        if (numericDuration !== undefined && Number.isNaN(numericDuration)) {
+            return res.status(400).json({ error: 'durationInSeconds must be a number when provided' });
+        }
+
+        const numericTimeLimit =
+            timeLimitInMinutes !== undefined ? Number(timeLimitInMinutes) : undefined;
+        if (numericTimeLimit !== undefined && Number.isNaN(numericTimeLimit)) {
+            return res.status(400).json({ error: 'timeLimitInMinutes must be a number when provided' });
+        }
+
+        if (isFreePreview !== undefined && typeof isFreePreview !== 'boolean') {
             return res.status(400).json({ error: 'isFreePreview must be a boolean' });
         }
 
         try {
-            const content = await updateContentPreviewForTeacher(
+            const content = await updateContentForTeacher({
                 contentId,
                 teacherId,
-                authReq.body.isFreePreview,
-                authReq.user?.role,
-            );
+                title,
+                order: numericOrder,
+                videoUrl,
+                durationInSeconds: numericDuration,
+                documentUrl,
+                fileType,
+                timeLimitInMinutes: numericTimeLimit,
+                isFreePreview,
+                practicePrompt:
+                    typeof practicePrompt === 'string' ? practicePrompt : undefined,
+                practiceStarterCode:
+                    typeof practiceStarterCode === 'string' || practiceStarterCode === null
+                        ? practiceStarterCode
+                        : undefined,
+                practiceExpectedOutput:
+                    typeof practiceExpectedOutput === 'string' || practiceExpectedOutput === null
+                        ? practiceExpectedOutput
+                        : undefined,
+                practiceLanguage:
+                    typeof practiceLanguage === 'string' ? practiceLanguage : undefined,
+                userRole: authReq.user?.role,
+            });
 
             return res.status(200).json(content);
         } catch (error) {
@@ -618,8 +661,7 @@ export async function updateContentPreviewController(req: Request, res: Response
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to update content preview setting',
-            details: (error as Error).message,
+            error: 'Unable to update content',
         });
     }
 }
@@ -657,50 +699,7 @@ export async function deleteModuleController(req: Request, res: Response): Promi
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete module',
-            details: (error as Error).message,
-        });
-    }
-}
-
-// EPIC 2: Submit course for admin review
-export async function submitForReviewController(req: Request, res: Response): Promise<Response> {
-    try {
-        const authReq = req as AuthenticatedRequest;
-        const teacherId = getTeacherId(authReq);
-
-        if (!teacherId) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
-        const courseId = Number.parseInt(req.params.id, 10);
-
-        if (Number.isNaN(courseId)) {
-            return res.status(400).json({ error: 'Course id must be a number' });
-        }
-
-        try {
-            const updated = await submitForReview(courseId, teacherId);
-            return res.status(200).json(updated);
-        } catch (error) {
-            const message = (error as Error).message;
-
-            if (message === 'FORBIDDEN') {
-                return res.status(403).json({ error: 'You are not the owner of this course' });
-            }
-
-            if (message === 'INVALID_STATUS') {
-                return res.status(400).json({
-                    error: 'Course can only be submitted from DRAFT or REJECTED status',
-                });
-            }
-
-            throw error;
-        }
-    } catch (error) {
-        return res.status(500).json({
-            error: 'Unable to submit course for review',
-            details: (error as Error).message,
+            error: 'Unable to delete module',
         });
     }
 }
@@ -738,8 +737,7 @@ export async function deleteContentController(req: Request, res: Response): Prom
         }
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete content',
-            details: (error as Error).message,
+            error: 'Unable to delete content',
         });
     }
 }

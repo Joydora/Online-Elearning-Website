@@ -1,31 +1,26 @@
 import { Request, Response } from 'express';
-import { CourseStatus, EnrollmentType, PayoutStatus, PrismaClient } from '@prisma/client';
-import { checkoutCourse, handleStripeWebhook, getCourseForEnrolledStudent, getCourseContentForStaff } from '../services/enroll.service';
+import { checkoutCourse, handleStripeWebhook, startTrialSetup } from '../services/enroll.service';
 import { AuthenticatedUser } from '../types/auth';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
-
-const STUDENT_SUCCESS_URL = process.env.FRONTEND_URL
-    ? `${process.env.FRONTEND_URL}/payment-success`
-    : 'http://localhost:5173/payment-success';
-const STUDENT_CANCEL_URL = process.env.FRONTEND_URL
-    ? `${process.env.FRONTEND_URL}/payment-cancel`
-    : 'http://localhost:5173/payment-cancel';
-const PLATFORM_FEE_PCT = parseFloat(process.env.PLATFORM_FEE_PCT || '0.3');
-
-function hasActiveAccess(enrollment: { isActive: boolean; expiresAt: Date | null }): boolean {
-    return enrollment.isActive && (enrollment.expiresAt === null || enrollment.expiresAt.getTime() > Date.now());
-}
+const STUDENT_SUCCESS_URL = process.env.STRIPE_SUCCESS_URL ?? 'http://localhost:3000/payment-success';
+const STUDENT_CANCEL_URL = process.env.STRIPE_CANCEL_URL ?? 'http://localhost:3000/payment-cancel';
+const TRIAL_SUCCESS_URL = process.env.STRIPE_TRIAL_SUCCESS_URL ?? 'http://localhost:5173/trial-success';
+const TRIAL_CANCEL_URL = process.env.STRIPE_TRIAL_CANCEL_URL ?? 'http://localhost:5173/trial-cancel';
 
 export async function checkoutCourseController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as Request & { user?: AuthenticatedUser };
-        if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
+
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
         const courseId = Number.parseInt(req.params.courseId, 10);
-        if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
 
-        const promotionCode = req.body?.promotionCode as string | undefined;
+        if (Number.isNaN(courseId)) {
+            return res.status(400).json({ error: 'courseId must be a number' });
+        }
 
         try {
             const url = await checkoutCourse({
@@ -33,51 +28,85 @@ export async function checkoutCourseController(req: Request, res: Response): Pro
                 studentId: authReq.user.userId,
                 successUrl: STUDENT_SUCCESS_URL,
                 cancelUrl: STUDENT_CANCEL_URL,
-                promotionCode,
             });
 
-            if (!url) return res.status(500).json({ error: 'Unable to create checkout session' });
+            if (!url) {
+                return res.status(500).json({ error: 'Unable to create checkout session' });
+            }
+
             return res.status(200).json({ url });
         } catch (error) {
             const message = (error as Error).message;
-            if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
-            if (message === 'COURSE_NOT_PUBLISHED') return res.status(400).json({ error: 'Course is not published' });
-            if (message === 'ALREADY_ENROLLED') return res.status(409).json({ error: 'Already enrolled' });
+
+            if (message === 'COURSE_NOT_FOUND') {
+                return res.status(404).json({ error: 'Course not found' });
+            }
+
+            if (message === 'ALREADY_ENROLLED') {
+                return res.status(409).json({ error: 'You are already enrolled in this course' });
+            }
+
             throw error;
         }
-    } catch {
-        return res.status(500).json({ error: 'Unable to initiate checkout' });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to initiate checkout',
+        });
     }
 }
 
-// EPIC 1: Trial enrollment
-export async function trialEnrollController(req: Request, res: Response): Promise<Response> {
+export async function startTrialController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as Request & { user?: AuthenticatedUser };
-        if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
+
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
         const courseId = Number.parseInt(req.params.courseId, 10);
-        if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
+
+        if (Number.isNaN(courseId)) {
+            return res.status(400).json({ error: 'courseId must be a number' });
+        }
 
         try {
-            await checkoutCourse({
+            const url = await startTrialSetup({
                 courseId,
                 studentId: authReq.user.userId,
-                successUrl: '',
-                cancelUrl: '',
-                trial: true,
+                successUrl: TRIAL_SUCCESS_URL,
+                cancelUrl: TRIAL_CANCEL_URL,
             });
-            return res.status(201).json({ message: 'Trial enrollment created' });
+
+            if (!url) {
+                return res.status(500).json({ error: 'Unable to create trial setup session' });
+            }
+
+            return res.status(200).json({ url });
         } catch (error) {
             const message = (error as Error).message;
-            if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
-            if (message === 'COURSE_NOT_PUBLISHED') return res.status(400).json({ error: 'Course is not published' });
-            if (message === 'ALREADY_ENROLLED') return res.status(409).json({ error: 'Already enrolled' });
-            if (message === 'TRIAL_NOT_AVAILABLE') return res.status(400).json({ error: 'Trial not available for this course' });
+
+            if (message === 'COURSE_NOT_FOUND') {
+                return res.status(404).json({ error: 'Course not found' });
+            }
+
+            if (message === 'TRIAL_NOT_AVAILABLE') {
+                return res.status(400).json({ error: 'This course does not offer a free trial' });
+            }
+
+            if (message === 'ALREADY_ENROLLED') {
+                return res.status(409).json({ error: 'You are already enrolled in this course' });
+            }
+
+            if (message === 'USER_NOT_FOUND') {
+                return res.status(404).json({ error: 'User not found' });
+            }
+
             throw error;
         }
-    } catch {
-        return res.status(500).json({ error: 'Unable to create trial enrollment' });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to start trial',
+        });
     }
 }
 
@@ -86,180 +115,88 @@ type RawBodyRequest = Request & { rawBody?: Buffer };
 export async function stripeWebhookController(req: Request, res: Response): Promise<Response> {
     try {
         const signature = req.headers['stripe-signature'];
-        const rawBody = (req as RawBodyRequest).rawBody;
-        if (!rawBody) return res.status(400).json({ error: 'Missing raw request body' });
+        const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+
+        if (!rawBody) {
+            return res.status(400).json({ error: 'Missing raw request body for webhook validation' });
+        }
 
         await handleStripeWebhook(rawBody, typeof signature === 'string' ? signature : undefined);
+
         return res.status(200).json({ received: true });
     } catch (error) {
-        return res.status(400).json({ error: 'Webhook processing failed', details: (error as Error).message });
+        return res.status(400).json({
+            error: 'Webhook processing failed',
+        });
     }
 }
 
 export async function getMyEnrollmentsController(req: Request, res: Response): Promise<Response> {
     try {
         const authReq = req as Request & { user?: AuthenticatedUser };
-        if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
+
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
         const enrollments = await prisma.enrollment.findMany({
             where: {
                 studentId: authReq.user.userId,
-                isActive: true,
-                OR: [
-                    { expiresAt: null },
-                    { expiresAt: { gt: new Date() } },
-                ],
-                course: { status: CourseStatus.PUBLISHED },
             },
-            include: {
+            select: {
+                id: true,
+                enrollmentDate: true,
+                progress: true,
+                completionDate: true,
+                type: true,
+                expiresAt: true,
+                isActive: true,
+                studentId: true,
+                courseId: true,
                 course: {
-                    include: {
-                        teacher: { select: { id: true, username: true, firstName: true, lastName: true } },
-                        category: true,
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        price: true,
+                        trialDurationDays: true,
+                        accessDurationDays: true,
+                        teacherId: true,
+                        categoryId: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        teacher: {
+                            select: {
+                                id: true,
+                                username: true,
+                                firstName: true,
+                                lastName: true,
+                            },
+                        },
+                        category: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
             },
-            orderBy: { enrollmentDate: 'desc' },
-        });
-
-        return res.status(200).json(enrollments);
-    } catch {
-        return res.status(500).json({ error: 'Unable to fetch enrollments' });
-    }
-}
-
-export async function confirmEnrollmentController(req: Request, res: Response): Promise<Response> {
-    try {
-        const authReq = req as Request & { user?: AuthenticatedUser };
-        if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
-
-        const courseId = Number.parseInt(req.params.courseId, 10);
-        if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
-
-        const course = await prisma.course.findUnique({
-            where: { id: courseId },
-            select: {
-                id: true,
-                price: true,
-                teacherId: true,
-                accessDurationDays: true,
-                status: true,
+            orderBy: {
+                enrollmentDate: 'desc',
             },
         });
-        if (!course) return res.status(404).json({ error: 'Course not found' });
-        if (course.status !== CourseStatus.PUBLISHED) return res.status(400).json({ error: 'Course is not published' });
 
-        const existing = await prisma.enrollment.findUnique({
-            where: { studentId_courseId: { studentId: authReq.user.userId, courseId } },
+        // price is DECIMAL — JSON.stringify would emit a string.
+        // Frontend is typed Number, so coerce at the boundary.
+        const serialised = enrollments.map((e) => ({
+            ...e,
+            course: { ...e.course, price: e.course.price.toNumber() },
+        }));
+        return res.status(200).json(serialised);
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch enrollments',
         });
-        if (existing && hasActiveAccess(existing)) {
-            return res.status(200).json({ message: 'Already enrolled', enrollment: existing });
-        }
-
-        const enrollment = await prisma.$transaction(async (tx) => {
-            const enrollmentData = {
-                type: course.price > 0 ? EnrollmentType.PAID : EnrollmentType.FREE,
-                enrollmentDate: new Date(),
-                expiresAt: course.accessDurationDays
-                    ? new Date(Date.now() + course.accessDurationDays * 24 * 60 * 60 * 1000)
-                    : null,
-                isActive: true,
-            };
-
-            const createdEnrollment = existing
-                ? await tx.enrollment.update({
-                    where: { id: existing.id },
-                    data: enrollmentData,
-                })
-                : await tx.enrollment.create({
-                    data: {
-                        studentId: authReq.user!.userId,
-                        courseId,
-                        ...enrollmentData,
-                    },
-                });
-
-            if (course.price > 0) {
-                const grossAmount = course.price;
-                const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
-                const teacherShare = Number((grossAmount - platformFee).toFixed(2));
-                const payment = await tx.payment.upsert({
-                    where: { enrollmentId: createdEnrollment.id },
-                    create: {
-                        amount: grossAmount,
-                        status: 'SUCCESSFUL',
-                        stripeSessionId: `dev-confirm-${createdEnrollment.id}-${Date.now()}`,
-                        enrollmentId: createdEnrollment.id,
-                        studentId: authReq.user!.userId,
-                    },
-                    update: {
-                        amount: grossAmount,
-                        status: 'SUCCESSFUL',
-                        stripeSessionId: `dev-confirm-${createdEnrollment.id}-${Date.now()}`,
-                        studentId: authReq.user!.userId,
-                    },
-                });
-
-                await tx.revenueLedger.upsert({
-                    where: { enrollmentId: createdEnrollment.id },
-                    create: {
-                        grossAmount,
-                        platformFee,
-                        teacherShare,
-                        payoutStatus: PayoutStatus.HELD,
-                        paymentId: payment.id,
-                        enrollmentId: createdEnrollment.id,
-                        courseId,
-                        teacherId: course.teacherId,
-                    },
-                    update: {
-                        grossAmount,
-                        platformFee,
-                        teacherShare,
-                        payoutStatus: PayoutStatus.HELD,
-                        paidAt: null,
-                        paymentId: payment.id,
-                        courseId,
-                        teacherId: course.teacherId,
-                    },
-                });
-            }
-
-            return createdEnrollment;
-        });
-
-        return res.status(201).json({ message: 'Enrollment confirmed', enrollment });
-    } catch {
-        return res.status(500).json({ error: 'Unable to confirm enrollment' });
-    }
-}
-
-export async function getCourseContentController(req: Request, res: Response): Promise<Response> {
-    try {
-        const authReq = req as Request & { user?: AuthenticatedUser };
-        if (!authReq.user) return res.status(401).json({ error: 'User not authenticated' });
-
-        const courseId = Number.parseInt(req.params.courseId, 10);
-        if (Number.isNaN(courseId)) return res.status(400).json({ error: 'courseId must be a number' });
-
-        try {
-            // Staff (the owning teacher or any admin) can open their own course in
-            // the learning player without enrolling.
-            const courseData =
-                authReq.user.role === 'TEACHER' || authReq.user.role === 'ADMIN'
-                    ? await getCourseContentForStaff(courseId, authReq.user.userId, authReq.user.role)
-                    : await getCourseForEnrolledStudent(courseId, authReq.user.userId);
-            return res.status(200).json(courseData);
-        } catch (error) {
-            const message = (error as Error).message;
-            if (message === 'NOT_ENROLLED') return res.status(403).json({ error: 'Not enrolled in this course' });
-            if (message === 'NOT_COURSE_OWNER') return res.status(403).json({ error: 'You do not own this course' });
-            if (message === 'ENROLLMENT_EXPIRED') return res.status(403).json({ error: 'Enrollment has expired', code: 'ENROLLMENT_EXPIRED' });
-            if (message === 'COURSE_NOT_FOUND') return res.status(404).json({ error: 'Course not found' });
-            if (message === 'COURSE_NOT_PUBLISHED') return res.status(403).json({ error: 'Course is not published' });
-            throw error;
-        }
-    } catch {
-        return res.status(500).json({ error: 'Unable to fetch course content' });
     }
 }

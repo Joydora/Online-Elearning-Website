@@ -1,71 +1,45 @@
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
-import { sendEnrollmentExpiryReminder } from '../services/email.service';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
-
-async function expireEnrollments() {
+/**
+ * Flip isActive=false on any enrollment whose expiresAt has passed.
+ * Returns the count of rows that were deactivated.
+ */
+export async function runExpirySweep(): Promise<number> {
     const now = new Date();
-
-    // Set isActive=false for all expired active enrollments
-    const expired = await prisma.enrollment.updateMany({
+    const result = await prisma.enrollment.updateMany({
         where: {
             isActive: true,
-            expiresAt: { lte: now },
+            expiresAt: { not: null, lte: now },
         },
         data: { isActive: false },
     });
-
-    if (expired.count > 0) {
-        console.log(`[expireEnrollments] Deactivated ${expired.count} expired enrollments`);
-    }
+    return result.count;
 }
 
-async function sendExpiryReminders(daysAhead: number) {
-    const from = new Date();
-    from.setDate(from.getDate() + daysAhead);
-    from.setHours(0, 0, 0, 0);
+/**
+ * Schedules runExpirySweep to fire daily at 00:05 server time.
+ * Also runs once on startup so expired rows don't have to wait up to 24h.
+ */
+export function scheduleExpirySweep(): void {
+    // Run once immediately on boot (fire-and-forget).
+    runExpirySweep()
+        .then((n) => {
+            if (n > 0) {
+                console.log(`⏰ Startup expiry sweep deactivated ${n} enrollment(s)`);
+            }
+        })
+        .catch((err) => {
+            console.error('⚠️  Startup expiry sweep failed:', err);
+        });
 
-    const to = new Date(from);
-    to.setHours(23, 59, 59, 999);
-
-    const enrollments = await prisma.enrollment.findMany({
-        where: {
-            isActive: true,
-            expiresAt: { gte: from, lte: to },
-        },
-        include: {
-            student: { select: { email: true, firstName: true, username: true } },
-            course: { select: { title: true } },
-        },
-    });
-
-    for (const enrollment of enrollments) {
+    // 00:05 every day — slight offset from midnight to avoid other cron traffic.
+    cron.schedule('5 0 * * *', async () => {
         try {
-            await sendEnrollmentExpiryReminder(
-                enrollment.student.email,
-                enrollment.student.firstName || enrollment.student.username,
-                enrollment.course.title,
-                daysAhead,
-            );
+            const n = await runExpirySweep();
+            console.log(`⏰ Daily expiry sweep deactivated ${n} enrollment(s)`);
         } catch (err) {
-            console.error(`[expireEnrollments] Failed to send reminder for enrollment ${enrollment.id}:`, err);
-        }
-    }
-}
-
-export function startEnrollmentExpiryJob() {
-    // Run daily at 01:00 AM
-    cron.schedule('0 1 * * *', async () => {
-        console.log('[expireEnrollments] Running daily expiry job...');
-        try {
-            await expireEnrollments();
-            await sendExpiryReminders(7);
-            await sendExpiryReminders(1);
-        } catch (err) {
-            console.error('[expireEnrollments] Job error:', err);
+            console.error('⚠️  Daily expiry sweep failed:', err);
         }
     });
-
-    console.log('[expireEnrollments] Scheduled daily at 01:00 AM');
 }

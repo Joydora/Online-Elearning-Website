@@ -2,34 +2,76 @@ import { Router } from 'express';
 import { Role } from '@prisma/client';
 import { isAuthenticated, isAuthorized } from '../middleware/auth.middleware';
 import {
-    getProjectsByCourseController,
     createProjectController,
     updateProjectController,
     deleteProjectController,
+    listCourseProjectsController,
     submitProjectController,
-    refreshCommitsController,
-    getSubmissionsController,
     getMySubmissionController,
+    listProjectSubmissionsController,
+    refreshSubmissionCommitsController,
     gradeSubmissionController,
 } from '../controllers/project.controller';
 
 const router = Router();
 
-// Student + Teacher: view projects for a course
-router.get('/courses/:courseId/projects', isAuthenticated, getProjectsByCourseController);
+// Course-scoped project list (anyone authenticated — student needs to see, teacher needs to see).
+router.get('/courses/:id/projects', isAuthenticated, listCourseProjectsController);
 
-// Teacher: manage projects
-router.post('/projects', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), createProjectController);
-router.put('/projects/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), updateProjectController);
-router.delete('/projects/:id', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), deleteProjectController);
+// Teacher writes on a course
+router.post(
+    '/courses/:id/projects',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    createProjectController,
+);
 
-// Teacher: view all submissions, grade
-router.get('/projects/:id/submissions', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), getSubmissionsController);
-router.put('/projects/submissions/:submissionId/grade', isAuthenticated, isAuthorized([Role.TEACHER, Role.ADMIN]), gradeSubmissionController);
+// Teacher writes on a project directly
+router.put(
+    '/projects/:id',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    updateProjectController,
+);
+router.delete(
+    '/projects/:id',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    deleteProjectController,
+);
 
-// Student: submit + view own submission
-router.post('/projects/:id/submit', isAuthenticated, isAuthorized([Role.STUDENT]), submitProjectController);
-router.get('/projects/:id/submissions/mine', isAuthenticated, isAuthorized([Role.STUDENT]), getMySubmissionController);
-router.post('/projects/submissions/:submissionId/refresh-commits', isAuthenticated, isAuthorized([Role.STUDENT]), refreshCommitsController);
+// Student
+router.post(
+    '/projects/:id/submit',
+    isAuthenticated,
+    isAuthorized([Role.STUDENT]),
+    submitProjectController,
+);
+router.get(
+    '/projects/:id/my-submission',
+    isAuthenticated,
+    isAuthorized([Role.STUDENT]),
+    getMySubmissionController,
+);
+
+// Teacher review
+router.get(
+    '/projects/:id/submissions',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    listProjectSubmissionsController,
+);
+router.post(
+    '/submissions/:id/refresh',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    refreshSubmissionCommitsController,
+);
+router.put(
+    '/submissions/:id/grade',
+    isAuthenticated,
+    isAuthorized([Role.TEACHER, Role.ADMIN]),
+    gradeSubmissionController,
+);
 
 export default router;

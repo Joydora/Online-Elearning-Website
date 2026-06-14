@@ -1,150 +1,143 @@
-import { EnrollmentType, PrismaClient } from '@prisma/client';
-import { llmService } from './llm.service';
+import { Ollama } from 'ollama';
 
-const prisma = new PrismaClient();
+const ollamaHost = process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434';
+const ollamaModel = process.env.OLLAMA_MODEL ?? 'gemma3:4b';
 
-export async function getPracticeByContent(contentId: number) {
-    const practice = await prisma.practice.findUnique({
-        where: { contentId },
-        include: { content: { select: { title: true } } },
-    });
-    if (!practice) return null;
+const ollama = new Ollama({ host: ollamaHost });
 
-    // Normalize shape for the frontend: it expects `title` (lesson name) and
-    // `description` (the practice prompt). Keep the raw fields too for editors.
-    return {
-        id: practice.id,
-        contentId: practice.contentId,
-        title: practice.content.title,
-        description: practice.prompt,
-        prompt: practice.prompt,
-        starterCode: practice.starterCode,
-        expectedOutput: practice.expectedOutput,
-        rubric: practice.rubric,
-        language: practice.language,
-    };
-}
-
-export async function createPractice(data: {
-    contentId: number;
+export type GradeInput = {
     prompt: string;
-    starterCode?: string;
-    expectedOutput?: string;
-    rubric?: string;
-    language?: string;
-}) {
-    return prisma.practice.create({
-        data: {
-            contentId: data.contentId,
-            prompt: data.prompt,
-            starterCode: data.starterCode,
-            expectedOutput: data.expectedOutput,
-            rubric: data.rubric,
-            language: data.language ?? 'javascript',
-        },
-    });
+    studentCode: string;
+    expectedOutput?: string | null;
+    language?: string | null;
+};
+
+export type GradeResult = {
+    score: number | null; // 0..10, null if AI unreachable/unusable
+    feedback: string;
+};
+
+function buildGradingPrompt(input: GradeInput): string {
+    const language = input.language ?? 'plaintext';
+    const parts: string[] = [];
+
+    parts.push('Bạn là một giảng viên lập trình, chấm điểm bài thực hành của học viên.');
+    parts.push('TRẢ LỜI PHẢI LÀ JSON HỢP LỆ, KHÔNG THÊM BẤT KỲ TEXT NÀO KHÁC.');
+    parts.push('Định dạng: {"score": <số nguyên từ 0 đến 10>, "feedback": "<nhận xét ngắn gọn bằng tiếng Việt>"}');
+    parts.push('');
+    parts.push(`ĐỀ BÀI:\n${input.prompt}`);
+    if (input.expectedOutput && input.expectedOutput.trim()) {
+        parts.push('');
+        parts.push(`KẾT QUẢ MONG MUỐN:\n${input.expectedOutput}`);
+    }
+    parts.push('');
+    parts.push(`NGÔN NGỮ: ${language}`);
+    parts.push('');
+    parts.push(`CODE CỦA HỌC VIÊN:\n\`\`\`${language}\n${input.studentCode}\n\`\`\``);
+    parts.push('');
+    parts.push('CHẤM ĐIỂM THEO TIÊU CHÍ:');
+    parts.push('- Đúng yêu cầu đề bài: trọng số lớn nhất');
+    parts.push('- Cho điểm 0 nếu code rỗng hoặc hoàn toàn không liên quan');
+    parts.push('- Cho điểm 10 nếu code đúng, rõ ràng, có xử lý edge case');
+    parts.push('');
+    parts.push('JSON:');
+
+    return parts.join('\n');
 }
 
-export async function updatePractice(id: number, data: {
-    prompt?: string;
-    starterCode?: string;
-    expectedOutput?: string;
-    rubric?: string;
-    language?: string;
-}) {
-    return prisma.practice.update({ where: { id }, data });
+/**
+ * Extracts the first {...} JSON object from a string, tolerating surrounding text.
+ * Returns null if nothing parseable is found.
+ */
+function extractJsonObject(raw: string): unknown | null {
+    const start = raw.indexOf('{');
+    if (start === -1) return null;
+
+    // Walk forward and count braces so we stop at the matching close.
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < raw.length; i++) {
+        const ch = raw[i];
+        if (escape) {
+            escape = false;
+            continue;
+        }
+        if (ch === '\\') {
+            escape = true;
+            continue;
+        }
+        if (ch === '"') {
+            inString = !inString;
+            continue;
+        }
+        if (inString) continue;
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+            depth--;
+            if (depth === 0) {
+                try {
+                    return JSON.parse(raw.slice(start, i + 1));
+                } catch {
+                    return null;
+                }
+            }
+        }
+    }
+    return null;
 }
 
-export async function submitPractice(options: {
-    practiceId: number;
-    studentId: number;
-    submittedCode: string;
-}) {
-    const { practiceId, studentId, submittedCode } = options;
+function clampScore(value: unknown): number | null {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    if (n < 0) return 0;
+    if (n > 10) return 10;
+    return Math.round(n * 10) / 10; // 1-decimal precision
+}
 
-    const practice = await prisma.practice.findUnique({
-        where: { id: practiceId },
-        include: { content: { include: { module: { select: { courseId: true } } } } },
-    });
-    if (!practice) throw new Error('PRACTICE_NOT_FOUND');
-
-    const enrollment = await prisma.enrollment.findFirst({
-        where: { studentId, courseId: practice.content.module.courseId, isActive: true },
-    });
-    if (!enrollment) throw new Error('NOT_ENROLLED');
-    const isExpired = enrollment.expiresAt !== null && enrollment.expiresAt.getTime() <= Date.now();
-    if (isExpired) throw new Error('ENROLLMENT_EXPIRED');
-    if (enrollment.type === EnrollmentType.TRIAL && !practice.content.isFreePreview) {
-        throw new Error('CONTENT_LOCKED');
+/**
+ * Grade a practice submission via Ollama. Graceful fallback if the LLM is
+ * unreachable or returns garbage — caller still gets a valid GradeResult
+ * with score=null so the submission can be persisted.
+ */
+export async function gradePractice(input: GradeInput): Promise<GradeResult> {
+    if (!input.studentCode || !input.studentCode.trim()) {
+        return { score: 0, feedback: 'Bài nộp trống.' };
     }
 
-    // AI grading via Groq (OpenAI-compatible)
-    let aiFeedback = '';
-    let score = 0;
-    let passed = false;
+    const promptText = buildGradingPrompt(input);
 
     try {
-        const systemPrompt = `You are a programming tutor grading student code submissions.
-Evaluate the code objectively and return JSON with this exact structure:
-{
-  "score": <number 0-100>,
-  "passed": <boolean, true if score >= 60>,
-  "feedback": "<concise feedback in Vietnamese explaining what is correct and what needs improvement>"
-}
-Respond with valid JSON only.`;
-
-        const userPrompt = `Practice Task: ${practice.prompt}
-${practice.expectedOutput ? `Expected Output: ${practice.expectedOutput}` : ''}
-${practice.rubric ? `Rubric: ${practice.rubric}` : ''}
-
-Student Code (${practice.language}):
-\`\`\`${practice.language}
-${submittedCode}
-\`\`\`
-
-Grade this submission and return only valid JSON.`;
-
-        const raw = await llmService.chat({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt },
-            ],
-            tier: 'fast',
-            temperature: 0.1,
-            jsonMode: true,
+        const response = await ollama.generate({
+            model: ollamaModel,
+            prompt: promptText,
+            stream: false,
         });
 
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            score = Math.min(100, Math.max(0, Number(parsed.score) || 0));
-            passed = parsed.passed === true || parsed.passed === 'true' || score >= 60;
-            aiFeedback = String(parsed.feedback || '');
+        const parsed = extractJsonObject(response.response) as
+            | { score?: unknown; feedback?: unknown }
+            | null;
+
+        if (!parsed) {
+            return {
+                score: null,
+                feedback: `Không phân tích được phản hồi AI. Raw: ${response.response.slice(0, 200)}`,
+            };
         }
-    } catch {
-        score = 0;
-        passed = false;
-        aiFeedback = 'AI grading không khả dụng. Code của bạn đã được ghi nhận, hãy thử lại sau để nhận phản hồi chi tiết.';
+
+        const score = clampScore(parsed.score);
+        const feedback =
+            typeof parsed.feedback === 'string' && parsed.feedback.trim()
+                ? parsed.feedback.trim()
+                : 'AI không cung cấp nhận xét chi tiết.';
+
+        return { score, feedback };
+    } catch (error) {
+        const msg = (error as Error).message ?? 'unknown';
+        return {
+            score: null,
+            feedback: `AI grading unavailable (${msg}). Bài nộp đã được lưu, giảng viên sẽ chấm tay.`,
+        };
     }
-
-    const submission = await prisma.practiceSubmission.create({
-        data: {
-            practiceId,
-            studentId,
-            submittedCode,
-            aiFeedback,
-            score,
-            passed,
-        },
-    });
-
-    return submission;
-}
-
-export async function getMySubmissions(practiceId: number, studentId: number) {
-    return prisma.practiceSubmission.findMany({
-        where: { practiceId, studentId },
-        orderBy: { submittedAt: 'desc' },
-        take: 10,
-    });
 }

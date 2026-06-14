@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, Users, FileText, Edit, Trash2, UserCheck, UserCircle, Wallet } from 'lucide-react';
+import { Plus, BookOpen, Users, Wallet, ShoppingBag, DollarSign, Edit, Trash2, BarChart3 } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
@@ -8,17 +8,13 @@ import { Card } from '../../components/ui/card';
 import { type Course } from '../../components/CourseCard';
 import Swal from 'sweetalert2';
 
-type TeacherCourse = Course & {
-    status?: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED';
-    modules?: Array<{
-        _count?: {
-            contents: number;
-        };
-    }>;
-    _count?: {
-        enrollments: number;
-        modules?: number;
-    };
+type TeacherEarnings = {
+    totalGross: number;
+    totalPlatformFee: number;
+    totalTeacherShare: number;
+    heldTeacherShare: number;
+    paidTeacherShare: number;
+    salesCount: number;
 };
 
 export default function Dashboard() {
@@ -81,14 +77,26 @@ export default function Dashboard() {
         }
     };
 
+    // Teacher earnings — read-only, from the revenue ledger (admin controls payouts).
+    const { data: earnings } = useQuery<TeacherEarnings>({
+        queryKey: ['teacher-earnings'],
+        queryFn: async () => {
+            const { data } = await apiClient.get('/teacher/earnings');
+            return data;
+        },
+        enabled: !!user,
+    });
+
     // Calculate stats
     const totalCourses = courses.length;
-    const totalStudents = courses.reduce((acc, course) => acc + (course._count?.enrollments || 0), 0);
-    const totalLessons = courses.reduce(
-        (acc, course) =>
-            acc + (course.modules ?? []).reduce((sum, module) => sum + (module._count?.contents ?? 0), 0),
-        0,
-    );
+    const totalStudents = courses.reduce((acc, course) => acc + (course.totalEnrollments || 0), 0);
+
+    const formatCurrency = (n: number) =>
+        new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+
+    const heldAmount = earnings?.heldTeacherShare ?? 0;
+    const paidAmount = earnings?.paidTeacherShare ?? 0;
+    const salesCount = earnings?.salesCount ?? 0;
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
@@ -137,18 +145,40 @@ export default function Dashboard() {
                         </div>
                     </Card>
 
-                    <Card className="p-5 sm:p-6 border-zinc-200 dark:border-zinc-800">
+                    <Card className="p-6 border-slate-200 dark:border-slate-800" data-testid="held-card">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                    Bài học
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                                    Thu nhập đang giữ
                                 </p>
-                                <p className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
-                                    {totalLessons}
+                                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                                    {formatCurrency(heldAmount)}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Đã chi trả: {formatCurrency(paidAmount)}
                                 </p>
                             </div>
-                            <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-green-600 shrink-0">
-                                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
+                                <Wallet className="h-6 w-6 text-white" />
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card className="p-6 border-slate-200 dark:border-slate-800" data-testid="sales-card">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                                    Đã bán
+                                </p>
+                                <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                                    {salesCount}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Admin quản lý chi trả.
+                                </p>
+                            </div>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
+                                <ShoppingBag className="h-6 w-6 text-white" />
                             </div>
                         </div>
                     </Card>

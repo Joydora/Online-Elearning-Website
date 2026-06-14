@@ -1,143 +1,210 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import {
-    getPracticeByContent,
-    createPractice,
-    updatePractice,
-    submitPractice,
-    getMySubmissions,
-} from '../services/practice.service';
 import { AuthenticatedUser } from '../types/auth';
+import { gradePractice } from '../services/practice.service';
+import { refreshEnrollmentProgress } from '../services/progress.service';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
+type AuthRequest = Request & { user?: AuthenticatedUser };
 
-function auth(req: Request) {
-    return (req as Request & { user?: AuthenticatedUser }).user;
+async function assertActiveEnrollment(studentId: number, courseId: number): Promise<void> {
+    const enrollment = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId, courseId } },
+        select: { isActive: true, expiresAt: true },
+    });
+    if (!enrollment) {
+        throw new Error('NOT_ENROLLED');
+    }
+    if (!enrollment.isActive) {
+        throw new Error('ENROLLMENT_EXPIRED');
+    }
+    if (enrollment.expiresAt && enrollment.expiresAt.getTime() <= Date.now()) {
+        throw new Error('ENROLLMENT_EXPIRED');
+    }
+}
+
+async function loadPracticeWithCourse(contentId: number) {
+    return prisma.practice.findUnique({
+        where: { contentId },
+        include: {
+            content: {
+                select: {
+                    id: true,
+                    title: true,
+                    contentType: true,
+                    module: { select: { courseId: true } },
+                },
+            },
+        },
+    });
 }
 
 export async function getPracticeController(req: Request, res: Response): Promise<Response> {
     try {
-        const user = auth(req);
-        if (!user) return res.status(401).json({ error: 'Not authenticated' });
+        const authReq = req as AuthRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
-        const contentId = Number(req.params.contentId);
-        if (isNaN(contentId)) return res.status(400).json({ error: 'Invalid contentId' });
+        const contentId = Number.parseInt(req.params.contentId, 10);
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'contentId must be a number' });
+        }
 
-        const content = await prisma.content.findUnique({
-            where: { id: contentId },
-            select: {
-                isFreePreview: true,
-                module: {
-                    select: {
-                        courseId: true,
-                        course: { select: { teacherId: true } },
-                    },
-                },
-            },
+        const practice = await loadPracticeWithCourse(contentId);
+        if (!practice) {
+            return res.status(404).json({ error: 'Practice not found' });
+        }
+
+        try {
+            await assertActiveEnrollment(authReq.user.userId, practice.content.module.courseId);
+        } catch (err) {
+            const msg = (err as Error).message;
+            if (msg === 'NOT_ENROLLED') {
+                return res.status(403).json({ error: 'You are not enrolled in this course' });
+            }
+            if (msg === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Your access to this course has expired' });
+            }
+            throw err;
+        }
+
+        const latestSubmission = await prisma.practiceSubmission.findFirst({
+            where: { studentId: authReq.user.userId, practiceId: practice.id },
+            orderBy: { createdAt: 'desc' },
         });
 
-        if (!content?.module) return res.status(404).json({ error: 'Practice not found' });
-
-        const canManage = user.role === 'ADMIN' || content.module.course.teacherId === user.userId;
-        if (!canManage) {
-            const enrollment = await prisma.enrollment.findUnique({
-                where: { studentId_courseId: { studentId: user.userId, courseId: content.module.courseId } },
-            });
-            const isExpired = enrollment?.expiresAt !== null && enrollment?.expiresAt !== undefined && enrollment.expiresAt.getTime() <= Date.now();
-
-            if (!enrollment || !enrollment.isActive || isExpired) {
-                return res.status(403).json({ error: 'Not enrolled in this course' });
-            }
-
-            if (enrollment.type === 'TRIAL' && !content.isFreePreview) {
-                return res.status(403).json({ error: 'Content is locked for trial enrollment' });
-            }
-        }
-
-        const practice = await getPracticeByContent(contentId);
-        if (!practice) return res.status(404).json({ error: 'Practice not found' });
-
-        return res.status(200).json(practice);
-    } catch {
-        return res.status(500).json({ error: 'Unable to fetch practice' });
-    }
-}
-
-export async function createPracticeController(req: Request, res: Response): Promise<Response> {
-    try {
-        const user = auth(req);
-        if (!user) return res.status(401).json({ error: 'Not authenticated' });
-
-        const { contentId, prompt, starterCode, expectedOutput, rubric, language } = req.body;
-
-        if (!contentId || !prompt) {
-            return res.status(400).json({ error: 'contentId and prompt are required' });
-        }
-
-        const content = await prisma.content.findUnique({
-            where: { id: Number(contentId) },
-            include: { module: { include: { course: { select: { teacherId: true } } } } },
+        return res.status(200).json({
+            id: practice.id,
+            contentId: practice.contentId,
+            title: practice.content.title,
+            prompt: practice.prompt,
+            starterCode: practice.starterCode,
+            expectedOutput: practice.expectedOutput,
+            language: practice.language,
+            latestSubmission,
         });
-        if (!content || content.module.course.teacherId !== user.userId) {
-            return res.status(403).json({ error: 'You do not own this course' });
-        }
-
-        const practice = await createPractice({ contentId: Number(contentId), prompt, starterCode, expectedOutput, rubric, language });
-        return res.status(201).json(practice);
-    } catch {
-        return res.status(500).json({ error: 'Unable to create practice' });
-    }
-}
-
-export async function updatePracticeController(req: Request, res: Response): Promise<Response> {
-    try {
-        const id = Number(req.params.id);
-        if (isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
-
-        const { prompt, starterCode, expectedOutput, rubric, language } = req.body;
-        const practice = await updatePractice(id, { prompt, starterCode, expectedOutput, rubric, language });
-        return res.status(200).json(practice);
-    } catch {
-        return res.status(500).json({ error: 'Unable to update practice' });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch practice',
+        });
     }
 }
 
 export async function submitPracticeController(req: Request, res: Response): Promise<Response> {
     try {
-        const user = auth(req);
-        if (!user) return res.status(401).json({ error: 'Not authenticated' });
-
-        const practiceId = Number(req.params.id);
-        if (isNaN(practiceId)) return res.status(400).json({ error: 'Invalid practiceId' });
-
-        const { submittedCode } = req.body;
-        if (!submittedCode || typeof submittedCode !== 'string') {
-            return res.status(400).json({ error: 'submittedCode is required' });
+        const authReq = req as AuthRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
         }
 
-        const result = await submitPractice({ practiceId, studentId: user.userId, submittedCode });
-        return res.status(201).json(result);
+        const contentId = Number.parseInt(req.params.contentId, 10);
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'contentId must be a number' });
+        }
+
+        const { code } = (req.body ?? {}) as { code?: string };
+        if (typeof code !== 'string') {
+            return res.status(400).json({ error: 'code (string) is required' });
+        }
+
+        const practice = await loadPracticeWithCourse(contentId);
+        if (!practice) {
+            return res.status(404).json({ error: 'Practice not found' });
+        }
+
+        try {
+            await assertActiveEnrollment(authReq.user.userId, practice.content.module.courseId);
+        } catch (err) {
+            const msg = (err as Error).message;
+            if (msg === 'NOT_ENROLLED') {
+                return res.status(403).json({ error: 'You are not enrolled in this course' });
+            }
+            if (msg === 'ENROLLMENT_EXPIRED') {
+                return res.status(403).json({ error: 'Your access to this course has expired' });
+            }
+            throw err;
+        }
+
+        const grade = await gradePractice({
+            prompt: practice.prompt,
+            studentCode: code,
+            expectedOutput: practice.expectedOutput,
+            language: practice.language,
+        });
+
+        const submission = await prisma.practiceSubmission.create({
+            data: {
+                practiceId: practice.id,
+                studentId: authReq.user.userId,
+                submittedCode: code,
+                aiScore: grade.score,
+                aiFeedback: grade.feedback,
+            },
+        });
+
+        // Best-effort progress recompute on the parent course.
+        try {
+            const enrollment = await prisma.enrollment.findUnique({
+                where: {
+                    studentId_courseId: {
+                        studentId: authReq.user.userId,
+                        courseId: practice.content.module.courseId,
+                    },
+                },
+                select: { id: true },
+            });
+            if (enrollment) {
+                await refreshEnrollmentProgress(enrollment.id);
+            }
+        } catch (err) {
+            console.error('practice progress refresh failed:', (err as Error).message);
+        }
+
+        return res.status(201).json({
+            id: submission.id,
+            practiceId: submission.practiceId,
+            submittedCode: submission.submittedCode,
+            aiScore: submission.aiScore,
+            aiFeedback: submission.aiFeedback,
+            createdAt: submission.createdAt,
+        });
     } catch (error) {
-        const msg = (error as Error).message;
-        if (msg === 'PRACTICE_NOT_FOUND') return res.status(404).json({ error: 'Practice not found' });
-        if (msg === 'NOT_ENROLLED') return res.status(403).json({ error: 'Not enrolled in this course' });
-        if (msg === 'ENROLLMENT_EXPIRED') return res.status(403).json({ error: 'Enrollment has expired' });
-        if (msg === 'CONTENT_LOCKED') return res.status(403).json({ error: 'Content is locked for trial enrollment' });
-        return res.status(500).json({ error: 'Unable to submit practice' });
+        return res.status(500).json({
+            error: 'Unable to submit practice',
+        });
     }
 }
 
-export async function getMySubmissionsController(req: Request, res: Response): Promise<Response> {
+export async function listMyPracticeAttemptsController(req: Request, res: Response): Promise<Response> {
     try {
-        const user = auth(req);
-        if (!user) return res.status(401).json({ error: 'Not authenticated' });
+        const authReq = req as AuthRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
-        const practiceId = Number(req.params.id);
-        if (isNaN(practiceId)) return res.status(400).json({ error: 'Invalid practiceId' });
+        const contentId = Number.parseInt(req.params.contentId, 10);
+        if (Number.isNaN(contentId)) {
+            return res.status(400).json({ error: 'contentId must be a number' });
+        }
 
-        const submissions = await getMySubmissions(practiceId, user.userId);
-        return res.status(200).json(submissions);
-    } catch {
-        return res.status(500).json({ error: 'Unable to fetch submissions' });
+        const practice = await prisma.practice.findUnique({
+            where: { contentId },
+            select: { id: true },
+        });
+        if (!practice) {
+            return res.status(404).json({ error: 'Practice not found' });
+        }
+
+        const attempts = await prisma.practiceSubmission.findMany({
+            where: { studentId: authReq.user.userId, practiceId: practice.id },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+        });
+
+        return res.status(200).json({ attempts });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to list attempts',
+        });
     }
 }

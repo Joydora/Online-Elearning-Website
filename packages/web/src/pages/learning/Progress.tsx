@@ -1,291 +1,300 @@
-import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
-import { Award, ChevronLeft, CheckCircle, Circle, Sparkles, Loader2, BookOpen, Target, Clock } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+    ArrowLeft,
+    CheckCircle2,
+    Circle,
+    PlayCircle,
+    FileText,
+    HelpCircle,
+    Code2,
+    Loader2,
+    BookOpen,
+    Sparkles,
+    Bot,
+    Settings,
+    ThumbsUp,
+    AlertTriangle,
+} from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { showErrorAlert } from '../../lib/sweetalert';
 
-type ContentDetail = {
-    id: number;
+type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
+
+type ContentRow = {
+    contentId: number;
     title: string;
-    contentType: string;
+    contentType: ContentType;
     completed: boolean;
-    completedAt: string | null;
-    watchedSeconds: number | null;
     quizScore: number | null;
-    practiceScore: { score: number; passed: boolean } | null;
+    practiceScore: number | null;
 };
 
-type ModuleDetail = {
-    id: number;
+type ModuleRow = {
+    moduleId: number;
     title: string;
-    contents: ContentDetail[];
+    contents: ContentRow[];
+    completedCount: number;
+    totalCount: number;
+    moduleProgress: number;
 };
 
-type ProgressDetail = {
+type ProgressResponse = {
     enrollmentId: number;
-    progress: number;
-    completionDate: string | null;
-    type: string;
-    expiresAt: string | null;
-    isActive: boolean;
-    modules: ModuleDetail[];
+    courseId: number;
+    overallProgress: number;
+    completedCount: number;
+    totalCount: number;
+    modules: ModuleRow[];
 };
 
-const TYPE_LABEL: Record<string, string> = {
-    VIDEO: 'Video',
-    DOCUMENT: 'Tài liệu',
-    QUIZ: 'Kiểm tra',
-    PRACTICE: 'Thực hành',
-    ASSIGNMENT: 'Bài tập',
+type SummaryResponse = {
+    summary: string;
+    strengths: string[];
+    weaknesses: string[];
+    generatedBy: 'ai' | 'fallback';
 };
 
-function fmtSeconds(s: number): string {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-}
+type Enrollment = { id: number; courseId: number };
 
-export default function Progress() {
+const TYPE_ICON: Record<ContentType, React.ReactNode> = {
+    VIDEO: <PlayCircle className="h-4 w-4" />,
+    DOCUMENT: <FileText className="h-4 w-4" />,
+    QUIZ: <HelpCircle className="h-4 w-4" />,
+    PRACTICE: <Code2 className="h-4 w-4" />,
+};
+
+export default function ProgressPage() {
     const { courseId } = useParams<{ courseId: string }>();
-    const [aiSummary, setAiSummary] = useState<string | null>(null);
-    const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    const { data: detail, isLoading } = useQuery<ProgressDetail>({
-        queryKey: ['progress-detail', courseId],
+    // First, find this student's enrollment id for the current course
+    const { data: enrollment, isLoading: enrollLoading } = useQuery<Enrollment | null>({
+        queryKey: ['enrollment', courseId],
         queryFn: async () => {
-            const { data } = await apiClient.get(`/progress/course/${courseId}/detail`);
-            return data;
+            const { data } = await apiClient.get('/enroll/my-enrollments');
+            const e = data.find((row: any) => (row.course?.id ?? row.course?.courseId) === Number(courseId));
+            return e ? { id: e.id, courseId: e.courseId } : null;
         },
         enabled: !!courseId,
     });
 
-    const summaryMutation = useMutation({
-        mutationFn: async () => {
-            const { data } = await apiClient.get<{ summary: string }>(`/progress/course/${courseId}/summary`);
-            return data.summary;
+    const {
+        data: progress,
+        isLoading: progressLoading,
+        refetch,
+    } = useQuery<ProgressResponse>({
+        queryKey: ['progress', enrollment?.id],
+        queryFn: async () => {
+            const { data } = await apiClient.get(`/enrollments/${enrollment!.id}/progress`);
+            return data;
         },
-        onSuccess: (s) => setAiSummary(s),
-        onError: () => showErrorAlert('Lỗi', 'Không thể tải tóm tắt AI'),
+        enabled: !!enrollment?.id,
     });
 
-    const toggleModule = (id: number) => setExpandedModules(prev => ({ ...prev, [id]: !prev[id] }));
+    const summary = useMutation<SummaryResponse, Error, void>({
+        mutationFn: async () => {
+            const { data } = await apiClient.get(`/enrollments/${enrollment!.id}/summary`);
+            return data;
+        },
+    });
 
-    if (isLoading) {
+    const markComplete = useMutation({
+        mutationFn: async (contentId: number) => {
+            await apiClient.post(`/contents/${contentId}/complete`);
+        },
+        onSuccess: () => {
+            refetch();
+            queryClient.invalidateQueries({ queryKey: ['enrollment', courseId] });
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi', error.response?.data?.error ?? 'Không thể cập nhật');
+        },
+    });
+
+    if (enrollLoading || progressLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
         );
     }
 
-    if (!detail) {
+    if (!enrollment) {
         return (
-            <div className="container mx-auto px-4 py-12 text-center">
-                <p className="text-red-500 mb-4">Không tìm thấy thông tin tiến độ</p>
-                <Link to="/my-courses"><Button>Về khóa học của tôi</Button></Link>
+            <div className="min-h-screen flex items-center justify-center">
+                <Card className="p-8 text-center">
+                    <p className="text-slate-600 dark:text-slate-400 mb-4">Bạn chưa đăng ký khoá học này.</p>
+                    <Link to={`/courses/${courseId}`}>
+                        <Button>Xem khoá học</Button>
+                    </Link>
+                </Card>
             </div>
         );
     }
 
-    const allContents = detail.modules.flatMap(m => m.contents);
-    const completedCount = allContents.filter(c => c.completed).length;
-    const totalCount = allContents.length;
+    if (!progress) {
+        return (
+            <div className="min-h-screen flex items-center justify-center text-slate-500">
+                Không có dữ liệu tiến độ.
+            </div>
+        );
+    }
 
     return (
-        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-5 sm:mb-6">
-                <Link to={`/learning/${courseId}`} className="self-start">
-                    <Button variant="ghost" size="sm" className="gap-1">
-                        <ChevronLeft className="w-4 h-4" />
-                        Quay lại học
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+            <div className="container mx-auto px-4 py-8 max-w-4xl">
+                <div className="flex items-center gap-3 mb-6">
+                    <Button variant="ghost" size="sm" onClick={() => navigate(`/learning/${courseId}`)} className="gap-1">
+                        <ArrowLeft className="h-4 w-4" />
+                        Về trang học
                     </Button>
-                </Link>
-                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">Tiến độ học tập</h1>
-            </div>
+                </div>
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-                <Card className="p-3 sm:p-4 text-center">
-                    <p className="text-2xl sm:text-3xl font-bold text-red-600">{detail.progress}%</p>
-                    <p className="text-xs text-zinc-500 mt-1">Tiến độ tổng</p>
-                </Card>
-                <Card className="p-3 sm:p-4 text-center">
-                    <p className="text-2xl sm:text-3xl font-bold text-blue-600">{completedCount}/{totalCount}</p>
-                    <p className="text-xs text-zinc-500 mt-1">Bài hoàn thành</p>
-                </Card>
-                <Card className="p-3 sm:p-4 text-center">
-                    <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 capitalize">
-                        {detail.type === 'TRIAL' ? 'Học thử' : detail.type === 'PAID' ? 'Đã mua' : 'Miễn phí'}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">Loại đăng ký</p>
-                </Card>
-                <Card className="p-3 sm:p-4 text-center">
-                    {detail.completionDate ? (
-                        <>
-                            <p className="text-sm font-semibold text-green-600">
-                                {new Date(detail.completionDate).toLocaleDateString('vi-VN')}
-                            </p>
-                            <p className="text-xs text-zinc-500 mt-1">Ngày hoàn thành</p>
-                        </>
-                    ) : detail.expiresAt ? (
-                        <>
-                            <p className="text-sm font-semibold text-yellow-600">
-                                {new Date(detail.expiresAt).toLocaleDateString('vi-VN')}
-                            </p>
-                            <p className="text-xs text-zinc-500 mt-1">Hết hạn</p>
-                        </>
-                    ) : (
-                        <>
-                            <p className="text-sm font-semibold text-zinc-500">—</p>
-                            <p className="text-xs text-zinc-500 mt-1">Không giới hạn</p>
-                        </>
+                <Card className="p-6 mb-4" data-testid="summary-card">
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-blue-600" />
+                            Nhận xét về tiến độ
+                        </h2>
+                        <Button
+                            data-testid="summary-button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => summary.mutate()}
+                            disabled={summary.isPending}
+                            className="gap-2"
+                        >
+                            {summary.isPending ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Đang phân tích…</>
+                            ) : (
+                                <>{summary.data ? 'Cập nhật nhận xét' : 'Tạo nhận xét'}</>
+                            )}
+                        </Button>
+                    </div>
+
+                    {!summary.data && !summary.isPending && (
+                        <p className="text-sm text-slate-500">
+                            Bấm nút bên trên để AI phân tích điểm mạnh / điểm cần cải thiện.
+                        </p>
                     )}
-                </Card>
-            </div>
 
-            {/* Progress bar */}
-            <div className="mb-6">
-                <div className="flex justify-between text-sm text-zinc-600 dark:text-zinc-400 mb-1.5">
-                    <span>Tiến độ hoàn thành</span>
-                    <span>{detail.progress}%</span>
-                </div>
-                <div className="h-3 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-red-500 rounded-full transition-all duration-500"
-                        style={{ width: `${detail.progress}%` }}
-                    />
-                </div>
-            </div>
-
-            {/* AI Summary */}
-            {detail.progress >= 100 && (
-                <Card className="p-4 sm:p-5 mb-6 border-green-200 bg-green-50 dark:border-green-900/40 dark:bg-green-950/20">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="flex items-start gap-3">
-                            <Award className="mt-0.5 h-6 w-6 text-green-600 shrink-0" />
-                            <div>
-                                <h2 className="font-semibold text-green-900 dark:text-green-200">
-                                    Chứng chỉ đã sẵn sàng
-                                </h2>
-                                <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                                    Bạn đã hoàn thành khóa học. Hệ thống đã tự động cấp chứng chỉ hoàn thành.
-                                </p>
+                    {summary.data && (
+                        <div data-testid="summary-content" className="space-y-3 text-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800" data-testid="summary-source">
+                                    {summary.data.generatedBy === 'ai' ? (
+                                        <><Bot className="h-3 w-3" /> AI</>
+                                    ) : (
+                                        <><Settings className="h-3 w-3" /> Heuristic</>
+                                    )}
+                                </span>
                             </div>
-                        </div>
-                        <Link to={`/learning/${courseId}/certificate`} className="md:shrink-0">
-                            <Button className="bg-green-600 hover:bg-green-700 gap-2 w-full md:w-auto">
-                                <Award className="h-4 w-4" />
-                                Xem chứng chỉ
-                            </Button>
-                        </Link>
-                    </div>
-                </Card>
-            )}
-
-            {/* AI Summary */}
-            <Card className="p-4 sm:p-5 mb-6 border-dashed border-red-300 dark:border-red-700">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-red-500" />
-                        <h2 className="font-semibold text-zinc-900 dark:text-white">Nhận xét AI</h2>
-                    </div>
-                    <Button
-                        size="sm"
-                        onClick={() => summaryMutation.mutate()}
-                        disabled={summaryMutation.isPending}
-                        variant="outline"
-                        className="gap-1 text-xs w-full sm:w-auto"
-                    >
-                        {summaryMutation.isPending ? (
-                            <><Loader2 className="w-3 h-3 animate-spin" />Đang phân tích...</>
-                        ) : (
-                            <><Sparkles className="w-3 h-3" />{aiSummary ? 'Cập nhật' : 'Nhận nhận xét'}</>
-                        )}
-                    </Button>
-                </div>
-                {aiSummary ? (
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{aiSummary}</p>
-                ) : (
-                    <p className="text-sm text-zinc-500">Nhấn nút để AI phân tích điểm mạnh và điểm cần cải thiện của bạn.</p>
-                )}
-            </Card>
-
-            {/* Module breakdown */}
-            <div className="space-y-3">
-                <h2 className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-red-600" />
-                    Chi tiết theo chương
-                </h2>
-                {detail.modules.map(mod => {
-                    const modCompleted = mod.contents.filter(c => c.completed).length;
-                    const isOpen = expandedModules[mod.id] === true;
-                    return (
-                        <Card key={mod.id} className="overflow-hidden">
-                            <button
-                                className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
-                                onClick={() => toggleModule(mod.id)}
-                            >
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${modCompleted === mod.contents.length ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'}`}>
-                                        {modCompleted}/{mod.contents.length}
-                                    </div>
-                                    <span className="font-medium text-zinc-900 dark:text-white text-sm text-left break-words">{mod.title}</span>
-                                </div>
-                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                                    <div className="w-16 sm:w-24 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-red-500 rounded-full"
-                                            style={{ width: mod.contents.length ? `${(modCompleted / mod.contents.length) * 100}%` : '0%' }}
-                                        />
-                                    </div>
-                                    <span className="text-xs text-zinc-500">{isOpen ? '▲' : '▼'}</span>
-                                </div>
-                            </button>
-                            {isOpen && (
-                                <div className="border-t border-zinc-100 dark:border-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-800">
-                                    {mod.contents.map(content => (
-                                        <div key={content.id} className="flex items-start gap-3 px-3 sm:px-4 py-3">
-                                            {content.completed ? (
-                                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                            ) : (
-                                                <Circle className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm text-zinc-900 dark:text-white break-words">{content.title}</p>
-                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
-                                                    <span className="text-xs text-zinc-400">{TYPE_LABEL[content.contentType] || content.contentType}</span>
-                                                    {content.watchedSeconds !== null && content.watchedSeconds > 0 && (
-                                                        <span className="text-xs text-zinc-400 flex items-center gap-1">
-                                                            <Clock className="w-3 h-3" />
-                                                            {fmtSeconds(content.watchedSeconds)}
-                                                        </span>
-                                                    )}
-                                                    {content.quizScore !== null && (
-                                                        <span className="text-xs font-medium text-blue-500">Quiz: {content.quizScore}%</span>
-                                                    )}
-                                                    {content.practiceScore && (
-                                                        <span className={`text-xs font-medium ${content.practiceScore.passed ? 'text-green-500' : 'text-yellow-500'}`}>
-                                                            <Target className="w-3 h-3 inline mr-0.5" />
-                                                            {content.practiceScore.passed ? 'Đạt' : 'Chưa đạt'} ({content.practiceScore.score})
-                                                        </span>
-                                                    )}
-                                                    {content.completedAt && (
-                                                        <span className="text-xs text-zinc-400">
-                                                            {new Date(content.completedAt).toLocaleDateString('vi-VN')}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                            <p className="text-slate-700 dark:text-slate-300">{summary.data.summary}</p>
+                            {summary.data.strengths.length > 0 && (
+                                <div>
+                                    <p className="font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mb-1">
+                                        <ThumbsUp className="h-4 w-4" /> Điểm mạnh
+                                    </p>
+                                    <ul className="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-1">
+                                        {summary.data.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                                    </ul>
                                 </div>
                             )}
+                            {summary.data.weaknesses.length > 0 && (
+                                <div>
+                                    <p className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1 mb-1">
+                                        <AlertTriangle className="h-4 w-4" /> Cần cải thiện
+                                    </p>
+                                    <ul className="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-1">
+                                        {summary.data.weaknesses.map((s, i) => <li key={i}>{s}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </Card>
+
+                <Card className="p-6 mb-6" data-testid="overall-card">
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <BookOpen className="h-7 w-7" />
+                        Tiến độ học tập
+                    </h1>
+                    <div className="flex items-center justify-between mb-3">
+                        <p className="text-slate-600 dark:text-slate-400">
+                            Đã hoàn thành <strong data-testid="completed-count">{progress.completedCount}</strong> / {progress.totalCount} bài
+                        </p>
+                        <span className="text-3xl font-bold text-blue-600 dark:text-blue-400" data-testid="overall-percent">
+                            {progress.overallProgress}%
+                        </span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                            style={{ width: `${progress.overallProgress}%` }}
+                        />
+                    </div>
+                </Card>
+
+                <div className="space-y-4">
+                    {progress.modules.map((m) => (
+                        <Card key={m.moduleId} className="p-5" data-testid={`module-${m.moduleId}`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">{m.title}</h2>
+                                <span className="text-sm text-slate-500 dark:text-slate-400">
+                                    {m.completedCount}/{m.totalCount} ({m.moduleProgress}%)
+                                </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
+                                <div
+                                    className="h-full bg-emerald-500 transition-all"
+                                    style={{ width: `${m.moduleProgress}%` }}
+                                />
+                            </div>
+                            <ul className="space-y-2">
+                                {m.contents.map((c) => (
+                                    <li
+                                        key={c.contentId}
+                                        data-testid={`content-${c.contentId}`}
+                                        className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800"
+                                    >
+                                        <span className={c.completed ? 'text-emerald-500' : 'text-slate-400'}>
+                                            {c.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+                                        </span>
+                                        <span className="text-slate-500 dark:text-slate-400">{TYPE_ICON[c.contentType]}</span>
+                                        <span className="flex-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            {c.title}
+                                        </span>
+                                        {c.quizScore !== null && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                                                Quiz: {c.quizScore.toFixed(0)}%
+                                            </span>
+                                        )}
+                                        {c.practiceScore !== null && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                                                Practice: {c.practiceScore.toFixed(1)}/10
+                                            </span>
+                                        )}
+                                        {(c.contentType === 'VIDEO' || c.contentType === 'DOCUMENT') && !c.completed && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                data-testid={`mark-${c.contentId}`}
+                                                disabled={markComplete.isPending}
+                                                onClick={() => markComplete.mutate(c.contentId)}
+                                            >
+                                                Đánh dấu xong
+                                            </Button>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
                         </Card>
-                    );
-                })}
+                    ))}
+                </div>
             </div>
         </div>
     );

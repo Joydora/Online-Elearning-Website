@@ -2,8 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import passport from 'passport';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './lib/prisma';
 import authRoutes from './routes/auth.routes';
 import courseRoutes from './routes/course.routes';
 import uploadRoutes from './routes/upload.routes';
@@ -13,34 +12,44 @@ import questionRoutes from './routes/question.routes';
 import commentRoutes from './routes/comment.routes';
 import chatbotRoutes from './routes/chatbot.routes';
 import adminRoutes from './routes/admin.routes';
-import progressRoutes from './routes/progress.routes';
-import teacherRoutes from './routes/teacher.routes';
-import contactRoutes from './routes/contact.routes';
-import reviewRoutes from './routes/review.routes';
-import userRoutes from './routes/user.routes';
-import passwordRoutes from './routes/password.routes';
-import promotionRoutes from './routes/promotion.routes';
-import recommendRoutes from './routes/recommend.routes';
 import practiceRoutes from './routes/practice.routes';
+import recommendationRoutes from './routes/recommendation.routes';
+import progressRoutes from './routes/progress.routes';
 import projectRoutes from './routes/project.routes';
-import syllabusRoutes from './routes/syllabus.routes';
-import certificateRoutes from './routes/certificate.routes';
-import discussionRoutes from './routes/discussion.routes';
-import notificationRoutes from './routes/notification.routes';
 import { simpleChatbotService } from './services/simpleChatbot.service';
-import { startEnrollmentExpiryJob } from './jobs/expireEnrollments';
-import { startNotificationEngagementJobs } from './jobs/notificationEngagement';
-import './config/passport'; // Initialize passport strategies
+import { scheduleExpirySweep } from './jobs/expireEnrollments';
+import { buildCsrfMiddleware } from './middleware/csrf.middleware';
+import { errorHandler } from './middleware/error.middleware';
+import { validateEnv } from './lib/env';
 
 dotenv.config();
 
+// Fail fast if DATABASE_URL / JWT_SECRET / etc. are missing.
+validateEnv();
+
 const app: Express = express();
 const port = process.env.PORT || 3001;
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-const prisma = new PrismaClient();
+
+// Allow-list of browser origins. FRONTEND_URL is typically a single
+// entry; FRONTEND_URLS (comma-separated) supports staging + preview
+// deploys. Falls back to the Vite dev server for local work.
+const trustedOrigins: string[] = (
+    process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? 'http://localhost:5173'
+)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 app.use(cors({
-    origin: frontendOrigin,
+    origin: (origin, cb) => {
+        // Browser requests without Origin (curl, same-origin) are allowed;
+        // any cross-origin request must match the allow-list exactly.
+        // Pass `false` instead of throwing so the browser receives a
+        // clean CORS denial (no Access-Control-Allow-Origin header)
+        // rather than a 500 from the cors library throwing on denial.
+        if (!origin || trustedOrigins.includes(origin)) return cb(null, true);
+        return cb(null, false);
+    },
     credentials: true,
 }));
 app.use(express.json({
@@ -52,7 +61,7 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(passport.initialize());
+app.use(buildCsrfMiddleware(trustedOrigins));
 
 app.use('/api/auth', authRoutes);
 app.use('/api', courseRoutes);
@@ -63,20 +72,10 @@ app.use('/api', questionRoutes);
 app.use('/api', commentRoutes);
 app.use('/api', chatbotRoutes);
 app.use('/api', adminRoutes);
-app.use('/api', progressRoutes);
-app.use('/api', teacherRoutes);
-app.use('/api', contactRoutes);
-app.use('/api', reviewRoutes);
-app.use('/api', userRoutes);
-app.use('/api', passwordRoutes);
-app.use('/api', promotionRoutes);
-app.use('/api', recommendRoutes);
 app.use('/api', practiceRoutes);
+app.use('/api', recommendationRoutes);
+app.use('/api', progressRoutes);
 app.use('/api', projectRoutes);
-app.use('/api', syllabusRoutes);
-app.use('/api', certificateRoutes);
-app.use('/api', discussionRoutes);
-app.use('/api', notificationRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TypeScript Server for E-Learning Platform');
@@ -87,19 +86,18 @@ app.get('/api/health', async (_req: Request, res: Response) => {
         await prisma.$queryRaw`SELECT 1`;
         res.status(200).json({ status: 'ok' });
     } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'Database unreachable',
-            error: (error as Error).message,
-        });
+        console.error('[health] database unreachable', error);
+        res.status(500).json({ status: 'error', message: 'Database unreachable' });
     }
 });
+
+app.use(errorHandler);
 
 const server = app.listen(port, async () => {
     console.log(`[server]: Server is running at http://localhost:${port}`);
 
-    startEnrollmentExpiryJob();
-    startNotificationEngagementJobs();
+    // Schedule daily enrollment-expiry sweep (also runs once on boot).
+    scheduleExpirySweep();
 
     // Initialize chatbot in background
     try {

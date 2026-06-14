@@ -14,10 +14,3 @@ packages/api/.env
 # Lock files (keep pnpm-lock.yaml, ignore npm)
 package-lock.json
 packages/*/package-lock.json
-
-# Test artifacts
-tests/screenshots/
-
-# Build artifacts
-packages/api/dist/
-packages/web/dist/

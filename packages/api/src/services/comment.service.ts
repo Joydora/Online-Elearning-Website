@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 type CommentNode = {
     id: number;
@@ -96,11 +94,15 @@ export async function postComment({ contentId, userId, text, parentId }: Comment
                 },
             },
         },
-        select: { id: true },
+        select: { id: true, isActive: true, expiresAt: true },
     });
 
     if (!enrollment) {
         throw new Error('ENROLLMENT_REQUIRED');
+    }
+
+    if (!enrollment.isActive || (enrollment.expiresAt && enrollment.expiresAt.getTime() <= Date.now())) {
+        throw new Error('ENROLLMENT_EXPIRED');
     }
 
     const newComment = await prisma.comment.create({

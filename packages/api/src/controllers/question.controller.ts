@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient, ContentType, Role } from '@prisma/client';
+import { ContentType, Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 type AuthenticatedRequest = Request & { user?: AuthenticatedUser };
 
@@ -43,7 +42,6 @@ export async function createQuestionController(req: Request, res: Response): Pro
                 contentType: true,
                 module: {
                     select: {
-                        courseId: true,
                         course: {
                             select: { teacherId: true },
                         },
@@ -81,8 +79,7 @@ export async function createQuestionController(req: Request, res: Response): Pro
         return res.status(201).json(question);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create question',
-            details: (error as Error).message,
+            error: 'Unable to create question',
         });
     }
 }
@@ -138,8 +135,7 @@ export async function deleteQuestionController(req: Request, res: Response): Pro
         return res.status(200).json({ message: 'Question deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete question',
-            details: (error as Error).message,
+            error: 'Unable to delete question',
         });
     }
 }
@@ -211,8 +207,7 @@ export async function createOptionController(req: Request, res: Response): Promi
         return res.status(201).json(option);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to create option',
-            details: (error as Error).message,
+            error: 'Unable to create option',
         });
     }
 }
@@ -272,8 +267,7 @@ export async function deleteOptionController(req: Request, res: Response): Promi
         return res.status(200).json({ message: 'Option deleted successfully' });
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to delete option',
-            details: (error as Error).message,
+            error: 'Unable to delete option',
         });
     }
 }
@@ -304,7 +298,6 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
                 timeLimitInMinutes: true,
                 module: {
                     select: {
-                        courseId: true,
                         course: {
                             select: { teacherId: true },
                         },
@@ -341,66 +334,10 @@ export async function getQuizQuestionsController(req: Request, res: Response): P
             return res.status(403).json({ error: 'You are not the owner of this course' });
         }
 
-        const [availableVideoContents, markers] = await Promise.all([
-            prisma.content.findMany({
-                where: {
-                    contentType: ContentType.VIDEO,
-                    module: {
-                        courseId: content.module.courseId,
-                    },
-                },
-                orderBy: [{ module: { order: 'asc' } }, { order: 'asc' }],
-                select: {
-                    id: true,
-                    title: true,
-                    videoUrl: true,
-                    durationInSeconds: true,
-                    module: {
-                        select: {
-                            id: true,
-                            title: true,
-                        },
-                    },
-                },
-            }),
-            prisma.videoQuizMarker.findMany({
-                where: {
-                    question: {
-                        contentId,
-                    },
-                },
-                orderBy: [{ timestampSec: 'asc' }, { id: 'asc' }],
-                select: {
-                    id: true,
-                    contentId: true,
-                    timestampSec: true,
-                    blockingMode: true,
-                    questionId: true,
-                    content: {
-                        select: {
-                            id: true,
-                            title: true,
-                        },
-                    },
-                },
-            }),
-        ]);
-
-        return res.status(200).json({
-            ...content,
-            availableVideoContents,
-            markers: markers.map((marker) => ({
-                ...marker,
-                blockingMode:
-                    String(marker.blockingMode) === 'NON_BLOCKING' || String(marker.blockingMode) === 'non-blocking'
-                        ? 'non-blocking'
-                        : 'pause',
-            })),
-        });
+        return res.status(200).json(content);
     } catch (error) {
         return res.status(500).json({
-            error: 'Unable to fetch quiz',
-            details: (error as Error).message,
+            error: 'Unable to fetch quiz',
         });
     }
 }

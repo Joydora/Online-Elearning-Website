@@ -1,7 +1,5 @@
-import { ContentType, CourseLevel, CourseStatus, Prisma, PrismaClient, Role } from '@prisma/client';
-import { ragService } from './rag.service';
-
-const prisma = new PrismaClient();
+import { ContentType, CourseLevel } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 type CourseViewer = {
     userId: number;
@@ -14,9 +12,6 @@ const courseSummarySelect = {
     description: true,
     syllabus: true,
     price: true,
-    thumbnailUrl: true,
-    status: true,
-    rejectionReason: true,
     trialDurationDays: true,
     accessDurationDays: true,
     level: true,
@@ -52,6 +47,9 @@ const courseSummarySelect = {
 
 const courseDetailSelect = {
     ...courseSummarySelect,
+    prerequisites: {
+        select: { id: true, title: true, level: true },
+    },
     modules: {
         orderBy: { order: 'asc' },
         select: {
@@ -85,57 +83,35 @@ export async function getAllCategories() {
     });
 }
 
+// price is DECIMAL(10,2) in the DB — Prisma returns it as Prisma.Decimal,
+// which JSON.stringify turns into a string. The frontend is typed as
+// `number` and does arithmetic on it, so coerce at the API boundary and
+// keep the wire contract stable.
+function serialiseCoursePrice<T extends { price: { toNumber(): number } } | null>(
+    course: T,
+): T extends null ? null : Omit<NonNullable<T>, 'price'> & { price: number } {
+    if (!course) return null as never;
+    return { ...course, price: course.price.toNumber() } as never;
+}
+
 export async function getAllCourses() {
-    return prisma.course.findMany({
-        where: { status: CourseStatus.PUBLISHED },
+    const rows = await prisma.course.findMany({
         orderBy: { createdAt: 'desc' },
         select: courseSummarySelect,
+        // Hard cap — the public course grid doesn't paginate yet, so
+        // any growth in the catalog quietly blows up the response
+        // size. 500 is well above what the grid will ever render.
+        take: 500,
     });
+    return rows.map((c) => serialiseCoursePrice(c));
 }
 
-export async function getCoursesForTeacher(teacherId: number) {
-    return prisma.course.findMany({
-        where: { teacherId },
-        orderBy: { createdAt: 'desc' },
-        select: {
-            ...courseSummarySelect,
-            modules: {
-                select: {
-                    _count: {
-                        select: {
-                            contents: true,
-                        },
-                    },
-                },
-            },
-            _count: {
-                select: {
-                    enrollments: true,
-                    modules: true,
-                },
-            },
-        },
-    });
-}
-
-export async function getCourseById(courseId: number, viewer?: CourseViewer) {
-    const where: Prisma.CourseWhereInput = { id: courseId };
-
-    if (viewer?.role === Role.ADMIN) {
-        // Admins can preview all courses from the review/manage screens.
-    } else if (viewer?.role === Role.TEACHER) {
-        where.OR = [
-            { status: CourseStatus.PUBLISHED },
-            { teacherId: viewer.userId },
-        ];
-    } else {
-        where.status = CourseStatus.PUBLISHED;
-    }
-
-    return prisma.course.findFirst({
-        where,
+export async function getCourseById(courseId: number) {
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
         select: courseDetailSelect,
     });
+    return serialiseCoursePrice(course);
 }
 
 export async function getFreePreviewContent(courseId: number, contentId: number) {
@@ -169,7 +145,6 @@ type CreateCourseInput = {
     price: number;
     categoryId: number;
     teacherId: number;
-    thumbnailUrl?: string;
     trialDurationDays?: number | null;
     accessDurationDays?: number | null;
     level?: CourseLevel | null;
@@ -184,7 +159,6 @@ type UpdateCourseInput = {
     syllabus?: Prisma.InputJsonValue;
     price?: number;
     categoryId?: number;
-    thumbnailUrl?: string;
     trialDurationDays?: number | null;
     accessDurationDays?: number | null;
     level?: CourseLevel | null;
@@ -213,10 +187,27 @@ type CreateContentInput = {
     timeLimitInMinutes?: number | null;
     isFreePreview?: boolean;
     practicePrompt?: string;
-    starterCode?: string | null;
-    expectedOutput?: string | null;
-    rubric?: string | null;
-    language?: string | null;
+    practiceStarterCode?: string | null;
+    practiceExpectedOutput?: string | null;
+    practiceLanguage?: string;
+    userRole?: string;
+};
+
+type UpdateContentInput = {
+    contentId: number;
+    teacherId: number;
+    title?: string;
+    order?: number;
+    videoUrl?: string | null;
+    durationInSeconds?: number | null;
+    documentUrl?: string | null;
+    fileType?: string | null;
+    timeLimitInMinutes?: number | null;
+    isFreePreview?: boolean;
+    practicePrompt?: string;
+    practiceStarterCode?: string | null;
+    practiceExpectedOutput?: string | null;
+    practiceLanguage?: string;
     userRole?: string;
 };
 
@@ -239,14 +230,11 @@ export async function createCourseForTeacher(input: CreateCourseInput) {
             price: input.price,
             categoryId: input.categoryId,
             teacherId: input.teacherId,
-            thumbnailUrl: input.thumbnailUrl || null,
             trialDurationDays: input.trialDurationDays ?? null,
             accessDurationDays: input.accessDurationDays ?? null,
             level: input.level ?? null,
             prerequisites: input.prerequisiteIds && input.prerequisiteIds.length > 0
-                ? {
-                    connect: input.prerequisiteIds.map((id) => ({ id })),
-                }
+                ? { connect: input.prerequisiteIds.map((id) => ({ id })) }
                 : undefined,
         },
     });
@@ -299,15 +287,15 @@ export async function updateCourseForTeacher(input: UpdateCourseInput) {
             syllabus: input.syllabus !== undefined ? input.syllabus : undefined,
             price: input.price ?? undefined,
             categoryId: input.categoryId ?? undefined,
-            thumbnailUrl: input.thumbnailUrl !== undefined ? (input.thumbnailUrl || null) : undefined,
-            trialDurationDays: input.trialDurationDays !== undefined ? input.trialDurationDays : undefined,
-            accessDurationDays: input.accessDurationDays !== undefined ? input.accessDurationDays : undefined,
-            level: input.level !== undefined ? input.level : undefined,
-            prerequisites: input.prerequisiteIds !== undefined
-                ? {
-                    set: input.prerequisiteIds.map((id) => ({ id })),
-                }
-                : undefined,
+            trialDurationDays:
+                input.trialDurationDays === undefined ? undefined : input.trialDurationDays,
+            accessDurationDays:
+                input.accessDurationDays === undefined ? undefined : input.accessDurationDays,
+            level: input.level === undefined ? undefined : input.level,
+            // For prerequisites: replace the full set when caller passes the array.
+            prerequisites: input.prerequisiteIds === undefined
+                ? undefined
+                : { set: input.prerequisiteIds.map((id) => ({ id })) },
         },
     });
 
@@ -427,61 +415,65 @@ export async function createContentForModule(input: CreateContentInput) {
         throw new Error('COURSE_FORBIDDEN');
     }
 
-    const nextOrder =
-        input.order !== undefined
-            ? input.order
-            : (await prisma.content.count({ where: { moduleId: input.moduleId } })) + 1;
+    // Validate before opening the transaction so we never speculatively
+    // write a Content row just to roll it back on a trivial input error.
+    if (input.contentType === 'PRACTICE' && !input.practicePrompt?.trim()) {
+        throw new Error('PRACTICE_PROMPT_REQUIRED');
+    }
 
-    const shouldCreatePractice =
-        (input.contentType === ContentType.PRACTICE || input.contentType === ContentType.ASSIGNMENT) &&
-        !!input.practicePrompt?.trim();
+    // Content + Practice must land (or not) together. Previously the
+    // rollback was a manual follow-up delete, which silently failed on
+    // DB hiccups and left orphan Content rows with no Practice sibling.
+    return prisma.$transaction(async (tx) => {
+        const nextOrder =
+            input.order !== undefined
+                ? input.order
+                : (await tx.content.count({ where: { moduleId: input.moduleId } })) + 1;
 
-    return prisma.content.create({
-        data: {
-            title: input.title,
-            order: nextOrder,
-            contentType: input.contentType,
-            videoUrl: input.videoUrl ?? null,
-            durationInSeconds: input.durationInSeconds ?? null,
-            documentUrl: input.documentUrl ?? null,
-            fileType: input.fileType ?? null,
-            timeLimitInMinutes: input.timeLimitInMinutes ?? null,
-            isFreePreview: input.isFreePreview ?? false,
-            moduleId: input.moduleId,
-            practice: shouldCreatePractice
-                ? {
-                    create: {
-                        prompt: input.practicePrompt!.trim(),
-                        starterCode: input.starterCode ?? null,
-                        expectedOutput: input.expectedOutput ?? null,
-                        rubric: input.rubric ?? null,
-                        language: input.language || 'javascript',
-                    },
-                }
-                : undefined,
-        },
-        select: {
-            id: true,
-            title: true,
-            order: true,
-            contentType: true,
-            durationInSeconds: true,
-            timeLimitInMinutes: true,
-            isFreePreview: true,
-            moduleId: true,
-            practice: true,
-        },
+        const created = await tx.content.create({
+            data: {
+                title: input.title,
+                order: nextOrder,
+                contentType: input.contentType,
+                videoUrl: input.videoUrl ?? null,
+                durationInSeconds: input.durationInSeconds ?? null,
+                documentUrl: input.documentUrl ?? null,
+                fileType: input.fileType ?? null,
+                timeLimitInMinutes: input.timeLimitInMinutes ?? null,
+                isFreePreview: input.isFreePreview ?? false,
+                moduleId: input.moduleId,
+            },
+            select: {
+                id: true,
+                title: true,
+                order: true,
+                contentType: true,
+                durationInSeconds: true,
+                timeLimitInMinutes: true,
+                isFreePreview: true,
+                moduleId: true,
+            },
+        });
+
+        if (input.contentType === 'PRACTICE') {
+            await tx.practice.create({
+                data: {
+                    contentId: created.id,
+                    prompt: input.practicePrompt!,
+                    starterCode: input.practiceStarterCode ?? null,
+                    expectedOutput: input.practiceExpectedOutput ?? null,
+                    language: input.practiceLanguage ?? 'plaintext',
+                },
+            });
+        }
+
+        return created;
     });
 }
 
-export async function updateContentPreviewForTeacher(
-    contentId: number,
-    teacherId: number,
-    isFreePreview: boolean,
-    userRole?: string,
-) {
+export async function updateContentForTeacher(input: UpdateContentInput) {
     const owningContent = await prisma.content.findUnique({
-        where: { id: contentId },
+        where: { id: input.contentId },
         select: {
             module: {
                 select: {
@@ -497,13 +489,24 @@ export async function updateContentPreviewForTeacher(
         throw new Error('CONTENT_NOT_FOUND');
     }
 
-    if (userRole !== 'ADMIN' && owningContent.module.course.teacherId !== teacherId) {
+    if (input.userRole !== 'ADMIN' && owningContent.module.course.teacherId !== input.teacherId) {
         throw new Error('COURSE_FORBIDDEN');
     }
 
-    return prisma.content.update({
-        where: { id: contentId },
-        data: { isFreePreview },
+    const updated = await prisma.content.update({
+        where: { id: input.contentId },
+        data: {
+            title: input.title ?? undefined,
+            order: input.order ?? undefined,
+            videoUrl: input.videoUrl === undefined ? undefined : input.videoUrl,
+            durationInSeconds:
+                input.durationInSeconds === undefined ? undefined : input.durationInSeconds,
+            documentUrl: input.documentUrl === undefined ? undefined : input.documentUrl,
+            fileType: input.fileType === undefined ? undefined : input.fileType,
+            timeLimitInMinutes:
+                input.timeLimitInMinutes === undefined ? undefined : input.timeLimitInMinutes,
+            isFreePreview: input.isFreePreview === undefined ? undefined : input.isFreePreview,
+        },
         select: {
             id: true,
             title: true,
@@ -515,6 +518,40 @@ export async function updateContentPreviewForTeacher(
             moduleId: true,
         },
     });
+
+    // Propagate practice-specific fields if caller sent any — only meaningful
+    // for PRACTICE contents, but upsert so a teacher can recover from a
+    // PRACTICE row that somehow lost its Practice sibling.
+    const touchingPractice =
+        input.practicePrompt !== undefined ||
+        input.practiceStarterCode !== undefined ||
+        input.practiceExpectedOutput !== undefined ||
+        input.practiceLanguage !== undefined;
+
+    if (touchingPractice && updated.contentType === 'PRACTICE') {
+        await prisma.practice.upsert({
+            where: { contentId: updated.id },
+            create: {
+                contentId: updated.id,
+                prompt: input.practicePrompt ?? '',
+                starterCode: input.practiceStarterCode ?? null,
+                expectedOutput: input.practiceExpectedOutput ?? null,
+                language: input.practiceLanguage ?? 'plaintext',
+            },
+            update: {
+                prompt: input.practicePrompt ?? undefined,
+                starterCode:
+                    input.practiceStarterCode === undefined ? undefined : input.practiceStarterCode,
+                expectedOutput:
+                    input.practiceExpectedOutput === undefined
+                        ? undefined
+                        : input.practiceExpectedOutput,
+                language: input.practiceLanguage ?? undefined,
+            },
+        });
+    }
+
+    return updated;
 }
 
 export async function deleteContentForTeacher(contentId: number, teacherId: number, userRole?: string) {

@@ -1,300 +1,210 @@
 import { Request, Response } from 'express';
-import { NotificationType, PrismaClient, PayoutStatus } from '@prisma/client';
+import { PayoutStatus, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
-import { createNotification } from '../services/notification.service';
-import { writeAdminAuditLog } from '../services/adminAudit.service';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
-const PLATFORM_FEE_PCT = parseFloat(process.env.PLATFORM_FEE_PCT || '0.3');
+type AuthRequest = Request & { user?: AuthenticatedUser };
 
-async function backfillMissingRevenueLedgers(): Promise<void> {
-    const enrollments = await prisma.enrollment.findMany({
-        where: {
-            revenueLedger: null,
-            type: 'PAID',
-            isActive: true,
-            course: {
-                price: { gt: 0 },
-            },
-        },
-        include: {
-            payment: true,
-            course: {
-                select: {
-                    id: true,
-                    price: true,
-                    teacherId: true,
-                },
-            },
-        },
-    });
-
-    if (enrollments.length === 0) return;
-
-    await prisma.$transaction(async (tx) => {
-        for (const enrollment of enrollments) {
-            const grossAmount = enrollment.payment?.amount && enrollment.payment.amount > 0
-                ? enrollment.payment.amount
-                : enrollment.course.price;
-            const platformFee = Number((grossAmount * PLATFORM_FEE_PCT).toFixed(2));
-            const teacherShare = Number((grossAmount - platformFee).toFixed(2));
-
-            const payment = enrollment.payment
-                ? await tx.payment.update({
-                    where: { id: enrollment.payment.id },
-                    data: {
-                        amount: grossAmount,
-                        status: 'SUCCESSFUL',
-                    },
-                })
-                : await tx.payment.create({
-                    data: {
-                        amount: grossAmount,
-                        status: 'SUCCESSFUL',
-                        stripeSessionId: `backfill-${enrollment.id}-${Date.now()}`,
-                        enrollmentId: enrollment.id,
-                        studentId: enrollment.studentId,
-                    },
-                });
-
-            await tx.revenueLedger.create({
-                data: {
-                    paymentId: payment.id,
-                    enrollmentId: enrollment.id,
-                    courseId: enrollment.course.id,
-                    teacherId: enrollment.course.teacherId,
-                    grossAmount,
-                    platformFee,
-                    teacherShare,
-                    payoutStatus: PayoutStatus.HELD,
-                },
-            });
-        }
-    });
+// Prisma.Decimal fields serialise as strings via JSON.stringify, but the
+// UI expects numbers. The amounts we handle (single-course revenue,
+// per-teacher aggregates) fit comfortably in Number precision, so we
+// collapse on the way out.
+function decimalToNumber(value: Prisma.Decimal | null | undefined): number {
+    return value ? value.toNumber() : 0;
 }
 
-// Admin: list ledger with filters
-export async function getRevenueLedgerController(req: Request, res: Response): Promise<Response> {
-    try {
-        await backfillMissingRevenueLedgers();
+function serialiseLedger<R extends { grossAmount: Prisma.Decimal; platformFee: Prisma.Decimal; teacherShare: Prisma.Decimal; feePctSnapshot: Prisma.Decimal; payment?: { amount: Prisma.Decimal } | null }>(
+    r: R,
+) {
+    return {
+        ...r,
+        grossAmount: r.grossAmount.toNumber(),
+        platformFee: r.platformFee.toNumber(),
+        teacherShare: r.teacherShare.toNumber(),
+        feePctSnapshot: r.feePctSnapshot.toNumber(),
+        ...(r.payment
+            ? { payment: { ...r.payment, amount: r.payment.amount.toNumber() } }
+            : {}),
+    };
+}
 
-        const { teacherId, courseId, payoutStatus, from, to, page = '1', limit = '50' } = req.query;
+function parseIntOrUndefined(raw: unknown): number | undefined {
+    if (raw === undefined || raw === null || raw === '') return undefined;
+    const n = Number(raw);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+
+function parseDateOrUndefined(raw: unknown): Date | undefined {
+    if (raw === undefined || raw === null || raw === '') return undefined;
+    const d = new Date(String(raw));
+    return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function parsePayoutStatus(raw: unknown): PayoutStatus | undefined {
+    if (raw === 'HELD' || raw === 'PAID') return raw;
+    return undefined;
+}
+
+export async function listRevenueController(req: Request, res: Response): Promise<Response> {
+    try {
+        const teacherId = parseIntOrUndefined(req.query.teacherId);
+        const courseId = parseIntOrUndefined(req.query.courseId);
+        const from = parseDateOrUndefined(req.query.from);
+        const to = parseDateOrUndefined(req.query.to);
+        const status = parsePayoutStatus(req.query.status);
+        const take = Math.min(parseIntOrUndefined(req.query.limit) ?? 50, 200);
+        const skip = parseIntOrUndefined(req.query.offset) ?? 0;
 
         const where: Record<string, unknown> = {};
-        if (teacherId) where.teacherId = Number(teacherId);
-        if (courseId) where.courseId = Number(courseId);
-        if (payoutStatus) where.payoutStatus = payoutStatus as PayoutStatus;
+        if (teacherId) where.teacherId = teacherId;
+        if (courseId) where.courseId = courseId;
+        if (status) where.payoutStatus = status;
         if (from || to) {
-            where.createdAt = {};
-            if (from) (where.createdAt as Record<string, unknown>).gte = new Date(from as string);
-            if (to) (where.createdAt as Record<string, unknown>).lte = new Date(to as string);
+            where.createdAt = {
+                ...(from ? { gte: from } : {}),
+                ...(to ? { lte: to } : {}),
+            };
         }
 
-        const skip = (Number(page) - 1) * Number(limit);
-        const take = Math.min(Number(limit), 200);
-
-        const [rows, total] = await Promise.all([
+        const [rows, total, aggregates] = await Promise.all([
             prisma.revenueLedger.findMany({
                 where,
-                skip,
                 take,
+                skip,
                 orderBy: { createdAt: 'desc' },
                 include: {
-                    course: { select: { id: true, title: true } },
-                    teacher: { select: { id: true, username: true, firstName: true, lastName: true, email: true } },
-                    payment: { select: { id: true, stripeSessionId: true, createdAt: true } },
+                    payment: {
+                        select: { id: true, amount: true, createdAt: true, studentId: true },
+                    },
                 },
             }),
             prisma.revenueLedger.count({ where }),
+            prisma.revenueLedger.aggregate({
+                where,
+                _sum: { grossAmount: true, platformFee: true, teacherShare: true },
+                _count: { _all: true },
+            }),
         ]);
 
-        const summary = await prisma.revenueLedger.aggregate({
-            where,
-            _sum: { grossAmount: true, platformFee: true, teacherShare: true },
+        const heldCount = await prisma.revenueLedger.count({
+            where: { ...where, payoutStatus: 'HELD' },
         });
+        const paidCount = await prisma.revenueLedger.count({
+            where: { ...where, payoutStatus: 'PAID' },
+        });
+
+        // Enrich rows with course + teacher snapshot so the UI can display names
+        const courseIds = Array.from(new Set(rows.map((r) => r.courseId)));
+        const teacherIds = Array.from(new Set(rows.map((r) => r.teacherId)));
+        const [courses, teachers] = await Promise.all([
+            prisma.course.findMany({
+                where: { id: { in: courseIds } },
+                select: { id: true, title: true, price: true },
+            }),
+            prisma.user.findMany({
+                where: { id: { in: teacherIds } },
+                select: { id: true, username: true, firstName: true, lastName: true, email: true },
+            }),
+        ]);
+        const courseMap = new Map(courses.map((c) => [c.id, c]));
+        const teacherMap = new Map(teachers.map((t) => [t.id, t]));
 
         return res.status(200).json({
-            rows,
-            total,
-            page: Number(page),
-            totalPages: Math.ceil(total / take),
-            summary: {
-                grossAmount: summary._sum.grossAmount ?? 0,
-                platformFee: summary._sum.platformFee ?? 0,
-                teacherShare: summary._sum.teacherShare ?? 0,
+            rows: rows.map((r) => {
+                const courseRaw = courseMap.get(r.courseId) ?? null;
+                return {
+                    ...serialiseLedger(r),
+                    course: courseRaw
+                        ? { ...courseRaw, price: courseRaw.price.toNumber() }
+                        : null,
+                    teacher: teacherMap.get(r.teacherId) ?? null,
+                };
+            }),
+            pagination: { total, limit: take, offset: skip },
+            aggregates: {
+                totalGross: decimalToNumber(aggregates._sum.grossAmount),
+                totalPlatformFee: decimalToNumber(aggregates._sum.platformFee),
+                totalTeacherShare: decimalToNumber(aggregates._sum.teacherShare),
+                rowCount: aggregates._count._all,
+                heldCount,
+                paidCount,
             },
         });
-    } catch {
-        return res.status(500).json({ error: 'Unable to fetch revenue ledger' });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch revenue',
+        });
     }
 }
 
-// Admin: mark ledger entries as paid
-export async function markPayoutController(req: Request, res: Response): Promise<Response> {
+export async function markRevenuePaidController(req: Request, res: Response): Promise<Response> {
     try {
-        const authReq = req as Request & { user?: AuthenticatedUser };
-        const { ids } = req.body as { ids: number[] };
-        if (!Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ error: 'ids must be a non-empty array' });
+        const ledgerId = Number.parseInt(req.params.id, 10);
+        if (Number.isNaN(ledgerId)) {
+            return res.status(400).json({ error: 'Ledger id must be a number' });
         }
 
-        const eligibleLedgers = await prisma.revenueLedger.findMany({
-            where: { id: { in: ids }, payoutStatus: PayoutStatus.HELD },
-            select: { id: true, teacherId: true, teacherShare: true, course: { select: { title: true } } },
+        // Conditional update in a single SQL statement — no read-then-
+        // write gap where two admins could both update paidAt to
+        // different timestamps. updateMany returns count 0 when the
+        // row already has payoutStatus=PAID, so we can distinguish
+        // "not found" from "already paid" with one follow-up lookup.
+        const result = await prisma.revenueLedger.updateMany({
+            where: { id: ledgerId, payoutStatus: 'HELD' },
+            data: { payoutStatus: 'PAID', paidAt: new Date() },
         });
 
-        if (eligibleLedgers.length === 0) {
-            return res.status(200).json({ updated: 0 });
+        const row = await prisma.revenueLedger.findUnique({ where: { id: ledgerId } });
+        if (!row) {
+            return res.status(404).json({ error: 'Ledger entry not found' });
         }
-
-        const paidAt = new Date();
-        const result = await prisma.$transaction(
-            eligibleLedgers.map((ledger) =>
-                prisma.revenueLedger.updateMany({
-                    where: { id: ledger.id, payoutStatus: PayoutStatus.HELD },
-                    data: { payoutStatus: PayoutStatus.PAID, paidAt },
-                })
-            )
-        );
-
-        const updated = result.reduce((sum, r) => sum + r.count, 0);
-
-        if (updated > 0) {
-            await Promise.allSettled(
-                eligibleLedgers.map((ledger) =>
-                    createNotification({
-                        userId: ledger.teacherId,
-                        type: NotificationType.DEADLINE_REMINDER,
-                        title: 'Tien day hoc da duoc duyet',
-                        message: `Khoan thanh toan ${ledger.teacherShare.toFixed(2)} cho khoa hoc "${ledger.course.title}" da duoc duyet.`,
-                        link: '/teacher/earnings',
-                        dedupeKey: `payout-approved-${ledger.id}-${paidAt.toISOString()}`,
-                        sendEmail: true,
-                    })
-                )
-            );
-
-            await writeAdminAuditLog({
-                adminId: authReq.user?.userId,
-                action: 'UPDATE',
-                resource: 'PAYOUT',
-                description: `Marked ${updated} payout ledger entries as PAID`,
-                metadata: {
-                    ledgerIds: eligibleLedgers.map((l) => l.id),
-                    teacherIds: [...new Set(eligibleLedgers.map((l) => l.teacherId))],
-                    paidAt: paidAt.toISOString(),
-                },
-                after: {
-                    payoutStatus: 'PAID',
-                    updatedCount: updated,
-                },
-            });
-        }
-
-        return res.status(200).json({ updated });
-    } catch {
-        return res.status(500).json({ error: 'Unable to mark payout' });
-    }
-}
-
-// Admin: export CSV
-export async function exportRevenueCSVController(req: Request, res: Response): Promise<void> {
-    try {
-        await backfillMissingRevenueLedgers();
-
-        const { teacherId, courseId, payoutStatus, from, to } = req.query;
-
-        const where: Record<string, unknown> = {};
-        if (teacherId) where.teacherId = Number(teacherId);
-        if (courseId) where.courseId = Number(courseId);
-        if (payoutStatus) where.payoutStatus = payoutStatus as PayoutStatus;
-        if (from || to) {
-            where.createdAt = {};
-            if (from) (where.createdAt as Record<string, unknown>).gte = new Date(from as string);
-            if (to) (where.createdAt as Record<string, unknown>).lte = new Date(to as string);
-        }
-
-        const rows = await prisma.revenueLedger.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            include: {
-                course: { select: { title: true } },
-                teacher: { select: { username: true, email: true } },
-                payment: { select: { stripeSessionId: true, createdAt: true } },
-            },
+        // result.count === 0 here means it was already PAID — that's a
+        // no-op success for idempotency.
+        void result;
+        return res.status(200).json(serialiseLedger(row));
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to mark revenue paid',
         });
-
-        const escapeCSV = (v: unknown): string => {
-            const s = String(v ?? '');
-            if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r') || /^[=+\-@]/.test(s)) {
-                return `"${s.replace(/"/g, '""')}"`;
-            }
-            return s;
-        };
-
-        const header = 'ID,Date,Course,Teacher,Email,Gross,PlatformFee,TeacherShare,Status,PaidAt,StripeSession\n';
-        const csvRows = rows.map((r) => [
-            r.id,
-            r.createdAt.toISOString(),
-            escapeCSV(r.course.title),
-            escapeCSV(r.teacher.username),
-            escapeCSV(r.teacher.email),
-            r.grossAmount,
-            r.platformFee,
-            r.teacherShare,
-            r.payoutStatus,
-            r.paidAt?.toISOString() ?? '',
-            escapeCSV(r.payment.stripeSessionId),
-        ].join(','));
-
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="revenue-${Date.now()}.csv"`);
-        res.send(header + csvRows.join('\n'));
-    } catch {
-        res.status(500).json({ error: 'Unable to export CSV' });
     }
 }
 
-// Teacher: read-only earnings view
-export async function getMyEarningsController(req: Request, res: Response): Promise<Response> {
+export async function getTeacherEarningsController(req: Request, res: Response): Promise<Response> {
     try {
-        await backfillMissingRevenueLedgers();
-
-        const authReq = req as Request & { user?: AuthenticatedUser };
-        if (!authReq.user) return res.status(401).json({ error: 'Not authenticated' });
+        const authReq = req as AuthRequest;
+        if (!authReq.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
 
         const teacherId = authReq.user.userId;
 
-        const [held, paid] = await Promise.all([
+        const [aggregate, held, paid] = await Promise.all([
             prisma.revenueLedger.aggregate({
-                where: { teacherId, payoutStatus: PayoutStatus.HELD },
-                _sum: { teacherShare: true },
-                _count: true,
+                where: { teacherId },
+                _sum: { grossAmount: true, platformFee: true, teacherShare: true },
+                _count: { _all: true },
             }),
             prisma.revenueLedger.aggregate({
-                where: { teacherId, payoutStatus: PayoutStatus.PAID },
+                where: { teacherId, payoutStatus: 'HELD' },
                 _sum: { teacherShare: true },
-                _count: true,
+            }),
+            prisma.revenueLedger.aggregate({
+                where: { teacherId, payoutStatus: 'PAID' },
+                _sum: { teacherShare: true },
             }),
         ]);
 
-        const recentEntries = await prisma.revenueLedger.findMany({
-            where: { teacherId },
-            orderBy: { createdAt: 'desc' },
-            take: 20,
-            include: {
-                course: { select: { id: true, title: true } },
-                payment: { select: { createdAt: true } },
-            },
-        });
-
         return res.status(200).json({
-            heldAmount: held._sum.teacherShare ?? 0,
-            paidAmount: paid._sum.teacherShare ?? 0,
-            totalSales: (held._count ?? 0) + (paid._count ?? 0),
-            recentEntries,
+            totalGross: decimalToNumber(aggregate._sum.grossAmount),
+            totalPlatformFee: decimalToNumber(aggregate._sum.platformFee),
+            totalTeacherShare: decimalToNumber(aggregate._sum.teacherShare),
+            heldTeacherShare: decimalToNumber(held._sum.teacherShare),
+            paidTeacherShare: decimalToNumber(paid._sum.teacherShare),
+            salesCount: aggregate._count._all,
         });
-    } catch {
-        return res.status(500).json({ error: 'Unable to fetch earnings' });
+    } catch (error) {
+        return res.status(500).json({
+            error: 'Unable to fetch earnings',
+        });
     }
 }

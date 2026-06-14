@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { llmService } from './llm.service';
-
-const prisma = new PrismaClient();
+import { Ollama } from 'ollama';
+import { prisma } from '../lib/prisma';
 
 function stringifySyllabus(syllabus: unknown): string {
     if (!syllabus || (typeof syllabus === 'object' && Object.keys(syllabus).length === 0)) {
@@ -56,8 +54,7 @@ class SimpleChatbotService {
 - Giảng viên: ${teacherName}
 - Danh mục: ${course.category.name}
 - Mô tả: ${course.description}
-- Syllabus: ${stringifySyllabus(course.syllabus)}
-- Giá: ${course.price === 0 ? 'Miễn phí' : `${course.price} VND`}
+- Giá: ${course.price.isZero() ? 'Miễn phí' : `${course.price.toString()} VND`}
 - Số chương: ${course.modules.length}
 `;
 

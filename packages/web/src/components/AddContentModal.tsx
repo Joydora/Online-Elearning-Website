@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
 
-type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE' | 'ASSIGNMENT';
+type ContentType = 'VIDEO' | 'DOCUMENT' | 'QUIZ' | 'PRACTICE';
 
 type Props = {
     moduleId: number;
@@ -24,11 +24,9 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     const [fileType, setFileType] = useState('application/pdf');
     const [timeLimitInMinutes, setTimeLimitInMinutes] = useState('');
     const [practicePrompt, setPracticePrompt] = useState('');
-    const [starterCode, setStarterCode] = useState('');
-    const [expectedOutput, setExpectedOutput] = useState('');
-    const [rubric, setRubric] = useState('');
-    const [language, setLanguage] = useState('javascript');
-    const [isFreePreview, setIsFreePreview] = useState(false);
+    const [practiceStarterCode, setPracticeStarterCode] = useState('');
+    const [practiceExpectedOutput, setPracticeExpectedOutput] = useState('');
+    const [practiceLanguage, setPracticeLanguage] = useState('plaintext');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 
@@ -84,16 +82,15 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
             if (timeLimitInMinutes) {
                 data.timeLimitInMinutes = parseInt(timeLimitInMinutes);
             }
-        } else if (contentType === 'PRACTICE' || contentType === 'ASSIGNMENT') {
+        } else if (contentType === 'PRACTICE') {
             if (!practicePrompt.trim()) {
-                showErrorAlert('Lỗi', 'Vui lòng nhập yêu cầu bài thực hành/bài tập');
+                showErrorAlert('Lỗi', 'Vui lòng nhập đề bài');
                 return;
             }
             data.practicePrompt = practicePrompt.trim();
-            data.starterCode = starterCode || undefined;
-            data.expectedOutput = expectedOutput || undefined;
-            data.rubric = rubric || undefined;
-            data.language = language || 'javascript';
+            if (practiceStarterCode.trim()) data.practiceStarterCode = practiceStarterCode;
+            if (practiceExpectedOutput.trim()) data.practiceExpectedOutput = practiceExpectedOutput;
+            data.practiceLanguage = practiceLanguage;
         }
 
         createContentMutation.mutate(data);
@@ -165,8 +162,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                             <option value="VIDEO">Video</option>
                             <option value="DOCUMENT">Tài liệu</option>
                             <option value="QUIZ">Bài kiểm tra</option>
-                            <option value="PRACTICE">Bài thực hành</option>
-                            <option value="ASSIGNMENT">Bài tập</option>
+                            <option value="PRACTICE">Bài tập thực hành</option>
                         </select>
                     </div>
 
@@ -405,74 +401,76 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
                         </>
                     )}
 
-                    {(contentType === 'PRACTICE' || contentType === 'ASSIGNMENT') && (
-                        <div className="space-y-4 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-900/50 dark:bg-purple-950/30">
+                    {contentType === 'PRACTICE' && (
+                        <>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Yêu cầu bài {contentType === 'PRACTICE' ? 'thực hành' : 'tập'} <span className="text-red-500">*</span>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Đề bài <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
+                                    data-testid="practice-prompt"
                                     value={practicePrompt}
                                     onChange={(e) => setPracticePrompt(e.target.value)}
-                                    placeholder="Mô tả yêu cầu, input/output, ràng buộc..."
-                                    rows={4}
-                                    className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                                    placeholder="VD: Viết hàm cộng hai số nguyên và trả về tổng."
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[100px]"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Starter code
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Ngôn ngữ
                                 </label>
-                                <textarea
-                                    value={starterCode}
-                                    onChange={(e) => setStarterCode(e.target.value)}
-                                    placeholder="function solve() { ... }"
-                                    rows={5}
-                                    className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 font-mono text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
-                                />
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Ngôn ngữ
-                                    </label>
-                                    <select
-                                        value={language}
-                                        onChange={(e) => setLanguage(e.target.value)}
-                                        className="w-full h-12 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
-                                    >
-                                        <option value="javascript">JavaScript</option>
-                                        <option value="typescript">TypeScript</option>
-                                        <option value="python">Python</option>
-                                        <option value="java">Java</option>
-                                        <option value="cpp">C++</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                        Expected output
-                                    </label>
-                                    <Input
-                                        value={expectedOutput}
-                                        onChange={(e) => setExpectedOutput(e.target.value)}
-                                        placeholder="Kết quả mong đợi"
-                                        className="h-12"
-                                    />
-                                </div>
+                                <select
+                                    data-testid="practice-language"
+                                    value={practiceLanguage}
+                                    onChange={(e) => setPracticeLanguage(e.target.value)}
+                                    className="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500"
+                                >
+                                    <option value="plaintext">Không chỉ định</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="typescript">TypeScript</option>
+                                    <option value="python">Python</option>
+                                    <option value="java">Java</option>
+                                    <option value="cpp">C++</option>
+                                    <option value="csharp">C#</option>
+                                </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                    Rubric chấm điểm
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Code mẫu (starter code)
                                 </label>
                                 <textarea
-                                    value={rubric}
-                                    onChange={(e) => setRubric(e.target.value)}
-                                    placeholder="Tiêu chí đúng/sai, hiệu năng, style code..."
-                                    rows={3}
-                                    className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-red-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                                    data-testid="practice-starter"
+                                    value={practiceStarterCode}
+                                    onChange={(e) => setPracticeStarterCode(e.target.value)}
+                                    placeholder={'function add(a, b) {\n  // your code here\n}'}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[100px] font-mono text-sm"
                                 />
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    Tuỳ chọn — học viên sẽ bắt đầu với code này.
+                                </p>
                             </div>
-                        </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Kết quả mong muốn (optional)
+                                </label>
+                                <textarea
+                                    data-testid="practice-expected"
+                                    value={practiceExpectedOutput}
+                                    onChange={(e) => setPracticeExpectedOutput(e.target.value)}
+                                    placeholder={'add(2, 3) === 5'}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-600 dark:focus:ring-red-500 resize-none min-h-[80px] font-mono text-sm"
+                                />
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    AI sẽ dùng kết quả này làm gợi ý khi chấm bài.
+                                </p>
+                            </div>
+                            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                                <p className="text-sm text-amber-800 dark:text-amber-200">
+                                    <strong>Lưu ý:</strong> Bài nộp của học viên sẽ được AI chấm tự động (điểm 0-10) và
+                                    lưu lại để giảng viên xem sau.
+                                </p>
+                            </div>
+                        </>
                     )}
 
                     {/* Actions */}
