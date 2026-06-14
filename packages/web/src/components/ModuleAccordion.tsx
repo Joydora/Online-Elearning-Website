@@ -179,7 +179,7 @@ export function ModuleAccordion({
                                                     )}
                                                 </div>
                                             </div>
-                                            {!canOpen && (
+                                            {!clickable && (
                                                 <Lock className="h-4 w-4 text-slate-400 shrink-0" />
                                             )}
                                             {isCompleted && (

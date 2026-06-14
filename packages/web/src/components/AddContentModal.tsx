@@ -27,6 +27,7 @@ export function AddContentModal({ moduleId, courseId, onClose }: Props) {
     const [practiceStarterCode, setPracticeStarterCode] = useState('');
     const [practiceExpectedOutput, setPracticeExpectedOutput] = useState('');
     const [practiceLanguage, setPracticeLanguage] = useState('plaintext');
+    const [isFreePreview, setIsFreePreview] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');
 

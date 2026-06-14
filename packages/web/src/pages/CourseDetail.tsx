@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Clock, Users, Star, BookOpen, Award, Play, ShoppingCart, CheckCircle, Sparkles, ArrowUpCircle } from 'lucide-react';
+import { Clock, Users, Star, BookOpen, Award, Play, ShoppingCart, CheckCircle, Sparkles, ArrowUpCircle, Tag, X } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { getYouTubeEmbedUrl } from '../lib/video';
 import { useAuthStore } from '../stores/useAuthStore';

@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageSquare, Send } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 export default function Contact() {
     const [formData, setFormData] = useState({

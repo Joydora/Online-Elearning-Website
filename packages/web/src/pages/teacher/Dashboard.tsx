@@ -1,12 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, Users, Wallet, ShoppingBag, DollarSign, Edit, Trash2, BarChart3 } from 'lucide-react';
+import { Plus, BookOpen, Users, Wallet, ShoppingBag, DollarSign, Edit, Trash2, BarChart3, UserCircle, FileText, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { apiClient } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { type Course } from '../../components/CourseCard';
 import Swal from 'sweetalert2';
+
+type TeacherCourse = {
+    courseId?: number;
+    id?: number;
+    title: string;
+    description: string;
+    thumbnailUrl?: string | null;
+    status?: string;
+    price?: number;
+    totalEnrollments?: number;
+    modules?: { _count?: { contents?: number } }[];
+    _count?: { enrollments?: number };
+};
 
 type TeacherEarnings = {
     totalGross: number;

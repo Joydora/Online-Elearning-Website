@@ -171,6 +171,35 @@ export default function ManageCourse() {
         },
     });
 
+    const submitForReviewMutation = useMutation({
+        mutationFn: async () => {
+            const { data } = await apiClient.post(`/courses/${id}/submit-review`);
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['course-manage', id] });
+            showSuccessAlert('Đã gửi duyệt!', 'Khóa học của bạn đang chờ quản trị viên xét duyệt.');
+        },
+        onError: (error: any) => {
+            showErrorAlert('Lỗi gửi duyệt', error.response?.data?.error || 'Đã có lỗi xảy ra');
+        },
+    });
+
+    const handleSubmitForReview = async () => {
+        const result = await Swal.fire({
+            title: 'Gửi duyệt khóa học?',
+            text: 'Khóa học sẽ được gửi cho quản trị viên xét duyệt. Bạn không thể chỉnh sửa trong thời gian chờ duyệt.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Gửi duyệt',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#dc2626',
+        });
+        if (result.isConfirmed) {
+            submitForReviewMutation.mutate();
+        }
+    };
+
     const toggleModule = (moduleId: number) => {
         setExpandedModules(prev => {
             const newSet = new Set(prev);

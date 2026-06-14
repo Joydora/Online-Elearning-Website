@@ -1,15 +1,76 @@
 import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock, Code2 } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock, Code2, BarChart2, Bot, Github, MessageCircle, Send, Loader2, X } from 'lucide-react';
 import { apiClient } from '../../lib/api';
 import { getYouTubeEmbedUrl } from '../../lib/video';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
-import { showErrorAlert } from '../../lib/sweetalert';
+import { showErrorAlert, showSuccessAlert } from '../../lib/sweetalert';
 import Swal from 'sweetalert2';
 import { PracticePanel } from '../../components/PracticePanel';
 import { safeHttpUrl } from '../../lib/safeUrl';
+
+type QuizQuestion = {
+    questionId: number;
+    question: string;
+    options: { optionId: number; text: string }[];
+};
+
+type QuizData = {
+    quizId: number;
+    title: string;
+    timeLimitInMinutes?: number | null;
+    questions: QuizQuestion[];
+};
+
+type QuizResult = {
+    score: number;
+    totalQuestions: number;
+    correctAnswers: number;
+    passed: boolean;
+    answers: { questionId: number; isCorrect: boolean; correctOptionId: number }[];
+};
+
+type QuizAttemptHistory = {
+    attemptId: number;
+    score: number;
+    passed: boolean;
+    createdAt: string;
+};
+
+type VideoQuizMarker = {
+    markerId: number;
+    timestampSeconds: number;
+    question: string;
+    options: { optionId: number; text: string }[];
+    correctOptionId?: number;
+};
+
+type MarkerQuizResult = {
+    isCorrect: boolean;
+    correctOptionId: number;
+};
+
+type TeachingAssistantMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+};
+
+type PracticeData = {
+    practiceId: number;
+    title: string;
+    prompt: string;
+    starterCode?: string | null;
+    expectedOutput?: string | null;
+    language?: string | null;
+};
+
+type PracticeResult = {
+    passed: boolean;
+    output: string;
+    feedback?: string;
+};
 
 type ContentRaw = {
     id: number;
@@ -87,7 +148,7 @@ type Enrollment = {
 export default function CoursePlayer() {
     const { courseId } = useParams<{ courseId: string }>();
     const navigate = useNavigate();
-    useQueryClient();
+    const queryClient = useQueryClient();
 
     const [currentModuleId, setCurrentModuleId] = useState<number | null>(null);
     const [currentContentId, setCurrentContentId] = useState<number | null>(null);
@@ -363,6 +424,43 @@ export default function CoursePlayer() {
         }
 
         return null;
+    };
+
+    const askTeachingAssistant = async () => {
+        if (!taQuestion.trim() || taLoading) return;
+        const question = taQuestion.trim();
+        setTaQuestion('');
+        setTaMessages(prev => [...prev, { role: 'user', content: question }]);
+        setTaLoading(true);
+        try {
+            const { data } = await apiClient.post('/teaching-assistant/ask', {
+                courseId,
+                contentId: currentContentId,
+                question,
+                history: taMessages,
+            });
+            setTaMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
+        } catch {
+            setTaMessages(prev => [...prev, { role: 'assistant', content: 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.' }]);
+        } finally {
+            setTaLoading(false);
+        }
+    };
+
+    const generateQuizSuggestions = async () => {
+        if (taQuizLoading) return;
+        setTaQuizLoading(true);
+        try {
+            const { data } = await apiClient.post('/teaching-assistant/quiz-suggestions', {
+                courseId,
+                contentId: currentContentId,
+            });
+            setTaMessages(prev => [...prev, { role: 'assistant', content: data.suggestions }]);
+        } catch {
+            setTaMessages(prev => [...prev, { role: 'assistant', content: 'Không thể tạo câu hỏi gợi ý. Vui lòng thử lại.' }]);
+        } finally {
+            setTaQuizLoading(false);
+        }
     };
 
     const handleNext = () => {
