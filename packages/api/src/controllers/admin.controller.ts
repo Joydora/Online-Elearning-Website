@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CourseStatus, PrismaClient, Role } from '@prisma/client';
 import { AuthenticatedUser } from '../types/auth';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import {
     approveCourse,
     getAllCoursesForAdmin,
