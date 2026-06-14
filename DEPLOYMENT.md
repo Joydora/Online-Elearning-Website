@@ -51,16 +51,13 @@ when `NODE_ENV !== 'production'`) lets you fake paid enrollments for testing.
    - **Instance Type**: **Free**
 3. Click **Create Database**. Provisioning takes ~1 minute.
 4. On the database detail page, scroll to **Connections**. Copy:
-   - **Internal Database URL** — used by the backend (free, no egress charge) postgresql://elearning_db_44pj_user:KYzKHDxJSWSkFxnwlNH5uHYSmVMonfTv@dpg-d8jdflmk1jcs73f7n010-a/elearning_db_44pj
+   - **Internal Database URL** — used by the backend (free, no egress charge)
+     `postgresql://<user>:<password>@<host-internal>/<dbname>`
    - **External Database URL** — used from your laptop for migrations/seed
-   External Database URL
-Connect from services outside of Render.
-postgresql://elearning_db_44pj_user:KYzKHDxJSWSkFxnwlNH5uHYSmVMonfTv@dpg-d8jdflmk1jcs73f7n010-a.singapore-postgres.render.com/elearning_db_44pj
+     `postgresql://<user>:<password>@<host>.singapore-postgres.render.com/<dbname>`
 
-PSQL Command
-Connect using the
-Render CLI
-render psql dpg-d8jdflmk1jcs73f7n010-a
+   > **Never paste these URLs into files you commit.** Store them only in
+   > Render environment variables and your local `.env` (which is in `.gitignore`).
 
 > **Internal vs External:** The internal URL only works from within Render's
 > network (i.e. your backend web service). Use it for `DATABASE_URL` on the
