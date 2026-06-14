@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Award, BookOpen, ArrowRight, Sparkles, Target, Zap } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { CourseCard, type Course } from '../components/CourseCard';

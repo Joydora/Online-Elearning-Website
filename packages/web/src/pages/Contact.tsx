@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { showSuccessAlert } from '../lib/sweetalert';
+import { Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
+import { apiClient } from '../lib/api';
+import { showSuccessAlert, showErrorAlert } from '../lib/sweetalert';
 
 export default function Contact() {
     const [formData, setFormData] = useState({
