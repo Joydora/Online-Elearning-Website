@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, PlayCircle, FileText, HelpCircle, Menu, Sparkles, ArrowUpCircle, Clock, Code2 } from 'lucide-react';

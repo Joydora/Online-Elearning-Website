@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { LogOut, LayoutDashboard, Menu, X, BookOpen, Trophy, Bell, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';

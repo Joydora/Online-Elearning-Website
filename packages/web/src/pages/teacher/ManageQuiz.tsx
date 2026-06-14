@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -76,6 +76,7 @@ export default function ManageQuiz() {
     const [markerTimestampSec, setMarkerTimestampSec] = useState(0);
     const [markerQuestionId, setMarkerQuestionId] = useState<number | null>(null);
     const [markerBlockingMode, setMarkerBlockingMode] = useState<'pause' | 'non-blocking'>('pause');
+    const markerVideoRef = useRef<HTMLVideoElement>(null);
 
     // Fetch quiz with questions
     const { data: quiz, isLoading } = useQuery<QuizDetail>({
