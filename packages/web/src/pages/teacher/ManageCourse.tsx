@@ -574,20 +574,6 @@ export default function ManageCourse() {
                                                             {content.isFreePreview ? 'Miễn phí ✓' : 'Đặt miễn phí'}
                                                         </Button>
                                                         {content.contentType === 'QUIZ' && (
-                                                            <Button
-                                                                variant={content.isFreePreview ? 'default' : 'outline'}
-                                                                size="sm"
-                                                                className="gap-1 text-xs"
-                                                                disabled={togglePreviewMutation.isPending}
-                                                                onClick={() => togglePreviewMutation.mutate({
-                                                                    contentId: content.id,
-                                                                    isFreePreview: !content.isFreePreview,
-                                                                })}
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                                {content.isFreePreview ? 'Đang preview' : 'Mở preview'}
-                                                            </Button>
-                                                            {content.contentType === 'QUIZ' && (
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
@@ -607,7 +593,6 @@ export default function ManageCourse() {
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
                                                         </div>
-                                                    </div>
                                                 ))}
                                             </div>
                                         )}
