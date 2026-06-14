@@ -1,8 +1,7 @@
-# Free Deployment Guide — Online E-Learning Website
+# Deployment Guide — Online E-Learning Website
 
-> Last updated: **June 2026**. Stack picks reflect the post-Koyeb-acquisition,
-> post-Railway-free-tier-removal landscape. Every service below is verified to
-> still offer a real (no credit-card-required) free tier as of June 2026.
+> Last updated: **June 2026**. Everything runs on Render (database + backend)
+> and Vercel (frontend). No credit card required. Total cost: **$0**.
 
 ---
 
@@ -10,36 +9,15 @@
 
 | Layer       | Service                | Free quota (2026)                                  | Card req'd? |
 |-------------|------------------------|----------------------------------------------------|-------------|
-| Database    | **Neon**               | 0.5 GB storage, 100 CU-hours/mo, scale-to-zero     | No          |
+| Database    | **Render** (PostgreSQL)| 1 GB storage, 256 MB RAM, expires after 90 days    | No          |
 | Backend API | **Render** (Web Svc)   | 750 instance-hours/mo, 512 MB RAM, sleeps 15 min   | No          |
 | Frontend    | **Vercel** (Hobby)     | 100 GB BW, 6 000 build-min, unlimited static sites | No          |
 | LLM         | **Groq Cloud**         | Free tier, ~30 req/min on `llama-3.x`              | No          |
 | Embeddings  | **Google Gemini**      | Free tier, `text-embedding-004` (768 dims)         | No          |
 | Files       | **Cloudinary** (Free)  | 25 GB storage, 25 GB BW/mo                         | No          |
 
-**Total monthly cost: $0.** This is enough for a school KLTN/demo, a personal
-portfolio, or 10–50 daily active users. Past that, swap Render for a paid plan
-(see §10 below).
-
-### Why these picks and not the popular ones?
-
-- **Railway** killed its real free tier in 2023 — new accounts now get only a
-  one-time $5 trial credit. Not free in any meaningful sense.
-- **Fly.io** now requires a credit card on signup and has no real free tier for
-  new users.
-- **Koyeb** was acquired by Mistral AI on 17 Feb 2026 and stopped accepting new
-  free-tier signups.
-- **Heroku** killed its free tier in late 2022. Still dead.
-- **Vercel** is the cleanest free Vite host but it cannot run our Node API
-  (long-lived processes, file uploads, cron jobs).
-- **Supabase** is a fine Neon alternative (500 MB vs 0.5 GB DB) — pick it if you
-  ever want their bundled auth / storage / realtime. Otherwise Neon's
-  scale-to-zero is friendlier for an idle KLTN demo.
-
-Sources: [Render — Platforms with a real free tier (2026)](https://render.com/articles/platforms-with-a-real-free-tier-for-developers-in-2026),
-[Render — Deploy for Free](https://render.com/docs/free),
-[Neon — Connection pooling](https://neon.com/docs/connect/connection-pooling),
-[Vercel Hobby plan](https://vercel.com/docs/plans/hobby).
+**Total monthly cost: $0.** Render's free Postgres expires after 90 days —
+enough for a KLTN defence, a demo, or anything under two months.
 
 ---
 
@@ -48,12 +26,11 @@ Sources: [Render — Platforms with a real free tier (2026)](https://render.com/
 Sign up (all free, no card) before touching the repo:
 
 1. **GitHub** — code host. Push this repo public or private; both work.
-2. **Neon** — <https://console.neon.tech> — sign in with GitHub.
-3. **Render** — <https://dashboard.render.com> — sign in with GitHub.
-4. **Vercel** — <https://vercel.com/signup> — sign in with GitHub.
-5. **Groq Cloud** — <https://console.groq.com/keys>.
-6. **Google AI Studio** (for Gemini) — <https://aistudio.google.com/apikey>.
-7. **Cloudinary** — <https://cloudinary.com/users/register/free>.
+2. **Render** — <https://dashboard.render.com> — sign in with GitHub.
+3. **Vercel** — <https://vercel.com/signup> — sign in with GitHub.
+4. **Groq Cloud** — <https://console.groq.com/keys>.
+5. **Google AI Studio** (for Gemini) — <https://aistudio.google.com/apikey>.
+6. **Cloudinary** — <https://cloudinary.com/users/register/free>.
 
 Stripe is optional. The course-purchase flow runs without it if you skip the
 checkout endpoint. The dev-only `/api/enroll/confirm/:courseId` (auto-enabled
@@ -61,54 +38,61 @@ when `NODE_ENV !== 'production'`) lets you fake paid enrollments for testing.
 
 ---
 
-## 1. Database — Neon (free Postgres)
+## 1. Database — Render PostgreSQL
 
-**Why Neon, not Supabase.** Neon's free plan suspends after 5 min idle and wakes
-in ~300 ms, so a sleeping demo costs zero CU-hours. Supabase keeps the DB warm
-24/7 and counts toward the 500 MB cap. For a school project that sits idle most
-of the time, Neon stretches the free quota further. Either works.
+### 1.1 Create the Postgres instance
 
-### 1.1 Create the project
+1. Render dashboard → **New +** → **PostgreSQL**.
+2. Settings:
+   - **Name**: `elearning-db`
+   - **Region**: Oregon (same region as your backend — required for the
+     internal URL to work)
+   - **PostgreSQL version**: 16
+   - **Instance Type**: **Free**
+3. Click **Create Database**. Provisioning takes ~1 minute.
+4. On the database detail page, scroll to **Connections**. Copy:
+   - **Internal Database URL** — used by the backend (free, no egress charge) postgresql://elearning_db_44pj_user:KYzKHDxJSWSkFxnwlNH5uHYSmVMonfTv@dpg-d8jdflmk1jcs73f7n010-a/elearning_db_44pj
+   - **External Database URL** — used from your laptop for migrations/seed
+   External Database URL
+Connect from services outside of Render.
+postgresql://elearning_db_44pj_user:KYzKHDxJSWSkFxnwlNH5uHYSmVMonfTv@dpg-d8jdflmk1jcs73f7n010-a.singapore-postgres.render.com/elearning_db_44pj
 
-1. Log into Neon → **New Project**.
-2. Postgres version: **16** (matches local Docker).
-3. Region: pick the one closest to where Render hosts your backend
-   (Render's free region is **Oregon/US-West**; choose Neon **AWS us-west-2**).
-4. After creation, Neon shows two connection strings. **Copy both.**
-   - **Pooled** (has `-pooler` in the hostname) — use as `DATABASE_URL`
-   - **Direct** (no `-pooler`) — use as `DIRECT_URL`
+PSQL Command
+Connect using the
+Render CLI
+render psql dpg-d8jdflmk1jcs73f7n010-a
 
-   Modern Prisma 6 only *requires* the pooled URL for runtime, but the direct
-   URL is still recommended for `prisma migrate deploy` to avoid PgBouncer
-   prepared-statement quirks ([Neon docs](https://neon.com/docs/guides/prisma)).
+> **Internal vs External:** The internal URL only works from within Render's
+> network (i.e. your backend web service). Use it for `DATABASE_URL` on the
+> web service. Use the external URL from your local machine when running
+> `prisma migrate deploy` or seeding.
 
-### 1.2 Add `directUrl` to the Prisma schema
+### 1.2 Prisma schema — no `directUrl` needed
 
-Open `packages/api/prisma/schema.prisma` and update the `datasource` block:
+Unlike Neon (which uses PgBouncer), Render Postgres is a plain Postgres
+connection. Open `packages/api/prisma/schema.prisma` and make sure the
+`datasource` block is:
 
 ```prisma
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 ```
 
-Commit and push. Locally you can leave `DIRECT_URL` blank — Prisma falls back to
-`DATABASE_URL`.
+Remove `directUrl` if it's there. Commit and push.
 
-### 1.3 Run migrations against Neon
+### 1.3 Run migrations from your laptop
 
-From your laptop, with `DATABASE_URL` + `DIRECT_URL` set to the Neon strings:
+With the **External Database URL** in hand:
 
 ```bash
 cd packages/api
-npx prisma migrate deploy   # applies the 13 migrations in prisma/migrations
-npx prisma db seed          # if you have a seed script; otherwise skip
+DATABASE_URL='<render-external-url>' npx prisma migrate deploy
 ```
 
-If you do not have a seed script, see §7 below for how to import the local
-`elearning-pg` Docker dump into Neon.
+This applies all migrations to the Render Postgres instance. Idempotent — safe
+to re-run.
 
 ---
 
@@ -149,8 +133,7 @@ and `vectorStore.service.ts`). You just need keys.
 
 ### 4.1 One-time repo prep — already done
 
-The repo now ships with these scripts in `packages/api/package.json`
-(committed in the same change as this doc):
+The repo now ships with these scripts in `packages/api/package.json`:
 
 ```jsonc
 {
@@ -171,24 +154,16 @@ The repo now ships with these scripts in `packages/api/package.json`
 
 > **Heads-up on dev-deps.** `typescript` and `@types/*` are still in
 > `devDependencies`. Render runs the install at build time with dev deps
-> available, so `tsc` resolves. But if you ever flip Render to a "production
-> install" or set `NODE_ENV=production` so early that it skips dev deps, the
-> build will fail with `tsc: not found`. The bulletproof fix is to add
-> `NPM_CONFIG_PRODUCTION=false` as a build-time env var on Render, or
-> override the install command to `pnpm install --frozen-lockfile --prod=false`.
+> available, so `tsc` resolves. If you ever hit `tsc: not found`, add
+> `NPM_CONFIG_PRODUCTION=false` as a build-time env var on Render, or use
+> `pnpm install --frozen-lockfile --prod=false` as the install command.
 
-### 4.2 Delete the old Railway configs
-
-`packages/api/railpack.toml` and `packages/api/nixpacks.toml` both call
-`pnpm dev` as the start command (ts-node, slow). They're harmless on Render
-but they leak intent — delete them or leave them, your call.
-
-### 4.3 Create the Render service
+### 4.2 Create the Render web service
 
 1. Dashboard → **New +** → **Web Service** → connect this GitHub repo.
 2. Settings:
    - **Name**: `elearning-api`
-   - **Region**: Oregon (matches Neon `us-west-2`)
+   - **Region**: Oregon (must match the DB region)
    - **Branch**: `deploy`
    - **Root Directory**: `packages/api`
    - **Runtime**: Node
@@ -200,16 +175,15 @@ but they leak intent — delete them or leave them, your call.
    - **Instance Type**: **Free**
 
    Why `corepack enable`? Render's Node image ships npm by default; corepack
-   activates the pnpm version pinned in the root `package.json`'s
-   `packageManager` field (`pnpm@10.2.0`, already set).
+   activates the pnpm version pinned in `packageManager` in root
+   `package.json`.
 
 3. **Environment** tab → paste this block (replace `…` with real values):
 
    ```env
    NODE_ENV=production
    PORT=3001
-   DATABASE_URL=postgresql://USER:PASS@HOST-pooler.us-west-2.aws.neon.tech/DBNAME?sslmode=require
-   DIRECT_URL=postgresql://USER:PASS@HOST.us-west-2.aws.neon.tech/DBNAME?sslmode=require
+   DATABASE_URL=<render-internal-database-url>
    JWT_SECRET=<generate a 32-char random string>
    BCRYPT_SALT_ROUNDS=10
 
@@ -246,24 +220,29 @@ but they leak intent — delete them or leave them, your call.
    FROM_NAME=E-Learning Platform
    ```
 
-4. **Create Web Service.** First build takes 3–5 minutes. Watch the log for the
-   `[server]: Server is running at http://localhost:3001` line.
+   > **DATABASE_URL** must be the **Internal** URL from §1.1 — the one that
+   > starts with `postgres://...@dpg-...internal/...`. The external URL works
+   > too but wastes Render's egress budget.
 
-5. Note the public URL — `https://elearning-api-xxxx.onrender.com`. You'll need
-   it for the Vercel `VITE_API_URL` in §5.
+4. **Create Web Service.** First build takes 3–5 minutes. Watch the log for
+   `[server]: Server is running at http://localhost:3001`.
 
-### 4.4 Apply migrations on the live DB
+5. Note the public URL — `https://elearning-api-xxxx.onrender.com`. You'll
+   need it for the Vercel `VITE_API_URL` in §5.
 
-In the Render dashboard, open the **Shell** tab of your service (or run it
-locally with the Neon credentials) and execute:
+### 4.3 Apply migrations on the live DB
+
+In the Render dashboard, open the **Shell** tab of your web service and run:
 
 ```bash
 npx prisma migrate deploy
 ```
 
-This applies all 13 migrations to Neon. Idempotent — safe to re-run.
+This applies all migrations to the Render Postgres. Idempotent — safe to
+re-run. (Alternatively, run it from your laptop using the External URL as
+shown in §1.3.)
 
-### 4.5 Free-tier sleep behaviour — what to expect
+### 4.4 Free-tier sleep behaviour — what to expect
 
 Render free web services [spin down after 15 min of inactivity and take ~30–60 s
 to cold-start](https://render.com/docs/free) on the next request. The first
@@ -272,8 +251,8 @@ visitor after a quiet night will see a loading spinner for up to a minute.
 If that's a deal-breaker (e.g. demo day), use one of these workarounds:
 
 - **UptimeRobot** (free) → ping `https://<your-api>.onrender.com/api/categories`
-  every 5 min. Trivial but technically violates Render's spirit-of-the-rules.
-- **GitHub Actions cron** → same idea, free, official-ish.
+  every 5 min. Keeps the service warm.
+- **GitHub Actions cron** → same idea, no third-party account needed.
 - Upgrade to Render Starter ($7/mo) → no spin-down.
 
 The 750 instance-hours/mo budget covers one service running 24/7 (744 h in a
@@ -325,8 +304,8 @@ The API's CORS middleware should already accept `FRONTEND_URL`. Verify in
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 ```
 
-If it doesn't read `FRONTEND_URL`, patch it now or your browser will block every
-fetch with `CORS policy: No 'Access-Control-Allow-Origin' header`.
+If it doesn't read `FRONTEND_URL`, patch it now or your browser will block
+every fetch with `CORS policy: No 'Access-Control-Allow-Origin' header`.
 
 ---
 
@@ -334,10 +313,10 @@ fetch with `CORS policy: No 'Access-Control-Allow-Origin' header`.
 
 Sanity-check by hitting these URLs in the browser:
 
-| URL                                          | Expected                |
-|----------------------------------------------|-------------------------|
-| `https://<api>.onrender.com/api/categories`  | JSON array of 9 items   |
-| `https://<api>.onrender.com/api/courses`     | JSON array of courses   |
+| URL                                          | Expected                        |
+|----------------------------------------------|---------------------------------|
+| `https://<api>.onrender.com/api/categories`  | JSON array of 9 items           |
+| `https://<api>.onrender.com/api/courses`     | JSON array of courses           |
 | `https://<web>.vercel.app/`                  | Homepage renders, lists courses |
 | Login flow on the Vercel URL                 | Sets JWT in localStorage, redirects |
 
@@ -379,14 +358,12 @@ a zero-decimal currency — `unit_amount` would need to drop the `* 100`.
 ### 6.5.2 Create the Stripe account
 
 1. <https://dashboard.stripe.com/register> — email + password, that's it.
-2. Skip "Activate payments" for now (that's the business-verification step
-   required only for Live mode). You'll land in **Test mode** automatically —
-   the orange "TEST" banner at the top of the dashboard is your friend.
+2. Skip "Activate payments" for now. You'll land in **Test mode** automatically.
 3. Top-right toggle should read **Test mode**. Leave it there.
 
 ### 6.5.3 Grab the test secret key
 
-1. Dashboard → **Developers → API keys** ([direct link](https://dashboard.stripe.com/test/apikeys)).
+1. Dashboard → **Developers → API keys**.
 2. Reveal the **Secret key** (`sk_test_…`). Copy it.
 
 ### 6.5.4 Add the four env vars to Render
@@ -397,33 +374,19 @@ In the Render dashboard for `elearning-api` → **Environment**:
 STRIPE_SECRET_KEY=sk_test_…
 STRIPE_SUCCESS_URL=https://<your-vercel-app>.vercel.app/payment/success
 STRIPE_CANCEL_URL=https://<your-vercel-app>.vercel.app/payment/cancel
-# STRIPE_WEBHOOK_SECRET — leave blank for now, you'll fill it in 6.5.5
+# STRIPE_WEBHOOK_SECRET — leave blank for now, fill in after 6.5.5
 ```
-
-Save. Render redeploys. Checkout-session creation now works; the webhook will
-keep failing signature verification until §6.5.5.
 
 ### 6.5.5 Register the webhook endpoint
 
-This is the step everyone gets wrong on their first deploy.
-
-1. Stripe dashboard → **Developers → Webhooks** → **Add an endpoint**
-   ([direct link](https://dashboard.stripe.com/test/webhooks/create)).
+1. Stripe dashboard → **Developers → Webhooks** → **Add an endpoint**.
 2. **Endpoint URL**:
    ```
    https://<your-render-app>.onrender.com/api/stripe-webhook
    ```
-   No trailing slash. Note the path is `/api/stripe-webhook`, not
-   `/webhooks/stripe` or any of the other names you'll see in tutorials.
-3. **Listen to**: `Events on your account`.
-4. **Select events** → pick **`checkout.session.completed`** only. That's the
-   single event our handler reacts to. (Adding more events doesn't break
-   anything — they'll be received and ignored — but it wastes Stripe's
-   retry budget on payloads we don't care about.)
-5. **API version**: leave on "Latest".
-6. **Add endpoint**.
-7. On the next screen, **Signing secret → Reveal**. Copy the `whsec_…` value.
-8. Back to Render → Environment → set:
+3. **Select events** → pick **`checkout.session.completed`** only.
+4. **Add endpoint** → **Signing secret → Reveal**. Copy the `whsec_…` value.
+5. Back to Render → Environment:
    ```env
    STRIPE_WEBHOOK_SECRET=whsec_…
    ```
@@ -432,114 +395,66 @@ This is the step everyone gets wrong on their first deploy.
 ### 6.5.6 Test the full flow end-to-end
 
 1. Log into your Vercel frontend as a student.
-2. Find a paid course (price > 0 — `course 1: Học React JS từ Zero đến Hero`
-   is paid in the default seed). Click **Buy**.
-3. You'll be redirected to Stripe Checkout. Use this magic test card:
+2. Find a paid course (price > 0). Click **Buy**.
+3. Stripe Checkout — use this test card:
    ```
    Card number   : 4242 4242 4242 4242
    Expiry        : any future date (e.g. 12/30)
-   CVC           : any 3 digits (e.g. 123)
-   ZIP / postcode: any (e.g. 90210)
+   CVC           : any 3 digits
+   ZIP / postcode: any
    ```
-   ([Full list of Stripe test cards](https://docs.stripe.com/testing#cards) —
-   `4000 0000 0000 0002` simulates a decline, `4000 0027 6000 3184` triggers
-   3-D Secure, etc.)
-4. Complete payment. You'll be redirected to `STRIPE_SUCCESS_URL`.
-5. **Verify the webhook arrived**: Stripe dashboard → Developers → Webhooks →
-   your endpoint → **Events** tab. You should see one
-   `checkout.session.completed` row with a green **200**. If it's red, see
-   §11 of this doc.
-6. **Verify the enrollment was created**: log into the student's account on
-   your frontend; the course should now appear under "My courses" with a PAID
-   badge.
+4. Complete payment → redirected to `STRIPE_SUCCESS_URL`.
+5. Stripe dashboard → Developers → Webhooks → your endpoint → **Events** tab.
+   You should see a `checkout.session.completed` row with a green **200**.
+6. The course should now appear under "My courses" with a PAID badge.
 
 ### 6.5.7 Local development — forward webhooks with the Stripe CLI
 
-In production, Stripe POSTs straight to your Render URL. Locally, Stripe can't
-reach `localhost:3001`, so you need the CLI to tunnel events into your
-machine.
-
 ```bash
-# Install (one-time)
-#   macOS:    brew install stripe/stripe-cli/stripe
-#   Windows:  scoop install stripe
-#   Linux:    https://github.com/stripe/stripe-cli/releases
-
-stripe login                                        # opens browser, OAuth
+stripe login
 stripe listen --forward-to localhost:3001/api/stripe-webhook
 ```
 
-The CLI prints a *different* `whsec_…` signing secret on startup — that's the
-**local** webhook secret, used only when forwarding through the CLI. Put it
-in `packages/api/.env` as `STRIPE_WEBHOOK_SECRET` for local testing. The
-production secret on Render stays untouched.
-
-While `stripe listen` is running, every Stripe event gets mirrored to your
-laptop and to the Render endpoint, so you can debug locally without breaking
-the deployed flow.
+The CLI prints a local `whsec_…` — put it in `packages/api/.env` as
+`STRIPE_WEBHOOK_SECRET` for local testing only.
 
 ### 6.5.8 Free-tier cold-start interaction
 
-Render's 15-min sleep is a real concern here. When Stripe POSTs to your
-webhook and the service is asleep:
+When Stripe POSTs to your webhook and the Render service is asleep:
 
-1. The first POST gets a 502 / timeout while Render spins up (~30–60 s).
-2. Stripe sees the failure and retries — [the schedule is exponential, ~3
-   days total](https://docs.stripe.com/webhooks#retries), so you do not lose
+1. First POST gets a 502 while Render spins up (~30–60 s).
+2. Stripe retries on an exponential schedule (~3 days total) — you do not lose
    the event.
 3. The second attempt usually hits a warm server and succeeds.
 
-In practice the enrollment is granted within a minute of payment, but if a
-student reports "I paid but don't have the course", check the Webhook **Events**
-tab in Stripe — you'll usually see a red row followed by a green one a few
-seconds later. The uptime-monitor keep-alive in §9 eliminates this entirely.
-
-### 6.5.9 Going to Live mode (real payments)
-
-Only do this when the project is past KLTN. The flow:
-
-1. Stripe dashboard → **Activate payments** → fill in business details + bank
-   account. Vietnam is supported via Stripe Atlas or a local payment-card
-   reseller; for a school project, keep it in Test mode.
-2. Switch the dashboard toggle from **Test** → **Live**.
-3. Regenerate the Secret key in Live mode (`sk_live_…`) and re-create the
-   webhook endpoint in Live mode (Live and Test have separate webhook
-   registrations and separate signing secrets — this is the most common cause
-   of "it works locally but breaks in prod after going live").
-4. Update Render env vars `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` to
-   the Live values.
+The UptimeRobot keep-alive in §4.4 eliminates this entirely.
 
 ---
 
 ## 7. Seed the database
 
-You have two seed options:
-
-### Option A — Re-run your local seed script against Neon
-
-If `packages/api/prisma/seed.ts` (or `seed.js`) exists, point `DATABASE_URL` at
-Neon locally and run:
+### Option A — Re-run your local seed script against Render
 
 ```bash
 cd packages/api
-DATABASE_URL='<neon-pooled-url>' DIRECT_URL='<neon-direct-url>' npx prisma db seed
+DATABASE_URL='<render-external-url>' npx prisma db seed
 ```
 
-### Option B — Dump local Docker → restore to Neon
+### Option B — Dump local Docker → restore to Render
 
 If you only have data in the local `elearning-pg` container and no seed script:
 
 ```bash
-# Dump from local container (Bash on Windows)
+# Dump from local container
 docker exec elearning-pg pg_dump -U postgres -d elearning \
   --no-owner --no-acl --clean --if-exists \
   > elearning_dump.sql
 
-# Restore to Neon (use the DIRECT URL, not pooled)
-psql '<neon-direct-url>' -f elearning_dump.sql
+# Restore to Render (use the External Database URL)
+psql '<render-external-url>' -f elearning_dump.sql
 ```
 
-Verify in the Neon SQL editor: `SELECT count(*) FROM "User";` should return 12.
+Verify: `SELECT count(*) FROM "User";` should return 12.
 
 ### Test accounts after seeding
 
@@ -553,15 +468,10 @@ Verify in the Neon SQL editor: `SELECT count(*) FROM "User";` should return 12.
 
 ## 8. Smoke test on the deployed stack
 
-Re-run the focused Puppeteer test, pointed at the live URLs:
-
 ```bash
 BASE='https://<web>.vercel.app' API_BASE='https://<api>.onrender.com/api' \
   node tests/focused.test.js
 ```
-
-(`tests/focused.test.js` reads `BASE` / `API_BASE` from env if you tweak the
-top of the file — it currently hardcodes localhost. A 30-second edit.)
 
 If all 20 steps pass on the live URLs, you are deployed.
 
@@ -570,20 +480,19 @@ If all 20 steps pass on the live URLs, you are deployed.
 ## 9. Operating on free tier — gotchas to plan for
 
 - **Cold start**: 30–60 s first request after 15 min idle. Document this for
-  graders. Or wire UptimeRobot.
+  graders. Or wire UptimeRobot / a GitHub Actions cron ping.
 - **Render filesystem is ephemeral**. Anything written to disk (the `uploads/`
   dir, in-memory FAISS) is wiped on every redeploy and every cold start. The
   vector store re-ingests from the DB on first request — that's by design.
-- **Neon CU-hours**. Idle Postgres doesn't burn CU. A query against a sleeping
-  branch wakes it (one-time ~300 ms penalty) then runs normally. 100 CU-hours
-  covers ~hundreds of thousands of light queries — enough.
-- **Cloudinary 25 GB bandwidth**. Video streaming will eat this fast. Either
-  cap upload size, or move video to a free-tier video host (Bunny.net,
-  Cloudflare Stream beta) when you outgrow it.
-- **Vercel Hobby is non-commercial only.** Per
-  [Vercel's plan terms](https://vercel.com/docs/plans/hobby), you cannot run
-  ads or charge money on a Hobby site. For a KLTN/portfolio, fine. For a real
-  product, $20/mo Pro.
+- **Render Postgres expires after 90 days.** For a KLTN demo or a 2-week
+  presentation window this is irrelevant. If you need to extend, migrate the
+  data to a fresh Render Postgres instance before day 90.
+- **Cloudinary 25 GB bandwidth**. Video streaming will eat this fast. Cap
+  upload sizes or move video to a free-tier video host (Bunny.net, Cloudflare
+  Stream beta) when you outgrow it.
+- **Vercel Hobby is non-commercial only.** Per Vercel's plan terms, you cannot
+  run ads or charge money on a Hobby site. For a KLTN/portfolio, fine. For a
+  real product, $20/mo Pro.
 
 ---
 
@@ -592,13 +501,14 @@ If all 20 steps pass on the live URLs, you are deployed.
 | Trigger                                    | Cheapest next step                                   |
 |--------------------------------------------|------------------------------------------------------|
 | Cold start hurts demo                      | Render Starter — $7/mo, no sleep                     |
-| DB > 0.5 GB                                | Neon Launch — $19/mo, 10 GB                          |
+| DB > 1 GB or need > 90 days                | Render Postgres paid — $7/mo, 1 GB                   |
 | Cloudinary BW > 25 GB                      | Cloudinary Plus — $89/mo, or move video to Bunny.net |
 | Groq rate-limited                          | Groq Developer — pay-per-token, ~$0.05/M tokens      |
 | Need commercial use on frontend            | Vercel Pro — $20/mo                                  |
 
-A reasonable "I have paying users" budget: **Render Starter $7 + Neon Launch
-$19 + Vercel Pro $20 = $46/mo**. Stripe/Cloudinary still free at that scale.
+A reasonable "I have paying users" budget: **Render Starter $7 + Render Postgres
+$7 + Vercel Pro $20 = $34/mo**. Stripe/Cloudinary/Groq/Gemini still free at
+that scale.
 
 ---
 
@@ -606,38 +516,28 @@ $19 + Vercel Pro $20 = $46/mo**. Stripe/Cloudinary still free at that scale.
 
 | Symptom                                        | Likely cause                                          |
 |------------------------------------------------|-------------------------------------------------------|
-| Render build fails `tsc: not found`            | TypeScript got pruned. Add `NPM_CONFIG_PRODUCTION=false` env var, or move `typescript` to `dependencies`. |
+| Render build fails `tsc: not found`            | TypeScript got pruned. Add `NPM_CONFIG_PRODUCTION=false` env var. |
 | Render build fails `Cannot find module 'pnpm'` | Missing `corepack enable` in build command, or no `packageManager` field in root `package.json`. |
-| `P1001: Can't reach database server`           | Wrong Neon URL, or missing `?sslmode=require`.        |
-| `prepared statement "s0" already exists`       | You're using the pooled URL for `prisma migrate`. Use `DIRECT_URL` for migrations, pooled for runtime. |
+| `P1001: Can't reach database server`           | Using External URL from inside Render (use Internal URL), or missing `?sslmode=require`. |
 | `CORS error` in browser                        | `FRONTEND_URL` on Render doesn't match the Vercel URL exactly (https vs http, trailing slash). |
 | Cold-start 502 on Render                       | Normal for free tier. Wait ~60 s and retry.           |
 | Files uploaded but 404 on next deploy          | Render disk is ephemeral. Confirm Cloudinary is wired and `CLOUDINARY_*` env vars are set. |
 | 500 on `/api/rag/...`                          | Vector store re-ingest in progress on first request. Wait 10 s and retry. |
-| Stripe webhook returns 400 "No signatures found matching the expected signature for payload" | `STRIPE_WEBHOOK_SECRET` doesn't match this endpoint's signing secret. Each endpoint in Stripe has its own `whsec_…`; the Live and Test endpoints have **different** secrets. Copy the one shown under your specific endpoint, not from anywhere else. |
-| Stripe webhook returns 400 "Missing raw request body" | Some middleware ran before `express.json` and consumed the body. Check `packages/api/src/index.ts` — the `express.json({ verify })` block at line 46 must run **before** any route handler and the webhook route must be `/api/stripe-webhook` (matched by `originalUrl` on line 48). |
-| Payment succeeds but enrollment never appears  | Open Stripe → Developers → Webhooks → your endpoint → Events. If the row is red, copy the response body — it's the actual error from your API. If the row is missing entirely, the URL on the endpoint is wrong. |
-| Stripe Checkout shows "Something went wrong" before the card form | `STRIPE_SECRET_KEY` not set on Render, or it's a Live key while the dashboard is in Test mode (or vice versa). |
-| Local `stripe listen` works but Render webhook fails | You copied the CLI's local `whsec_…` into Render. Use the dashboard endpoint's signing secret, not the CLI's. |
+| Stripe webhook 400 "No signatures found"       | `STRIPE_WEBHOOK_SECRET` doesn't match this endpoint's signing secret. Copy it from the specific endpoint page in Stripe, not from anywhere else. |
+| Stripe webhook 400 "Missing raw request body"  | Some middleware ran before `express.json` and consumed the body. The `express.json({ verify })` block in `packages/api/src/index.ts` must run before any route handler. |
+| Payment succeeds but enrollment never appears  | Stripe → Developers → Webhooks → endpoint → Events. Red row = error from your API; missing row = wrong endpoint URL. |
+| DB connection works locally but fails on Render | You set the External URL in Render env vars. Replace with the Internal URL. |
 
 ---
 
 ## Sources
 
 - [Render — Deploy for Free](https://render.com/docs/free)
-- [Render — Platforms with a real free tier for developers in 2026](https://render.com/articles/platforms-with-a-real-free-tier-for-developers-in-2026)
-- [Neon — Connect from Prisma](https://neon.com/docs/guides/prisma)
-- [Neon — Connection pooling](https://neon.com/docs/connect/connection-pooling)
-- [Prisma — Neon integration](https://www.prisma.io/docs/orm/v6/overview/databases/neon)
+- [Render — PostgreSQL free tier](https://render.com/docs/databases)
 - [Vercel — Hobby plan limits](https://vercel.com/docs/plans/hobby)
-- [Vercel — Limits reference](https://vercel.com/docs/limits)
 - [Vercel — Using Monorepos](https://vercel.com/docs/monorepos)
-- [Northflank — Best PostgreSQL hosting providers in 2026](https://northflank.com/blog/best-postgresql-hosting-providers)
-- [The Software Scout — Railway vs Render 2026](https://thesoftwarescout.com/railway-vs-render-2026-best-platform-for-deploying-apps/)
-- [Koyeb acquisition by Mistral (Feb 2026)](https://northflank.com/blog/koyeb-alternatives)
 - [Stripe — Testing & test cards](https://docs.stripe.com/testing)
 - [Stripe — Webhook retry behaviour](https://docs.stripe.com/webhooks#retries)
-- [Stripe CLI — listen & forward](https://docs.stripe.com/stripe-cli/overview)
 - [Groq Cloud — API keys & rate limits](https://console.groq.com/docs/rate-limits)
 - [Google AI Studio — Gemini API pricing](https://ai.google.dev/pricing)
 - [Cloudinary — Free plan](https://cloudinary.com/pricing)
