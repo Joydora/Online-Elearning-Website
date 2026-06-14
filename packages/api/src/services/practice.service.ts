@@ -1,9 +1,7 @@
 import { EnrollmentType, PrismaClient } from '@prisma/client';
-import { Ollama } from 'ollama';
+import { groq, GROQ_MODEL_FAST } from '../lib/groq';
 
 const prisma = new PrismaClient();
-const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';
 
 export async function getPracticeByContent(contentId: number) {
     return prisma.practice.findUnique({
@@ -64,7 +62,7 @@ export async function submitPractice(options: {
         throw new Error('CONTENT_LOCKED');
     }
 
-    // AI grading via Ollama
+    // AI grading via Groq
     let aiFeedback = '';
     let score = 0;
     let passed = false;
@@ -89,16 +87,16 @@ ${submittedCode}
 
 Grade this submission and return only valid JSON.`;
 
-        const response = await ollama.chat({
-            model: OLLAMA_MODEL,
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL_FAST,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
             ],
-            options: { temperature: 0.1 },
+            temperature: 0.1,
         });
 
-        const raw = response.message.content.trim();
+        const raw = (response.choices[0].message.content ?? '').trim();
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);

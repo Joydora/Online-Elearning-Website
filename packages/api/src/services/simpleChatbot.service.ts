@@ -1,4 +1,4 @@
-import { Ollama } from 'ollama';
+import { groq, GROQ_MODEL_FAST } from '../lib/groq';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -20,15 +20,8 @@ function stringifySyllabus(syllabus: unknown): string {
  * Just loads all course data and uses LLM with full context
  */
 class SimpleChatbotService {
-    private ollama: Ollama;
-    private model: string;
     private courseContext: string = '';
     private isInitialized: boolean = false;
-
-    constructor() {
-        this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-        this.model = 'gemma3:4b';
-    }
 
     /**
      * Load all course data into context
@@ -121,13 +114,12 @@ QUESTION: ${question}
 ANSWER:`;
 
         try {
-            const response = await this.ollama.generate({
-                model: this.model,
-                prompt: prompt,
-                stream: false,
+            const response = await groq.chat.completions.create({
+                model: GROQ_MODEL_FAST,
+                messages: [{ role: 'user', content: prompt }],
             });
 
-            return response.response;
+            return response.choices[0].message.content ?? '';
         } catch (error) {
             console.error('Error generating answer:', error);
             throw new Error('Could not generate answer. Please try again later.');
@@ -159,14 +151,14 @@ QUESTION: ${question}
 ANSWER:`;
 
         try {
-            const stream = await this.ollama.generate({
-                model: this.model,
-                prompt: prompt,
+            const stream = await groq.chat.completions.create({
+                model: GROQ_MODEL_FAST,
+                messages: [{ role: 'user', content: prompt }],
                 stream: true,
             });
 
             for await (const chunk of stream) {
-                yield chunk.response;
+                yield chunk.choices[0]?.delta?.content ?? '';
             }
         } catch (error) {
             console.error('Error streaming answer:', error);

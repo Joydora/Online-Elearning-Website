@@ -1,11 +1,9 @@
 import { PrismaClient, ContentType, EnrollmentType } from '@prisma/client';
-import { Ollama } from 'ollama';
+import { groq, GROQ_MODEL_FAST } from '../lib/groq';
 import { issueCertificateForEnrollment } from './certificate.service';
 import { recordActivity } from './gamification.service';
 
 const prisma = new PrismaClient();
-const ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';
 
 // EPIC 7: weighted progress formula
 // video × 0.4 + quiz × 0.3 + practice × 0.3
@@ -233,12 +231,12 @@ ${practiceScores.length > 0 ? `Practice: ${practiceScores.map((p) => `${p.title}
 Please provide a brief summary (2-3 sentences) in English about this student's strengths and areas for improvement.`;
 
     try {
-        const response = await ollama.chat({
-            model: OLLAMA_MODEL,
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL_FAST,
             messages: [{ role: 'user', content: prompt }],
-            options: { temperature: 0.7 },
+            temperature: 0.7,
         });
-        return response.message.content.trim();
+        return (response.choices[0].message.content ?? '').trim();
     } catch {
         return `You have completed ${detail.progress}% of the course. Keep up the good work to achieve better results!`;
     }

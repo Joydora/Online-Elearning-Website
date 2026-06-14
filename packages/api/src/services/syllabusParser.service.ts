@@ -1,10 +1,8 @@
 import { ContentType, PrismaClient, Role } from '@prisma/client';
-import { Ollama } from 'ollama';
+import { groq, GROQ_MODEL_SMART } from '../lib/groq';
 import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
-const ollama = new Ollama({ host: process.env.OLLAMA_HOST || 'http://127.0.0.1:11434' });
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'gemma3:4b';  // User configured with gemma2:2b
 
 const SYSTEM_PROMPT = `You are a curriculum designer. Given a course syllabus text, extract and structure it into chapters and lessons.
 Return ONLY valid JSON in this exact format (no markdown, no explanation):
@@ -52,16 +50,16 @@ export async function assertCanManageSyllabusCourse(
 }
 
 export async function parseSyllabus(text: string): Promise<ParsedSyllabus> {
-    const response = await ollama.chat({
-        model: OLLAMA_MODEL,
+    const response = await groq.chat.completions.create({
+        model: GROQ_MODEL_SMART,
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: `Parse this syllabus:\n\n${text}` },
         ],
-        options: { temperature: 0.1 },
+        temperature: 0.1,
     });
 
-    const content = response.message.content.trim();
+    const content = (response.choices[0].message.content ?? '').trim();
     // Extract JSON from response (handle ```json ... ``` wrapping)
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('AI did not return valid JSON');

@@ -1,4 +1,4 @@
-import { Ollama } from 'ollama';
+import { groq, GROQ_MODEL_FAST, GROQ_MODEL_SMART } from '../lib/groq';
 import { vectorStoreService } from './vectorStore.service';
 import { CourseStatus, PrismaClient, Role } from '@prisma/client';
 
@@ -9,14 +9,6 @@ const prisma = new PrismaClient();
  * Combines vector search with LLM generation
  */
 class RAGService {
-    private ollama: Ollama;
-    private model: string;
-
-    constructor() {
-        // Use IPv4 to avoid IPv6 connection issues
-        this.ollama = new Ollama({ host: 'http://127.0.0.1:11434' });
-        this.model = 'gemma3:4b'; // Using gemma3:4b model
-    }
 
     private getCourseNamespace(courseId: number): string {
         return `course:${courseId}`;
@@ -339,10 +331,9 @@ Please answer the question accurately, helpfully, and friendly. If the informati
 Answer:`;
 
         // 4. Generate answer using LLM
-        const response = await this.ollama.generate({
-            model: this.model,
-            prompt: prompt,
-            stream: false,
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL_FAST,
+            messages: [{ role: 'user', content: prompt }],
         });
 
         // 5. Prepare sources
@@ -353,7 +344,7 @@ Answer:`;
         }));
 
         return {
-            answer: response.response,
+            answer: (response.choices[0].message.content ?? '').trim(),
             sources,
         };
     }
@@ -395,14 +386,14 @@ Please answer the question accurately, helpfully, and friendly. If the informati
 Answer:`;
 
         // 4. Stream response
-        const stream = await this.ollama.generate({
-            model: this.model,
-            prompt: prompt,
+        const stream = await groq.chat.completions.create({
+            model: GROQ_MODEL_FAST,
+            messages: [{ role: 'user', content: prompt }],
             stream: true,
         });
 
         for await (const chunk of stream) {
-            yield chunk.response;
+            yield chunk.choices[0]?.delta?.content ?? '';
         }
     }
 
@@ -488,14 +479,13 @@ STUDENT QUESTION: ${input.question}
 
 ANSWER:`;
 
-        const response = await this.ollama.generate({
-            model: this.model,
-            prompt,
-            stream: false,
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL_FAST,
+            messages: [{ role: 'user', content: prompt }],
         });
 
         return {
-            answer: response.response,
+            answer: (response.choices[0].message.content ?? '').trim(),
             sources: searchResults.map((result) => ({
                 content: result.document.content,
                 score: result.score,
@@ -568,13 +558,12 @@ Please generate 5 multiple choice questions within the scope of the syllabus. Ea
 
 Answer in English, using Markdown format.`;
 
-        const response = await this.ollama.generate({
-            model: this.model,
-            prompt,
-            stream: false,
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL_FAST,
+            messages: [{ role: 'user', content: prompt }],
         });
 
-        return { suggestions: response.response };
+        return { suggestions: (response.choices[0].message.content ?? '').trim() };
     }
 
     async generateQuizJSON(input: {
@@ -671,19 +660,19 @@ ${context || 'No specific document context available.'}
 
 JSON output:`;
 
-        const response = await this.ollama.chat({
-            model: this.model,
+        const response = await groq.chat.completions.create({
+            model: GROQ_MODEL_SMART,
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
+                { role: 'user', content: userPrompt },
             ],
-            options: { temperature: 0.3 }
+            temperature: 0.3,
         });
 
-        const content = response.message.content.trim();
+        const content = (response.choices[0].message.content ?? '').trim();
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-            console.error('Raw Ollama Output:', content);
+            console.error('Raw AI Output:', content);
             throw new Error('AI did not return valid JSON');
         }
 
