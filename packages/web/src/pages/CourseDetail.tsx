@@ -49,7 +49,6 @@ type CourseDetailType = {
     price: number;
     trialDurationDays?: number | null;
     thumbnailUrl?: string;
-    trialDurationDays?: number | null;
     teacher: {
         id?: number;
         userId?: number;
@@ -161,21 +160,6 @@ export default function CourseDetail() {
         setAppliedPromotion(null);
         setPromotionCode('');
     };
-
-    const trialMutation = useMutation({
-        mutationFn: async (courseId: number) => {
-            const { data } = await apiClient.post(`/enroll/trial/${courseId}`);
-            return data;
-        },
-        onSuccess: async () => {
-            await showSuccessAlert('Đăng ký thử thành công!', course?.trialDurationDays != null ? `Bạn có ${course.trialDurationDays} ngày học thử miễn phí.` : 'Chúc bạn học tốt!');
-            navigate(`/learning/${course?.courseId || course?.id}`);
-        },
-        onError: (error: any) => {
-            const msg = error.response?.data?.error || 'Không thể đăng ký học thử.';
-            showErrorAlert('Lỗi', msg);
-        },
-    });
 
     const enrollMutation = useMutation({
         mutationFn: async (courseId: number) => {

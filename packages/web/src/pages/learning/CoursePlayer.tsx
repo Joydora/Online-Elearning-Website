@@ -179,10 +179,6 @@ export default function CoursePlayer() {
         return enrollment?.type !== 'TRIAL' || !!content.isFreePreview;
     };
 
-    // Derived from state — declared here so useEffect dependency arrays don't hit the TDZ
-    const currentModule = course?.modules.find(m => m.moduleId === currentModuleId);
-    const currentContent = currentModule?.contents.find(c => c.contentId === currentContentId);
-
     // Fetch completed contents
     const { data: completedData } = useQuery<{ completedContentIds: number[] }>({
         queryKey: ['completed-contents', courseId],
