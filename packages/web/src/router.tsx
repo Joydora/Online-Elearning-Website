@@ -34,6 +34,9 @@ import ManageProjects from './pages/teacher/ManageProjects';
 import CoursePlayer from './pages/learning/CoursePlayer';
 import ProgressPage from './pages/learning/Progress';
 import StudentProjects from './pages/learning/Projects';
+import Certificate from './pages/learning/Certificate';
+import Discussion from './pages/learning/Discussion';
+import SyllabusImport from './pages/teacher/SyllabusImport';
 import AdminDashboard from './pages/admin/Dashboard';
 import ManageCategories from './pages/admin/ManageCategories';
 import ManageUsers from './pages/admin/ManageUsers';
@@ -183,22 +186,9 @@ export const router = createBrowserRouter([
                         path: '/learning/:courseId/projects',
                         element: <StudentProjects />,
                     },
-                ],
-            },
-            {
-                element: <RoleRoute requiredRole="STUDENT" />,
-                children: [
-                    {
-                        path: '/learning/:courseId/progress',
-                        element: <Progress />,
-                    },
                     {
                         path: '/learning/:courseId/certificate',
                         element: <Certificate />,
-                    },
-                    {
-                        path: '/learning/:courseId/projects',
-                        element: <Projects />,
                     },
                     {
                         path: '/learning/:courseId/discussions',
