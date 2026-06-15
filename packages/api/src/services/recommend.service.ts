@@ -20,6 +20,91 @@ function cosineSimilarity(a: number[], b: number[]): number {
     return dot / (Math.sqrt(magA) * Math.sqrt(magB));
 }
 
+const SYNONYMS: Record<string, string[]> = {
+    'anh': ['english', 'grammar', 'ielts', 'toeic', 'toefl', 'esl'],
+    'english': ['anh', 'tieng anh'],
+    'tieng': ['english'],
+    'python': ['python', 'py'],
+    'react': ['react', 'js', 'jsx', 'frontend'],
+    'typescript': ['typescript', 'ts'],
+    'javascript': ['javascript', 'js'],
+    'js': ['javascript', 'js'],
+    'html': ['html', 'css', 'web'],
+    'css': ['html', 'css', 'web'],
+    'sql': ['sql', 'postgres', 'postgresql', 'database', 'db'],
+    'database': ['sql', 'postgres', 'postgresql', 'database', 'db'],
+    'db': ['sql', 'postgres', 'postgresql', 'database', 'db'],
+    'toan': ['calculus', 'math', 'algebra', 'linear'],
+    'math': ['toan', 'calculus', 'algebra', 'linear'],
+    'calculus': ['toan', 'calculus', 'math'],
+    'algebra': ['toan', 'algebra', 'linear', 'math'],
+    'thuat': ['algorithm', 'algorithms', 'structure', 'structures'],
+    'toan_thuat': ['algorithm', 'algorithms', 'structure', 'structures'],
+    'test': ['test', 'testing', 'qa'],
+    'testing': ['test', 'testing', 'qa'],
+    'developer': ['dev', 'devs', 'developer', 'developers', 'coder', 'coders', 'programmer', 'programmers', 'develop', 'development', 'programming', 'software', 'web', 'code', 'coding'],
+    'developers': ['dev', 'devs', 'developer', 'developers', 'coder', 'coders', 'programmer', 'programmers', 'develop', 'development', 'programming', 'software', 'web', 'code', 'coding'],
+    'dev': ['dev', 'devs', 'developer', 'developers', 'coder', 'coders', 'programmer', 'programmers', 'develop', 'development', 'programming', 'software', 'web', 'code', 'coding'],
+    'devs': ['dev', 'devs', 'developer', 'developers', 'coder', 'coders', 'programmer', 'programmers', 'develop', 'development', 'programming', 'software', 'web', 'code', 'coding'],
+    'coder': ['dev', 'devs', 'developer', 'developers', 'coder', 'coders', 'programmer', 'programmers', 'develop', 'development', 'programming', 'software', 'web', 'code', 'coding'],
+    'programmer': ['dev', 'devs', 'developer', 'developers', 'coder', 'coders', 'programmer', 'programmers', 'develop', 'development', 'programming', 'software', 'web', 'code', 'coding'],
+};
+
+const STOP_WORDS = new Set([
+    'hoc', 'khoa', 'toi', 'muon', 'can', 'cho', 'va', 'la', 'co', 'de',
+    'i', 'want', 'to', 'learn', 'course', 'courses', 'and', 'the', 'a', 'in', 'of', 'become'
+]);
+
+function normalizeText(text: string): string {
+    return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9\s]/g, ' ');
+}
+
+function getKeywordScore(goal: string, title: string, description: string): number {
+    const goalNorm = normalizeText(goal);
+    const courseNorm = normalizeText(`${title} ${description}`);
+
+    const goalTokens = goalNorm.split(/\s+/).filter(t => t && !STOP_WORDS.has(t));
+    const courseTokens = courseNorm.split(/\s+/).filter(Boolean);
+    const courseSet = new Set(courseTokens);
+
+    if (goalTokens.length === 0) return 1.0;
+
+    const expandedGoalSet = new Set<string>();
+    for (const token of goalTokens) {
+        expandedGoalSet.add(token);
+        if (SYNONYMS[token]) {
+            for (const syn of SYNONYMS[token]) {
+                expandedGoalSet.add(syn);
+            }
+        }
+    }
+
+    if (goalNorm.includes('thuat toan')) {
+        expandedGoalSet.add('algorithm');
+        expandedGoalSet.add('algorithms');
+        expandedGoalSet.add('structure');
+        expandedGoalSet.add('structures');
+    }
+    if (goalNorm.includes('tieng anh') || goalNorm.includes('anh van')) {
+        expandedGoalSet.add('english');
+        expandedGoalSet.add('grammar');
+    }
+
+    let matches = 0;
+    for (const token of expandedGoalSet) {
+        if (courseSet.has(token)) {
+            matches++;
+        }
+    }
+
+    return matches > 0 ? matches / expandedGoalSet.size : 0;
+}
+
 export async function recommendLearningPath(options: {
     goal: string;
     currentLevel: CourseLevel;
@@ -87,32 +172,28 @@ export async function recommendLearningPath(options: {
                         const courseEmbedding = await embeddingService.generateEmbedding(courseText);
                         embeddingScore = cosineSimilarity(goalEmbedding, courseEmbedding);
                     } catch {
-                        // keyword fallback
-                        const goalWords = goal.toLowerCase().split(/\s+/);
-                        const courseText = `${course.title} ${course.description}`.toLowerCase();
-                        const matches = goalWords.filter((w) => courseText.includes(w)).length;
-                        embeddingScore = matches / Math.max(goalWords.length, 1);
+                        // ignore and default to 0, since we will check keywordScore
                     }
-                } else {
-                    const goalWords = goal.toLowerCase().split(/\s+/);
-                    const courseText = `${course.title} ${course.description}`.toLowerCase();
-                    const matches = goalWords.filter((w) => courseText.includes(w)).length;
-                    embeddingScore = matches / Math.max(goalWords.length, 1);
                 }
+
+                const keywordScore = getKeywordScore(goal, course.title, course.description);
+
+                // If lexical match score is 0, relevance is 0
+                const relevanceScore = keywordScore > 0 ? (embeddingScore * 0.4 + keywordScore * 0.6) : 0;
 
                 // Level suitability: prefer courses at or just above current level
                 const courseLevelOrder = course.level ? LEVEL_ORDER[course.level] : 1;
                 const levelDiff = courseLevelOrder - currentLevelOrder;
-                // Penalize courses too far below current level, reward courses just above
                 const levelScore = levelDiff >= 0 && levelDiff <= 1 ? 1 : Math.max(0, 1 - Math.abs(levelDiff) * 0.4);
 
-                const totalScore = embeddingScore * 0.7 + levelScore * 0.3;
+                const totalScore = relevanceScore * 0.7 + levelScore * 0.3;
 
-                return { ...course, score: totalScore };
+                return { ...course, score: totalScore, relevanceScore };
             }),
     );
 
-    const filtered = scored.filter((c) => c.score > 0.1);
+    // Only allow courses with non-zero relevance score
+    const filtered = scored.filter((c) => c.relevanceScore > 0);
 
     // Build sequence that respects prerequisites as much as possible.
     // We prioritize available courses by level first, then recommendation score.
