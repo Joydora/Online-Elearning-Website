@@ -1,5 +1,5 @@
 import { EnrollmentType, PrismaClient } from '@prisma/client';
-import { groq, GROQ_MODEL_FAST } from '../lib/groq';
+import { deepseek, DEEPSEEK_MODEL_FAST } from '../lib/deepseek';
 
 const prisma = new PrismaClient();
 
@@ -87,8 +87,8 @@ ${submittedCode}
 
 Grade this submission and return only valid JSON.`;
 
-        const response = await groq.chat.completions.create({
-            model: GROQ_MODEL_FAST,
+        const response = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_FAST,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },

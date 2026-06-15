@@ -1,4 +1,4 @@
-import { groq, GROQ_MODEL_FAST } from '../lib/groq';
+import { deepseek, DEEPSEEK_MODEL_FAST } from '../lib/deepseek';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -114,8 +114,8 @@ QUESTION: ${question}
 ANSWER:`;
 
         try {
-            const response = await groq.chat.completions.create({
-                model: GROQ_MODEL_FAST,
+            const response = await deepseek.chat.completions.create({
+                model: DEEPSEEK_MODEL_FAST,
                 messages: [{ role: 'user', content: prompt }],
             });
 
@@ -151,8 +151,8 @@ QUESTION: ${question}
 ANSWER:`;
 
         try {
-            const stream = await groq.chat.completions.create({
-                model: GROQ_MODEL_FAST,
+            const stream = await deepseek.chat.completions.create({
+                model: DEEPSEEK_MODEL_FAST,
                 messages: [{ role: 'user', content: prompt }],
                 stream: true,
             });

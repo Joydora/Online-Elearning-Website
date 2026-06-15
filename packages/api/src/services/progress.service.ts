@@ -1,5 +1,5 @@
 import { PrismaClient, ContentType, EnrollmentType } from '@prisma/client';
-import { groq, GROQ_MODEL_FAST } from '../lib/groq';
+import { deepseek, DEEPSEEK_MODEL_FAST } from '../lib/deepseek';
 import { issueCertificateForEnrollment } from './certificate.service';
 import { recordActivity } from './gamification.service';
 
@@ -231,8 +231,8 @@ ${practiceScores.length > 0 ? `Practice: ${practiceScores.map((p) => `${p.title}
 Please provide a brief summary (2-3 sentences) in English about this student's strengths and areas for improvement.`;
 
     try {
-        const response = await groq.chat.completions.create({
-            model: GROQ_MODEL_FAST,
+        const response = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_FAST,
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
         });

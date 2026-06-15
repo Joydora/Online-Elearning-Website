@@ -1,4 +1,4 @@
-import { groq, GROQ_MODEL_FAST, GROQ_MODEL_SMART } from '../lib/groq';
+import { deepseek, DEEPSEEK_MODEL_FAST, DEEPSEEK_MODEL_SMART } from '../lib/deepseek';
 import { vectorStoreService } from './vectorStore.service';
 import { CourseStatus, PrismaClient, Role } from '@prisma/client';
 
@@ -331,8 +331,8 @@ Please answer the question accurately, helpfully, and friendly. If the informati
 Answer:`;
 
         // 4. Generate answer using LLM
-        const response = await groq.chat.completions.create({
-            model: GROQ_MODEL_FAST,
+        const response = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_FAST,
             messages: [{ role: 'user', content: prompt }],
         });
 
@@ -386,8 +386,8 @@ Please answer the question accurately, helpfully, and friendly. If the informati
 Answer:`;
 
         // 4. Stream response
-        const stream = await groq.chat.completions.create({
-            model: GROQ_MODEL_FAST,
+        const stream = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_FAST,
             messages: [{ role: 'user', content: prompt }],
             stream: true,
         });
@@ -479,8 +479,8 @@ STUDENT QUESTION: ${input.question}
 
 ANSWER:`;
 
-        const response = await groq.chat.completions.create({
-            model: GROQ_MODEL_FAST,
+        const response = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_FAST,
             messages: [{ role: 'user', content: prompt }],
         });
 
@@ -558,8 +558,8 @@ Please generate 5 multiple choice questions within the scope of the syllabus. Ea
 
 Answer in English, using Markdown format.`;
 
-        const response = await groq.chat.completions.create({
-            model: GROQ_MODEL_FAST,
+        const response = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_FAST,
             messages: [{ role: 'user', content: prompt }],
         });
 
@@ -660,8 +660,8 @@ ${context || 'No specific document context available.'}
 
 JSON output:`;
 
-        const response = await groq.chat.completions.create({
-            model: GROQ_MODEL_SMART,
+        const response = await deepseek.chat.completions.create({
+            model: DEEPSEEK_MODEL_SMART,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },

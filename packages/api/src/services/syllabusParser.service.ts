@@ -1,5 +1,5 @@
 import { ContentType, PrismaClient, Role } from '@prisma/client';
-import { groq, GROQ_MODEL_SMART } from '../lib/groq';
+import { deepseek, DEEPSEEK_MODEL_SMART } from '../lib/deepseek';
 import { ragService } from './rag.service';
 
 const prisma = new PrismaClient();
@@ -50,8 +50,8 @@ export async function assertCanManageSyllabusCourse(
 }
 
 export async function parseSyllabus(text: string): Promise<ParsedSyllabus> {
-    const response = await groq.chat.completions.create({
-        model: GROQ_MODEL_SMART,
+    const response = await deepseek.chat.completions.create({
+        model: DEEPSEEK_MODEL_SMART,
         messages: [
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user', content: `Parse this syllabus:\n\n${text}` },
