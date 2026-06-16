@@ -659,7 +659,7 @@ export default function Register() {
                         </div>
 
                         {/* Google Signup Button */}
-                        <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/auth/google`} className="block">
+                        <a href={`${import.meta.env.VITE_API_URL || 'https://online-elearning-website.onrender.com/api'}/auth/google`} className="block">
                             <Button
                                 type="button"
                                 variant="outline"
