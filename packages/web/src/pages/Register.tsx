@@ -65,19 +65,19 @@ export default function Register() {
                 delete registerData.cvUrl;
                 delete registerData.topics;
             }
-            
+
             const payload = {
                 ...registerData,
                 referredByCode: referredByCode || undefined
             };
-            
+
             const { data } = await apiClient.post('/auth/register', payload);
-            
+
             // Clean up localStorage on successful register call
             if (referredByCode) {
                 localStorage.removeItem('referredByCode');
             }
-            
+
             return data;
         },
         onSuccess: async (data, variables) => {
@@ -364,32 +364,28 @@ export default function Register() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <div
-                                                className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 ${
-                                                    field.value
+                                                className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 ${field.value
                                                         ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
                                                         : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                                                }`}
+                                                    }`}
                                                 onClick={() => field.onChange(!field.value)}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-300 ${
-                                                            field.value
+                                                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-300 ${field.value
                                                                 ? 'bg-emerald-100 dark:bg-emerald-900/30'
                                                                 : 'bg-zinc-100 dark:bg-zinc-800'
-                                                        }`}>
-                                                            <GraduationCap className={`h-5 w-5 transition-colors duration-300 ${
-                                                                field.value
+                                                            }`}>
+                                                            <GraduationCap className={`h-5 w-5 transition-colors duration-300 ${field.value
                                                                     ? 'text-emerald-600 dark:text-emerald-400'
                                                                     : 'text-zinc-400 dark:text-zinc-500'
-                                                            }`} />
+                                                                }`} />
                                                         </div>
                                                         <div>
-                                                            <p className={`font-semibold text-sm transition-colors duration-300 ${
-                                                                field.value
+                                                            <p className={`font-semibold text-sm transition-colors duration-300 ${field.value
                                                                     ? 'text-emerald-700 dark:text-emerald-300'
                                                                     : 'text-zinc-700 dark:text-zinc-300'
-                                                            }`}>
+                                                                }`}>
                                                                 Register as Instructor
                                                             </p>
                                                             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -399,12 +395,10 @@ export default function Register() {
                                                     </div>
 
                                                     {/* Toggle Switch */}
-                                                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
-                                                        field.value ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'
-                                                    }`}>
-                                                        <div className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ${
-                                                            field.value ? 'translate-x-5' : 'translate-x-0'
-                                                        }`}></div>
+                                                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${field.value ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'
+                                                        }`}>
+                                                        <div className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 ${field.value ? 'translate-x-5' : 'translate-x-0'
+                                                            }`}></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -414,9 +408,8 @@ export default function Register() {
 
                                 {/* Instructor Fields - Animated Section */}
                                 <div
-                                    className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                                        isInstructor ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
-                                    }`}
+                                    className={`overflow-hidden transition-all duration-500 ease-in-out ${isInstructor ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                                        }`}
                                 >
                                     <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-emerald-900/10 dark:to-teal-900/10 p-5 space-y-4">
                                         <div className="flex items-center gap-2 mb-1">
@@ -628,11 +621,10 @@ export default function Register() {
 
                                 <Button
                                     type="submit"
-                                    className={`w-full h-12 text-white font-semibold rounded-lg transition-colors duration-200 ${
-                                        isInstructor
+                                    className={`w-full h-12 text-white font-semibold rounded-lg transition-colors duration-200 ${isInstructor
                                             ? 'bg-emerald-600 hover:bg-emerald-700'
                                             : 'bg-red-600 hover:bg-red-700'
-                                    }`}
+                                        }`}
                                     disabled={registerMutation.isPending}
                                 >
                                     {registerMutation.isPending ? (
