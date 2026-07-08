@@ -1,6 +1,6 @@
 # Online E-Learning Platform
 
-A full-stack, highly interactive Online E-Learning Platform built as a graduation project (TLCN). The system supports a multi-role ecosystem (Students, Teachers, and Admins) with advanced features including video-embedded quizzes, coding practice (Monaco Editor), automated GitHub project submissions, peer-to-peer reviews, gamified learning paths, an AI teaching assistant (RAG), and a complete revenue dashboard.
+A full-stack, highly interactive Online E-Learning Platform, the system supports a multi-role ecosystem (Students, Teachers, and Admins) with advanced features including video-embedded quizzes, coding practice (Monaco Editor), automated GitHub project submissions, peer-to-peer reviews, gamified learning paths, an AI teaching assistant (RAG), and a complete revenue dashboard.
 
 The project is structured as a monorepo featuring a **React** SPA frontend and an **Express** API backend connected to a **PostgreSQL** database using Prisma ORM.
 
